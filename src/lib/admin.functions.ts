@@ -77,7 +77,7 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [{ data: profiles, error: pError }, { data: roles, error: rError }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, nome, email, created_at").order("nome"),
+      supabaseAdmin.from("profiles").select("id, name, email, created_at").order("name"),
       supabaseAdmin.from("user_roles").select("user_id, role"),
     ]);
     if (pError) throw pError;
