@@ -1,37 +1,64 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type ManagedRole = "admin" | "analista" | "operador" | "comercial" | "cliente";
+export type ManagedRole = "admin" | "supervisor" | "analista" | "operador" | "comercial" | "cliente";
 
-async function assertAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
+const PROTECTED_ADMIN_EMAIL = "larissazonetti@outlook.com";
+
+async function assertAdminOrSupervisor(context: { supabase: any; userId: string }) {
+  const { data: isAdmin, error: adminError } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
   });
-  if (error) throw error;
-  if (!data) throw new Error("Apenas administradores podem alterar acessos.");
+  if (adminError) throw adminError;
+
+  if (isAdmin) return;
+
+  const { data: isSupervisor, error: supervisorError } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "supervisor",
+  });
+  if (supervisorError) throw supervisorError;
+  if (!isSupervisor) throw new Error("Apenas administradores ou supervisores podem alterar acessos.");
 }
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { userId: string; role: ManagedRole }) => input)
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as never);
-    if (data.userId === context.userId && data.role !== "admin") {
-      throw new Error("O administrador atual não pode remover o próprio acesso de administrador.");
-    }
+    await assertAdminOrSupervisor(context as never);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    if (data.role !== "admin") {
-      const { count, error: countError } = await supabaseAdmin
-        .from("user_roles")
-        .select("user_id", { count: "exact", head: true })
-        .eq("role", "admin");
-      if (countError) throw countError;
-      if ((count ?? 0) <= 1) {
-        throw new Error("É necessário manter pelo menos um administrador.");
+    const { data: target, error: targetError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (targetError) throw targetError;
+
+    const targetIsProtectedAdmin =
+      target?.email?.toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase();
+
+    if (targetIsProtectedAdmin && data.role !== "admin") {
+      throw new Error("O Administrador principal não pode ser rebaixado ou removido.");
+    }
+
+    if (data.role === "admin" && !targetIsProtectedAdmin) {
+      const { data: requester, error: requesterError } = await supabaseAdmin
+        .from("profiles")
+        .select("email")
+        .eq("id", context.userId)
+        .maybeSingle();
+      if (requesterError) throw requesterError;
+
+      if (requester?.email?.toLowerCase() !== PROTECTED_ADMIN_EMAIL.toLowerCase()) {
+        throw new Error("Somente o Administrador principal pode definir outro Administrador.");
       }
+    }
+
+    if (data.userId === context.userId && data.role !== "admin" && targetIsProtectedAdmin) {
+      throw new Error("O Administrador principal não pode remover o próprio acesso.");
     }
 
     const { error: delError } = await supabaseAdmin
@@ -44,13 +71,14 @@ export const setUserRole = createServerFn({ method: "POST" })
       .from("user_roles")
       .insert({ user_id: data.userId, role: data.role });
     if (error) throw error;
+
     return { ok: true };
   });
 
 export const listUsersWithRoles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context as never);
+    await assertAdminOrSupervisor(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [{ data: profiles, error: pError }, { data: roles, error: rError }] = await Promise.all([
@@ -65,5 +93,6 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
       nome: (p.nome as string) ?? "",
       email: (p.email as string) ?? "",
       role: ((roles ?? []).find((r) => r.user_id === p.id)?.role as ManagedRole) ?? "operador",
+      protectedAdmin: (p.email ?? "").toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase(),
     }));
   });
