@@ -32,6 +32,7 @@ export const Route = createFileRoute("/_authenticated/cadastros/usuarios")({
 
 const ROLE_LABELS: Record<ManagedRole, string> = {
   admin: "Administrador",
+  supervisor: "Supervisor",
   analista: "Analista",
   operador: "Operador",
   comercial: "Comercial",
@@ -40,14 +41,14 @@ const ROLE_LABELS: Record<ManagedRole, string> = {
 
 function UsuariosPage() {
   const { user } = Route.useRouteContext();
-  const { isAdmin, isLoading } = useRole();
+  const { isAdmin, isSupervisor, isLoading } = useRole();
   const queryClient = useQueryClient();
   const carregar = useServerFn(listUsersWithRoles);
   const alterar = useServerFn(setUserRole);
 
   const usersQuery = useQuery({
     queryKey: ["users-roles"],
-    enabled: isAdmin,
+    enabled: isAdmin || isSupervisor,
     queryFn: async () => carregar({ data: undefined }),
   });
 
@@ -67,15 +68,15 @@ function UsuariosPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Usuários e perfis</h1>
         <p className="text-sm text-muted-foreground">
-          Administrador, Analista, Operador, Comercial e Cliente.
+          Administrador, Supervisor, Analista, Operador, Comercial e Cliente.
         </p>
       </div>
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : !isAdmin ? (
+      ) : !(isAdmin || isSupervisor) ? (
         <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
-          Apenas administradores podem gerenciar acessos.
+          Apenas administradores ou supervisores podem gerenciar acessos.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border bg-card">
@@ -99,7 +100,7 @@ function UsuariosPage() {
                       onValueChange={(role) =>
                         mudarPapel.mutate({ userId: u.id, role: role as ManagedRole })
                       }
-                      disabled={mudarPapel.isPending}
+                      disabled={mudarPapel.isPending || !isAdmin || u.protectedAdmin}
                     >
                       <SelectTrigger className="w-44">
                         <SelectValue />
@@ -114,8 +115,8 @@ function UsuariosPage() {
                     </Select>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {u.role === "admin" ? (
-                      <ShieldCheck className="ml-auto size-4" aria-label="Administrador" />
+                    {u.protectedAdmin ? (
+                      <ShieldCheck className="ml-auto size-4" aria-label="Administrador principal protegido" />
                     ) : (
                       <UserCog className="ml-auto size-4 text-muted-foreground" aria-label="Usuário" />
                     )}
