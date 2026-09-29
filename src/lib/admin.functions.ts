@@ -6,12 +6,19 @@ export type ManagedRole = "admin" | "supervisor" | "analista" | "operador" | "co
 const PROTECTED_ADMIN_EMAIL = "larissazonetti@outlook.com";
 
 async function assertAdminOrSupervisor(context: { supabase: any; userId: string }) {
-  const { data: isAdmin, error: adminError } = await context.supabase.rpc("has_role", {
+  const { data: authData, error: authError } = await context.supabase.auth.getUser();
+  if (authError) throw authError;
+
+  const requesterEmail = authData.user?.email?.toLowerCase() ?? "";
+  const isProtectedOwner = requesterEmail === PROTECTED_ADMIN_EMAIL.toLowerCase();
+
+  const { data: isAdminRole, error: adminError } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
   });
   if (adminError) throw adminError;
-  if (isAdmin) return;
+
+  if (isProtectedOwner && isAdminRole) return;
 
   const { data: isSupervisor, error: supervisorError } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
@@ -19,7 +26,7 @@ async function assertAdminOrSupervisor(context: { supabase: any; userId: string 
   });
   if (supervisorError) throw supervisorError;
   if (!isSupervisor) {
-    throw new Error("Apenas administradores ou supervisores podem alterar acessos.");
+    throw new Error("Apenas o Administrador principal ou Supervisores podem alterar acessos.");
   }
 }
 
