@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,18 +72,6 @@ function AuthPage() {
     }
   }
 
-  async function handleGoogle() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("Não foi possível entrar com o Google.");
-      return;
-    }
-    if (result.redirected) return;
-    navigate({ to: "/projetos", replace: true });
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <Card className="w-full max-w-md">
@@ -136,13 +123,6 @@ function AuthPage() {
             </Button>
           </form>
 
-          <div className="relative py-1 text-center">
-            <span className="bg-card px-2 text-xs text-muted-foreground">ou</span>
-          </div>
-
-          <Button type="button" variant="outline" className="w-full" onClick={handleGoogle}>
-            Continuar com Google
-          </Button>
 
           <button
             type="button"
