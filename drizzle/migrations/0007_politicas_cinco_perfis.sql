@@ -8,8 +8,12 @@ AS $$
   SELECT public.has_role(auth.uid(), 'admin')
       OR public.has_role(auth.uid(), 'comercial')
       OR EXISTS (
-        SELECT 1 FROM public.project_analysts pa
-        WHERE pa.project_id = _project_id AND pa.user_id = auth.uid()
+        SELECT 1
+        FROM public.project_analysts pa
+        JOIN public.profiles pr ON pr.id = pa.profile_id
+        WHERE pa.project_id = _project_id
+          AND lower(coalesce(pr.email, '')) =
+              lower(coalesce((SELECT email FROM auth.users WHERE id = auth.uid()), ''))
       )
       OR EXISTS (
         SELECT 1 FROM public.projects p
