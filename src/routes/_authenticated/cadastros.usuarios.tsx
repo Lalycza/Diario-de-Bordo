@@ -100,7 +100,7 @@ function UsuariosPage() {
                       onValueChange={(role) =>
                         mudarPapel.mutate({ userId: u.id, role: role as ManagedRole })
                       }
-                      disabled={mudarPapel.isPending || !isAdmin || u.protectedAdmin}
+                      disabled={mudarPapel.isPending || u.protectedAdmin}
                     >
                       <SelectTrigger className="w-44">
                         <SelectValue />
