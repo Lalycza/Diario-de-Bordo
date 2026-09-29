@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789245232062,
+      "tag": "0000_create_implantacao_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789318507242,
+      "tag": "0001_cronograma_modulos_submodulos",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789381433594,
+      "tag": "0002_add_email_cliente_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789433864188,
+      "tag": "0003_modelo_planilha_campos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789518904764,
+      "tag": "0004_cadastros_roles_produtos_clientes",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789635808368,
+      "tag": "0005_project_documents_storage_policies",
+      "breakpoints": true
+    }
+  ]
+}
