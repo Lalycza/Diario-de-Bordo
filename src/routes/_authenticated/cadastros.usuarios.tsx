@@ -4,30 +4,39 @@ import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, UserCog } from "lucide-react";
 import { toast } from "sonner";
 
-import { listUsersWithRoles, setUserRole } from "@/lib/admin.functions";
+import { listUsersWithRoles, setUserRole, type ManagedRole } from "@/lib/admin.functions";
 import { useRole } from "@/lib/useRole";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/cadastros/usuarios")({
   head: () => ({
     meta: [
-      { title: "Administradores e operadores" },
+      { title: "Usuários e perfis" },
       {
         name: "description",
-        content:
-          "Defina quem é administrador (gerência) e quem é operador (analista) responsável por projetos.",
-      },
-      { property: "og:title", content: "Administradores e operadores" },
-      {
-        property: "og:description",
-        content: "Controle de acesso por perfil: gerentes veem tudo, analistas veem seus projetos.",
+        content: "Gerencie os cinco perfis de acesso do IMPLANTA.",
       },
     ],
   }),
   component: UsuariosPage,
 });
+
+const ROLE_LABELS: Record<ManagedRole, string> = {
+  admin: "Administrador",
+  analista: "Analista",
+  operador: "Operador",
+  comercial: "Comercial",
+  cliente: "Cliente",
+};
 
 function UsuariosPage() {
   const { user } = Route.useRouteContext();
@@ -43,7 +52,7 @@ function UsuariosPage() {
   });
 
   const mudarPapel = useMutation({
-    mutationFn: async (input: { userId: string; role: "admin" | "operador" }) =>
+    mutationFn: async (input: { userId: string; role: ManagedRole }) =>
       alterar({ data: input }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-roles"] });
@@ -56,10 +65,9 @@ function UsuariosPage() {
   return (
     <AppShell userLabel={user.email}>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Administradores e operadores</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Usuários e perfis</h1>
         <p className="text-sm text-muted-foreground">
-          Administradores (gerência) veem todos os projetos e documentos. Operadores (analistas)
-          acessam apenas os projetos sob sua responsabilidade.
+          Administrador, Analista, Operador, Comercial e Cliente.
         </p>
       </div>
 
@@ -86,32 +94,31 @@ function UsuariosPage() {
                   <td className="px-4 py-3 font-medium">{u.nome || "—"}</td>
                   <td className="px-4 py-3">{u.email}</td>
                   <td className="px-4 py-3">
-                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                      {u.role === "admin" ? "Administrador" : "Operador"}
-                    </Badge>
+                    <Select
+                      value={u.role}
+                      onValueChange={(role) =>
+                        mudarPapel.mutate({ userId: u.id, role: role as ManagedRole })
+                      }
+                      disabled={mudarPapel.isPending}
+                    >
+                      <SelectTrigger className="w-44">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(ROLE_LABELS).map(([role, label]) => (
+                          <SelectItem key={role} value={role}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={mudarPapel.isPending}
-                      onClick={() =>
-                        mudarPapel.mutate({
-                          userId: u.id,
-                          role: u.role === "admin" ? "operador" : "admin",
-                        })
-                      }
-                    >
-                      {u.role === "admin" ? (
-                        <>
-                          <UserCog className="size-4" /> Tornar operador
-                        </>
-                      ) : (
-                        <>
-                          <ShieldCheck className="size-4" /> Tornar administrador
-                        </>
-                      )}
-                    </Button>
+                    {u.role === "admin" ? (
+                      <ShieldCheck className="ml-auto size-4" aria-label="Administrador" />
+                    ) : (
+                      <UserCog className="ml-auto size-4 text-muted-foreground" aria-label="Usuário" />
+                    )}
                   </td>
                 </tr>
               ))}
