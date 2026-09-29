@@ -27,7 +27,6 @@ export function useRole() {
     roles,
     isAdmin: roles.includes("admin"),
     isSupervisor: roles.includes("supervisor"),
-    isSupervisor: roles.includes("supervisor"),
     isAnalista: roles.includes("analista"),
     isOperador: roles.includes("operador"),
     isComercial: roles.includes("comercial"),
