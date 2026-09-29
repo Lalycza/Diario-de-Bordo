@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export type ManagedRole = "admin" | "analista" | "operador" | "comercial" | "cliente";
+
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
@@ -12,7 +14,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { userId: string; role: "admin" | "operador" }) => input)
+  .inputValidator((input: { userId: string; role: ManagedRole }) => input)
   .handler(async ({ data, context }) => {
     await assertAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -47,6 +49,6 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
       id: p.id as string,
       nome: (p.nome as string) ?? "",
       email: (p.email as string) ?? "",
-      role: ((roles ?? []).find((r) => r.user_id === p.id)?.role as string) ?? "operador",
+      role: ((roles ?? []).find((r) => r.user_id === p.id)?.role as ManagedRole) ?? "operador",
     }));
   });
