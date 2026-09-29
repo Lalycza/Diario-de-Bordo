@@ -106,11 +106,13 @@ function UsuariosPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(ROLE_LABELS).map(([role, label]) => (
-                          <SelectItem key={role} value={role}>
-                            {label}
-                          </SelectItem>
-                        ))}
+                        {Object.entries(ROLE_LABELS)
+                          .filter(([role]) => isAdmin || role !== "admin")
+                          .map(([role, label]) => (
+                            <SelectItem key={role} value={role}>
+                              {label}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </td>
