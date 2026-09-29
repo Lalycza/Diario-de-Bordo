@@ -17,7 +17,22 @@ export const setUserRole = createServerFn({ method: "POST" })
   .inputValidator((input: { userId: string; role: ManagedRole }) => input)
   .handler(async ({ data, context }) => {
     await assertAdmin(context as never);
+    if (data.userId === context.userId && data.role !== "admin") {
+      throw new Error("O administrador atual não pode remover o próprio acesso de administrador.");
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (data.role !== "admin") {
+      const { count, error: countError } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id", { count: "exact", head: true })
+        .eq("role", "admin");
+      if (countError) throw countError;
+      if ((count ?? 0) <= 1) {
+        throw new Error("É necessário manter pelo menos um administrador.");
+      }
+    }
 
     const { error: delError } = await supabaseAdmin
       .from("user_roles")
