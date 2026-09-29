@@ -85,7 +85,7 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
 
     return (profiles ?? []).map((p) => ({
       id: p.id as string,
-      nome: (p.nome as string) ?? "",
+      nome: (p.name as string) ?? "",
       email: (p.email as string) ?? "",
       role: ((roles ?? []).find((r) => r.user_id === p.id)?.role as ManagedRole) ?? "operador",
       protectedAdmin:
