@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -132,15 +130,13 @@ export type Database = {
           tarefa_hpro?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "log_entries_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: [{
+          foreignKeyName: "log_entries_project_id_fkey"
+          columns: ["project_id"]
+          isOneToOne: false
+          referencedRelation: "projects"
+          referencedColumns: ["id"]
+        }]
       }
       modules: {
         Row: {
@@ -184,7 +180,6 @@ export type Database = {
         Update: {
           area?: string | null
           created_at?: string
-          created_by?: string | null
           data_homologacao?: string | null
           data_treinamento?: string | null
           grupo?: string | null
@@ -200,22 +195,7 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "modules_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "modules"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "modules_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       product_modules: {
         Row: {
@@ -230,364 +210,51 @@ export type Database = {
           responsavel: string | null
           updated_at: string
         }
-        Insert: {
-          area?: string | null
-          created_at?: string
-          grupo?: string | null
-          id?: string
-          nome: string
-          ordem?: number
-          parent_id?: string | null
-          product_id: string
-          responsavel?: string | null
-          updated_at?: string
-        }
-        Update: {
-          area?: string | null
-          created_at?: string
-          grupo?: string | null
-          id?: string
-          nome?: string
-          ordem?: number
-          parent_id?: string | null
-          product_id?: string
-          responsavel?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_modules_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "product_modules"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_modules_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: { area?: string | null; created_at?: string; grupo?: string | null; id?: string; nome: string; ordem?: number; parent_id?: string | null; product_id: string; responsavel?: string | null; updated_at?: string }
+        Update: { area?: string | null; created_at?: string; grupo?: string | null; id?: string; nome?: string; ordem?: number; parent_id?: string | null; product_id?: string; responsavel?: string | null; updated_at?: string }
+        Relationships: []
       }
       products: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          created_by: string | null
-          descricao: string | null
-          id: string
-          nome: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          created_by?: string | null
-          descricao?: string | null
-          id?: string
-          nome: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          created_by?: string | null
-          descricao?: string | null
-          id?: string
-          nome?: string
-          updated_at?: string
-        }
+        Row: { ativo: boolean; created_at: string; created_by: string | null; descricao: string | null; id: string; nome: string; updated_at: string }
+        Insert: { ativo?: boolean; created_at?: string; created_by?: string | null; descricao?: string | null; id?: string; nome: string; updated_at?: string }
+        Update: { ativo?: boolean; created_at?: string; created_by?: string | null; descricao?: string | null; id?: string; nome?: string; updated_at?: string }
         Relationships: []
       }
       profiles: {
-        Row: {
-          created_at: string
-          email: string | null
-          id: string
-          nome: string
-        }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          id: string
-          nome?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          nome?: string
-        }
+        Row: { created_at: string; email: string | null; id: string; nome: string }
+        Insert: { created_at?: string; email?: string | null; id: string; nome?: string }
+        Update: { created_at?: string; email?: string | null; id?: string; nome?: string }
         Relationships: []
       }
       project_analysts: {
-        Row: {
-          created_at: string
-          id: string
-          project_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          project_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          project_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_analysts_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Row: { created_at: string; id: string; project_id: string; user_id: string }
+        Insert: { created_at?: string; id?: string; project_id: string; user_id: string }
+        Update: { created_at?: string; id?: string; project_id?: string; user_id?: string }
+        Relationships: []
       }
       project_documents: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          descricao: string | null
-          id: string
-          mime_type: string | null
-          nome: string
-          project_id: string
-          storage_path: string
-          tamanho: number | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          descricao?: string | null
-          id?: string
-          mime_type?: string | null
-          nome: string
-          project_id: string
-          storage_path: string
-          tamanho?: number | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          descricao?: string | null
-          id?: string
-          mime_type?: string | null
-          nome?: string
-          project_id?: string
-          storage_path?: string
-          tamanho?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_documents_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Row: { created_at: string; created_by: string | null; descricao: string | null; id: string; mime_type: string | null; nome: string; project_id: string; storage_path: string; tamanho: number | null }
+        Insert: { created_at?: string; created_by?: string | null; descricao?: string | null; id?: string; mime_type?: string | null; nome: string; project_id: string; storage_path: string; tamanho?: number | null }
+        Update: { created_at?: string; created_by?: string | null; descricao?: string | null; id?: string; mime_type?: string | null; nome?: string; project_id?: string; storage_path?: string; tamanho?: number | null }
+        Relationships: []
       }
       project_emails: {
-        Row: {
-          assunto: string | null
-          client_id: string | null
-          conteudo: string | null
-          created_at: string
-          created_by: string | null
-          destinatario: string
-          id: string
-          project_id: string
-          status: string
-          tipo: string | null
-        }
-        Insert: {
-          assunto?: string | null
-          client_id?: string | null
-          conteudo?: string | null
-          created_at?: string
-          created_by?: string | null
-          destinatario: string
-          id?: string
-          project_id: string
-          status?: string
-          tipo?: string | null
-        }
-        Update: {
-          assunto?: string | null
-          client_id?: string | null
-          conteudo?: string | null
-          created_at?: string
-          created_by?: string | null
-          destinatario?: string
-          id?: string
-          project_id?: string
-          status?: string
-          tipo?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_emails_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_emails_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Row: { assunto: string | null; client_id: string | null; conteudo: string | null; created_at: string; created_by: string | null; destinatario: string; id: string; project_id: string; status: string; tipo: string | null }
+        Insert: { assunto?: string | null; client_id?: string | null; conteudo?: string | null; created_at?: string; created_by?: string | null; destinatario: string; id?: string; project_id: string; status?: string; tipo?: string | null }
+        Update: { assunto?: string | null; client_id?: string | null; conteudo?: string | null; created_at?: string; created_by?: string | null; destinatario?: string; id?: string; project_id?: string; status?: string; tipo?: string | null }
+        Relationships: []
       }
       project_stages: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          data_conclusao: string | null
-          data_inicio: string | null
-          data_prevista: string | null
-          data_prevista_original: string | null
-          descricao: string | null
-          id: string
-          modulo: string | null
-          nome: string
-          ordem: number
-          pauta_semana: boolean
-          project_id: string
-          responsavel: string | null
-          responsavel_tipo: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          data_conclusao?: string | null
-          data_inicio?: string | null
-          data_prevista?: string | null
-          data_prevista_original?: string | null
-          descricao?: string | null
-          id?: string
-          modulo?: string | null
-          nome: string
-          ordem?: number
-          pauta_semana?: boolean
-          project_id: string
-          responsavel?: string | null
-          responsavel_tipo?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          data_conclusao?: string | null
-          data_inicio?: string | null
-          data_prevista?: string | null
-          data_prevista_original?: string | null
-          descricao?: string | null
-          id?: string
-          modulo?: string | null
-          nome?: string
-          ordem?: number
-          pauta_semana?: boolean
-          project_id?: string
-          responsavel?: string | null
-          responsavel_tipo?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_stages_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Row: { created_at: string; created_by: string | null; data_conclusao: string | null; data_inicio: string | null; data_prevista: string | null; data_prevista_original: string | null; descricao: string | null; id: string; modulo: string | null; nome: string; ordem: number; pauta_semana: boolean; project_id: string; responsavel: string | null; responsavel_tipo: string | null; status: string; updated_at: string }
+        Insert: { created_at?: string; created_by?: string | null; data_conclusao?: string | null; data_inicio?: string | null; data_prevista?: string | null; data_prevista_original?: string | null; descricao?: string | null; id?: string; modulo?: string | null; nome: string; ordem?: number; pauta_semana?: boolean; project_id: string; responsavel?: string | null; responsavel_tipo?: string | null; status?: string; updated_at?: string }
+        Update: { created_at?: string; created_by?: string | null; data_conclusao?: string | null; data_inicio?: string | null; data_prevista?: string | null; data_inicio?: string | null; data_prevista_original?: string | null; descricao?: string | null; id?: string; modulo?: string | null; nome?: string; ordem?: number; pauta_semana?: boolean; project_id?: string; responsavel?: string | null; responsavel_tipo?: string | null; status?: string; updated_at?: string }
+        Relationships: []
       }
       projects: {
-        Row: {
-          analista: string | null
-          arquivado: boolean
-          client_id: string | null
-          cliente: string
-          coordenacao: string | null
-          created_at: string
-          created_by: string | null
-          data_entrega_original: string | null
-          data_inicio: string | null
-          descricao: string | null
-          email_cliente: string | null
-          id: string
-          previsao_conclusao: string | null
-          product_id: string | null
-          responsavel: string | null
-          updated_at: string
-        }
-        Insert: {
-          analista?: string | null
-          arquivado?: boolean
-          client_id?: string | null
-          cliente: string
-          coordenacao?: string | null
-          created_at?: string
-          created_by?: string | null
-          data_entrega_original?: string | null
-          data_inicio?: string | null
-          descricao?: string | null
-          email_cliente?: string | null
-          id?: string
-          previsao_conclusao?: string | null
-          product_id?: string | null
-          responsavel?: string | null
-          updated_at?: string
-        }
-        Update: {
-          analista?: string | null
-          arquivado?: boolean
-          client_id?: string | null
-          cliente?: string
-          coordenacao?: string | null
-          created_at?: string
-          created_by?: string | null
-          data_entrega_original?: string | null
-          data_inicio?: string | null
-          descricao?: string | null
-          email_cliente?: string | null
-          id?: string
-          previsao_conclusao?: string | null
-          product_id?: string | null
-          responsavel?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "projects_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projects_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Row: { analista: string | null; arquivado: boolean; client_id: string | null; cliente: string; coordenacao: string | null; created_at: string; created_by: string | null; data_entrega_original: string | null; data_inicio: string | null; descricao: string | null; email_cliente: string | null; id: string; previsao_conclusao: string | null; product_id: string | null; responsavel: string | null; updated_at: string }
+        Insert: { analista?: string | null; arquivado?: boolean; client_id?: string | null; cliente: string; coordenacao?: string | null; created_at?: string; created_by?: string | null; data_entrega_original?: string | null; data_inicio?: string | null; descricao?: string | null; email_cliente?: string | null; id?: string; previsao_conclusao?: string | null; product_id?: string | null; responsavel?: string | null; updated_at?: string | null }
+        Update: { analista?: string | null; arquivado?: boolean; client_id?: string | null; cliente?: string; coordenacao?: string | null; created_at?: string; created_by?: string | null; data_entrega_original?: string | null; data_inicio?: string | null; descricao?: string | null; email_cliente?: string | null; id?: string; previsao_conclusao?: string | null; product_id?: string | null; responsavel?: string | null; updated_at?: string | null }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -596,165 +263,60 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
-        Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
+        Insert: { created_at?: string; id?: string; role: Database["public"]["Enums"]["app_role"]; user_id: string }
+        Update: { created_at?: string; id?: string; role?: Database["public"]["Enums"]["app_role"]; user_id?: string }
         Relationships: []
       }
     }
-    Views: {
-      [_ in never]: never
-    }
+    Views: { [_ in never]: never }
     Functions: {
       can_access_project: { Args: { _project_id: string }; Returns: boolean }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_role: { Args: { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "operador"
+      app_role: "admin" | "analista" | "operador" | "comercial" | "cliente"
     }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    CompositeTypes: { [_ in never]: never }
   }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
+export type Tables<DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"]) | { schema: keyof DatabaseWithoutInternals }, TableName extends (DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals } ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"]) : never) = never> =
+  DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends { Row: infer R } ? R : never
+    : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+      ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends { Row: infer R } ? R : never
       : never
-    : never
 
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
+export type TablesInsert<DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals }, TableName extends (DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals } ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] : never) = never> =
+  DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends { Insert: infer I } ? I : never
+    : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+      ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends { Insert: infer I } ? I : never
       : never
+
+export type TablesUpdate<DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals }, TableName extends (DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals } ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] : never) = never> =
+  DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? DatabaseWithoutInternals[DefaultSchemaWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends { Update: infer U } ? U : never
     : never
 
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+export type Enums<DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals }, EnumName extends (DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals } ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"] : never) = never> =
+  DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+    : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"] ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions] : never
 
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+export type CompositeTypes<PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals }, CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals } ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"] : never) = never> =
+  PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+    ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+    : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"] ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions] : never
 
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "operador"],
+      app_role: ["admin", "analista", "operador", "comercial", "cliente"],
     },
   },
 } as const
