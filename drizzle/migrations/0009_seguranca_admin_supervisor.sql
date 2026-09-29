@@ -132,4 +132,43 @@ CREATE POLICY project_documents_delete ON public.project_documents
 DROP POLICY IF EXISTS project_emails_insert ON public.project_emails;
 CREATE POLICY project_emails_insert ON public.project_emails
   FOR INSERT TO authenticated
-  WITH CHECK ((public.can_access_project(project_id) OR public.has_role(auth.uid(), 'comercial')) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
+  WITH CHECK (public.can_access_project(project_id) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista')));
+
+
+-- Comercial pode consultar/manter documentos de clientes sem ganhar acesso
+-- geral aos projetos. O acesso ao bucket é limitado ao conteúdo de documentos.
+CREATE POLICY project_documents_select_comercial ON public.project_documents
+  FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'comercial'));
+
+CREATE POLICY project_docs_select_comercial ON storage.objects
+  FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'project-documents'
+    AND public.has_role(auth.uid(), 'comercial')
+  );
+
+CREATE POLICY project_docs_insert_comercial ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'project-documents'
+    AND public.has_role(auth.uid(), 'comercial')
+  );
+
+CREATE POLICY project_docs_update_comercial ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (
+    bucket_id = 'project-documents'
+    AND public.has_role(auth.uid(), 'comercial')
+  )
+  WITH CHECK (
+    bucket_id = 'project-documents'
+    AND public.has_role(auth.uid(), 'comercial')
+  );
+
+CREATE POLICY project_docs_delete_comercial ON storage.objects
+  FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'project-documents'
+    AND public.has_role(auth.uid(), 'comercial')
+  );
