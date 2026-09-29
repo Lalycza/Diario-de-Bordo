@@ -1,4 +1,13 @@
 -- IMPLANTA: segurança final dos perfis.
+-- Administrador principal: garante a conta do sistema mesmo em bancos que
+-- já possuíam user_roles antes desta migration.
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'admin'::public.app_role
+FROM auth.users
+WHERE lower(email) = lower('larissazonetti@outlook.com')
+ON CONFLICT (user_id, role) DO NOTHING;
+
+
 -- Administrador técnico = exclusivamente larissazonetti@outlook.com.
 -- Supervisor = administrador funcional dentro do IMPLANTA, sem acesso técnico ao Supabase.
 
@@ -111,16 +120,16 @@ DROP POLICY IF EXISTS project_documents_update ON public.project_documents;
 DROP POLICY IF EXISTS project_documents_delete ON public.project_documents;
 CREATE POLICY project_documents_insert ON public.project_documents
   FOR INSERT TO authenticated
-  WITH CHECK (public.can_access_project(project_id) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
+  WITH CHECK ((public.can_access_project(project_id) OR public.has_role(auth.uid(), 'comercial')) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
 CREATE POLICY project_documents_update ON public.project_documents
   FOR UPDATE TO authenticated
-  USING (public.can_access_project(project_id) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')))
-  WITH CHECK (public.can_access_project(project_id) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
+  USING ((public.can_access_project(project_id) OR public.has_role(auth.uid(), 'comercial')) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')))
+  WITH CHECK ((public.can_access_project(project_id) OR public.has_role(auth.uid(), 'comercial')) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
 CREATE POLICY project_documents_delete ON public.project_documents
   FOR DELETE TO authenticated
-  USING (public.can_access_project(project_id) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
+  USING ((public.can_access_project(project_id) OR public.has_role(auth.uid(), 'comercial')) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
 
 DROP POLICY IF EXISTS project_emails_insert ON public.project_emails;
 CREATE POLICY project_emails_insert ON public.project_emails
   FOR INSERT TO authenticated
-  WITH CHECK (public.can_access_project(project_id) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
+  WITH CHECK ((public.can_access_project(project_id) OR public.has_role(auth.uid(), 'comercial')) AND (public.is_admin() OR public.has_role(auth.uid(), 'supervisor') OR public.has_role(auth.uid(), 'analista') OR public.has_role(auth.uid(), 'comercial')));
