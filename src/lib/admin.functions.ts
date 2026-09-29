@@ -11,7 +11,6 @@ async function assertAdminOrSupervisor(context: { supabase: any; userId: string 
     _role: "admin",
   });
   if (adminError) throw adminError;
-
   if (isAdmin) return;
 
   const { data: isSupervisor, error: supervisorError } = await context.supabase.rpc("has_role", {
@@ -19,7 +18,9 @@ async function assertAdminOrSupervisor(context: { supabase: any; userId: string 
     _role: "supervisor",
   });
   if (supervisorError) throw supervisorError;
-  if (!isSupervisor) throw new Error("Apenas administradores ou supervisores podem alterar acessos.");
+  if (!isSupervisor) {
+    throw new Error("Apenas administradores ou supervisores podem alterar acessos.");
+  }
 }
 
 export const setUserRole = createServerFn({ method: "POST" })
@@ -45,20 +46,7 @@ export const setUserRole = createServerFn({ method: "POST" })
     }
 
     if (data.role === "admin" && !targetIsProtectedAdmin) {
-      const { data: requester, error: requesterError } = await supabaseAdmin
-        .from("profiles")
-        .select("email")
-        .eq("id", context.userId)
-        .maybeSingle();
-      if (requesterError) throw requesterError;
-
-      if (requester?.email?.toLowerCase() !== PROTECTED_ADMIN_EMAIL.toLowerCase()) {
-        throw new Error("Somente o Administrador principal pode definir outro Administrador.");
-      }
-    }
-
-    if (data.userId === context.userId && data.role !== "admin" && targetIsProtectedAdmin) {
-      throw new Error("O Administrador principal não pode remover o próprio acesso.");
+      throw new Error("Somente o Administrador principal pode definir outro Administrador.");
     }
 
     const { error: delError } = await supabaseAdmin
@@ -93,6 +81,7 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
       nome: (p.nome as string) ?? "",
       email: (p.email as string) ?? "",
       role: ((roles ?? []).find((r) => r.user_id === p.id)?.role as ManagedRole) ?? "operador",
-      protectedAdmin: (p.email ?? "").toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase(),
+      protectedAdmin:
+        (p.email ?? "").toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase(),
     }));
   });
