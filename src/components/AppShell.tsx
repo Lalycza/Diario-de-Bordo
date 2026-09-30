@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { LayoutList, LogOut } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +40,7 @@ export function AppShell({
             {userLabel ? (
               <span className="hidden text-xs text-muted-foreground sm:inline">{userLabel}</span>
             ) : null}
+            <ThemeToggle />
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               <LogOut className="size-4" />
               Sair
