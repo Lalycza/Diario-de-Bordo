@@ -92,3 +92,63 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
         (p.email ?? "").toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase(),
     }));
   });
+
+
+export const createManagedUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { name: string; email: string; role: Exclude<ManagedRole, "admin">; temporaryPassword: string }) => input)
+  .handler(async ({ data, context }) => {
+    await assertAdminOrSupervisor(context as never);
+    if (!data.name.trim() || !data.email.trim() || data.temporaryPassword.length < 8) {
+      throw new Error("Nome, e-mail e uma senha temporária de no mínimo 8 caracteres são obrigatórios.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email.trim().toLowerCase(),
+      password: data.temporaryPassword,
+      email_confirm: true,
+      user_metadata: { name: data.name.trim() },
+    });
+    if (error) throw error;
+    if (!created.user) throw new Error("Não foi possível criar o usuário.");
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .update({ name: data.name.trim(), email: data.email.trim().toLowerCase(), must_change_password: true })
+      .eq("id", created.user.id);
+    if (profileError) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      throw profileError;
+    }
+    const { error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: created.user.id, role: data.role });
+    if (roleError) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      throw roleError;
+    }
+    return { ok: true, userId: created.user.id };
+  });
+
+export const resetManagedUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string; temporaryPassword: string }) => input)
+  .handler(async ({ data, context }) => {
+    await assertAdminOrSupervisor(context as never);
+    if (data.temporaryPassword.length < 8) {
+      throw new Error("A senha temporária deve ter no mínimo 8 caracteres.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: target, error: targetError } = await supabaseAdmin
+      .from("profiles").select("id, email").eq("id", data.userId).maybeSingle();
+    if (targetError) throw targetError;
+    if (!target) throw new Error("Usuário não encontrado.");
+    if (target.email?.toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase()) {
+      throw new Error("A senha do Administrador principal não pode ser redefinida por este fluxo.");
+    }
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: data.temporaryPassword });
+    if (error) throw error;
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles").update({ must_change_password: true }).eq("id", data.userId);
+    if (profileError) throw profileError;
+    return { ok: true };
+  });
