@@ -100,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/projeto/$projectId/cronograma': typeof AuthenticatedProjetoProjectIdCronogramaRoute
   '/projeto/$projectId/diario': typeof AuthenticatedProjetoProjectIdDiarioRoute
   '/projeto/$projectId/demandas': typeof AuthenticatedProjetoProjectIdDemandasRoute
+  '/projeto/$projectId/demandas': typeof AuthenticatedProjetoProjectIdDemandasRoute
   '/projeto/$projectId/documentos': typeof AuthenticatedProjetoProjectIdDocumentosRoute
   '/projeto/$projectId/modulos': typeof AuthenticatedProjetoProjectIdModulosRoute
 }
@@ -126,6 +127,7 @@ export interface FileRoutesById {
   '/_authenticated/cadastros/usuarios': typeof AuthenticatedCadastrosUsuariosRoute
   '/_authenticated/projeto/$projectId/cronograma': typeof AuthenticatedProjetoProjectIdCronogramaRoute
   '/_authenticated/projeto/$projectId/diario': typeof AuthenticatedProjetoProjectIdDiarioRoute
+  '/_authenticated/projeto/$projectId/demandas': typeof AuthenticatedProjetoProjectIdDemandasRoute
   '/_authenticated/projeto/$projectId/documentos': typeof AuthenticatedProjetoProjectIdDocumentosRoute
   '/_authenticated/projeto/$projectId/modulos': typeof AuthenticatedProjetoProjectIdModulosRoute
 }
@@ -140,6 +142,7 @@ export interface FileRouteTypes {
     | '/cadastros/usuarios'
     | '/projeto/$projectId/cronograma'
     | '/projeto/$projectId/diario'
+    | '/projeto/$projectId/demandas'
     | '/projeto/$projectId/documentos'
     | '/projeto/$projectId/modulos'
   fileRoutesByTo: FileRoutesByTo
@@ -152,6 +155,7 @@ export interface FileRouteTypes {
     | '/cadastros/usuarios'
     | '/projeto/$projectId/cronograma'
     | '/projeto/$projectId/diario'
+    | '/projeto/$projectId/demandas'
     | '/projeto/$projectId/documentos'
     | '/projeto/$projectId/modulos'
   id:
@@ -165,6 +169,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cadastros/usuarios'
     | '/_authenticated/projeto/$projectId/cronograma'
     | '/_authenticated/projeto/$projectId/diario'
+    | '/_authenticated/projeto/$projectId/demandas'
     | '/_authenticated/projeto/$projectId/documentos'
     | '/_authenticated/projeto/$projectId/modulos'
   fileRoutesById: FileRoutesById
@@ -233,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetoProjectIdCronogramaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/projeto/$projectId/demandas': {
+      id: '/_authenticated/projeto/$projectId/demandas'
+      path: '/projeto/$projectId/demandas'
+      fullPath: '/projeto/$projectId/demandas'
+      preLoaderRoute: typeof AuthenticatedProjetoProjectIdDemandasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/projeto/$projectId/diario': {
       id: '/_authenticated/projeto/$projectId/diario'
       path: '/projeto/$projectId/diario'
@@ -276,6 +288,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCadastrosUsuariosRoute: AuthenticatedCadastrosUsuariosRoute,
   AuthenticatedProjetoProjectIdCronogramaRoute:
     AuthenticatedProjetoProjectIdCronogramaRoute,
+  AuthenticatedProjetoProjectIdDemandasRoute:
+    AuthenticatedProjetoProjectIdDemandasRoute,
   AuthenticatedProjetoProjectIdDiarioRoute:
     AuthenticatedProjetoProjectIdDiarioRoute,
   AuthenticatedProjetoProjectIdDocumentosRoute:
