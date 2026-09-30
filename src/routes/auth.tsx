@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const BRAND_ASSET_BASE = "https://zdiuuiqtztommsjrihzs.supabase.co/functions/v1/brand-assets";
+
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [
     { title: "Entrar — Gestão de Implantações" },
@@ -42,10 +44,17 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-10" style={{ backgroundImage: 'url("https://i.ibb.co/mVwHbWBZ/Fundo-Entrada.jpg")' }}>
+    <div
+      className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-10"
+      style={{ backgroundImage: `url("${BRAND_ASSET_BASE}?asset=fundo")` }}
+    >
       <Card className="w-full max-w-md bg-background/95 backdrop-blur-sm">
         <CardHeader className="items-center text-center">
-          <img src="https://i.ibb.co/QFNCQzYv/7892-Logotipo-HPRO-vertical-CMYK.png" alt="HPRO" className="mb-4 h-40 w-auto object-contain" />
+          <img
+            src={`${BRAND_ASSET_BASE}?asset=logo`}
+            alt="HPRO"
+            className="mb-4 h-40 w-auto object-contain"
+          />
           <CardTitle>Gestão de Implantações</CardTitle>
           <CardDescription>Entre para acompanhar cronogramas, módulos e treinamentos.</CardDescription>
         </CardHeader>

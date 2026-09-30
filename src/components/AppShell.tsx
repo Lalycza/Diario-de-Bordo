@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
+const BRAND_LOGO_URL = "https://zdiuuiqtztommsjrihzs.supabase.co/functions/v1/brand-assets?asset=logo";
+
 export function AppShell({
   children,
   userLabel,
@@ -29,7 +31,7 @@ export function AppShell({
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <Link to="/projetos" className="flex items-center">
             <img
-              src="https://i.ibb.co/QFNCQzYv/7892-Logotipo-HPRO-vertical-CMYK.png"
+              src={BRAND_LOGO_URL}
               alt="HPRO"
               className="h-12 w-auto object-contain"
             />
