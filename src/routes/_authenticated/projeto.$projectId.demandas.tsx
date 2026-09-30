@@ -155,7 +155,7 @@ function DemandasPage() {
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full min-w-[1100px] text-sm">
           <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-            <tr><th className="px-3 py-3">OS</th><th className="px-3 py-3">Escopo</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Prioridade</th><th className="px-3 py-3">Em posse de</th><th className="px-3 py-3">Setor</th><th className="px-3 py-3">Prazo</th><th className="px-3 py-3">Escopo levantado</th><th className="px-3 py-3">Escopo aprovado</th><th className="px-3 py-3">Proposta</th><th className="px-3 py-3">Desenvolvimento</th><th className="px-3 py-3"></th></tr>
+            <tr><th className="px-3 py-3">OS</th><th className="px-3 py-3">Escopo</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Prioridade</th><th className="px-3 py-3">Em posse de</th><th className="px-3 py-3">Setor</th><th className="px-3 py-3">Prazo</th><th className="px-3 py-3">Escopo levantado</th><th className="px-3 py-3">Escopo aprovado</th><th className="px-3 py-3">Proposta</th><th className="px-3 py-3">Desenvolvimento</th><th className="px-3 py-3">Anexos</th><th className="px-3 py-3">Ações</th></tr>
           </thead>
           <tbody>
             {demands.length === 0 ? <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">Nenhuma demanda cadastrada.</td></tr> : demands.map((d: any) => (
@@ -213,7 +213,9 @@ function DemandasPage() {
             {(historyQuery.data ?? []).map((h: any) => <div key={h.id} className="rounded border p-3 text-sm"><div className="font-medium">{statusLabel(h.status ?? "")}</div><div className="text-xs text-muted-foreground">{new Date(h.changed_at).toLocaleString("pt-BR")}</div></div>)}
           </div>
         </DialogContent>
-      <Dialog open={Boolean(attachmentsId)} onOpenChange={(open) => !open && setAttachmentsId(null)}>
+      </Dialog>
+
+<Dialog open={Boolean(attachmentsId)} onOpenChange={(open) => !open && setAttachmentsId(null)}>
         <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Escopos e anexos</DialogTitle></DialogHeader>
           {attachmentsId ? <div className="space-y-4">
             {canEdit ? <div className="rounded-lg border border-dashed p-4"><Label>Anexar escopo elaborado</Label><Input type="file" className="mt-2" onChange={async e => { const file=e.target.files?.[0]; if(!file)return; const path=attachmentsId+"/"+crypto.randomUUID()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_"); const up=await supabase.storage.from("demand-attachments").upload(path,file); if(up.error){toast.error("Não foi possível anexar o arquivo.");return;} const ins=await supabase.from("demand_attachments").insert({demand_id:attachmentsId,file_name:file.name,storage_path:path,mime_type:file.type||null,file_size:file.size,created_by:user.id}); if(ins.error){await supabase.storage.from("demand-attachments").remove([path]);toast.error("Não foi possível registrar o anexo.");return;} qc.invalidateQueries({queryKey:["demand-attachments",attachmentsId]}); e.currentTarget.value=""; toast.success("Anexo adicionado."); }}/></div> : null}
