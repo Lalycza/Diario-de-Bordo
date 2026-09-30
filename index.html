@@ -96,7 +96,7 @@ async function hydrateFromSupabase(){
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
       supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date')
     ]);
-    for(const q of [pr,mo,su,cl,pg,pp,pm,tr])if(q.error)throw q.error;
+    if(pg.error)throw pg.error; if(pr.error)console.warn('Produtos não carregados',pr.error); if(mo.error)console.warn('Módulos não carregados',mo.error); if(su.error)console.warn('Submódulos não carregados',su.error); if(cl.error)console.warn('Clientes não carregados',cl.error); if(pp.error)console.warn('Vínculos de produtos não carregados',pp.error); if(pm.error)console.warn('Vínculos de módulos não carregados',pm.error); if(tr.error)console.warn('Treinamentos não carregados',tr.error);
     const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
     const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
     const moduleByDb=new Map((mo.data||[]).map(x=>[x.id,lid(x.legacy_id,'module')]));
@@ -216,7 +216,7 @@ async function logout(){await supabaseClient.auth.signOut();supabaseSession=null
 function updateClock(){if(!currentUser)return;document.getElementById('clock').textContent=new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});}
 function canEdit(){return !!currentUser && (currentUser.role==='admin'||(currentUser.role==='analyst' && !cur?.finalizado))}
 function canEditClient(){return !!currentUser&&(currentUser.role==='admin'||currentUser.role==='commercial')}
-function canAccess(p){if(!currentUser)return false;if(currentUser.role==='admin'||currentUser.role==='operator'||currentUser.role==='commercial')return true;if(currentUser.role==='client')return String(p.clientId||'')===String(currentUser.clientId||'');return (p.operatorIds||[]).includes(currentUser.id)||p.owner===currentUser.email}
+function canAccess(p){if(!currentUser)return false;if(isSuperAdmin()||currentUser.role==='admin'||currentUser.role==='operator'||currentUser.role==='commercial')return true;if(currentUser.role==='client')return String(p.clientId||'')===String(currentUser.clientId||'');return (p.operatorIds||[]).includes(currentUser.id)||p.owner===currentUser.email}
 function audit(action,detail){if(!cur||!currentUser)return;cur.audit=cur.audit||[];cur.audit.unshift({at:new Date().toISOString(),user:currentUser.name||currentUser.email,action,detail});if(cur.audit.length>100)cur.audit=cur.audit.slice(0,100)}
 function auditHtml(){let a=(cur&&cur.audit)||[];return a.length?a.slice(0,12).map(x=>'<div class="audit-row"><b>'+esc(x.action)+'</b><span>'+esc(x.detail||'')+'</span><small>'+esc(x.user)+' · '+esc(new Date(x.at).toLocaleString('pt-BR'))+'</small></div>').join(''):'<div class="empty">Nenhuma alteração registrada ainda.</div>'}
 function visibleProjects(){return ps.filter(canAccess)}
