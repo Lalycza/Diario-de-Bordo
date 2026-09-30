@@ -29,10 +29,11 @@ export function ManagementDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("id, cliente, descricao, analista, previsao_conclusao")
+        .eq("arquivado", false)
+        .order("previsao_conclusao", { ascending: true, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []).filter((p) => p.arquivado !== true);
+      return data ?? [];
     },
   });
 
@@ -41,7 +42,7 @@ export function ManagementDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("demands")
-        .select("*");
+        .select("id, project_id, status, priority, delivery_deadline");
       if (error) throw error;
       return data ?? [];
     },
@@ -50,8 +51,8 @@ export function ManagementDashboard() {
   const summary = useMemo(() => {
     const projects = projectsQuery.data ?? [];
     const demands = demandsQuery.data ?? [];
-    const dated = projects.filter((p) => p.previsao_conclusao ?? p.delivery_date);
-    const overdue = dated.filter((p) => daysUntil((p.previsao_conclusao ?? p.delivery_date)!) < 0);
+    const dated = projects.filter((p) => p.previsao_conclusao);
+    const overdue = dated.filter((p) => daysUntil(p.previsao_conclusao!) < 0);
     const upcoming = dated
       .filter((p) => {
         const days = daysUntil(p.previsao_conclusao!);
@@ -120,11 +121,11 @@ export function ManagementDashboard() {
                 {summary.upcoming.slice(0, 6).map((project) => (
                   <div key={project.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{project.cliente ?? project.name}</p>
+                      <p className="truncate text-sm font-medium">{project.cliente}</p>
                       <p className="text-xs text-muted-foreground">{project.analista ?? "Sem analista definido"}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-sm font-medium">{formatDate(project.previsao_conclusao ?? project.delivery_date)}</p>
+                      <p className="text-sm font-medium">{formatDate(project.previsao_conclusao)}</p>
                       <p className="text-xs text-muted-foreground">
                         {daysUntil(project.previsao_conclusao!) === 0 ? "hoje" : `em ${daysUntil(project.previsao_conclusao!)} dia(s)`}
                       </p>
