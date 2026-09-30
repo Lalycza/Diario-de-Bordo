@@ -107,7 +107,6 @@ export interface FileRoutesByFullPath {
   '/projeto/$projectId/cronograma': typeof AuthenticatedProjetoProjectIdCronogramaRoute
   '/projeto/$projectId/diario': typeof AuthenticatedProjetoProjectIdDiarioRoute
   '/projeto/$projectId/demandas': typeof AuthenticatedProjetoProjectIdDemandasRoute
-  '/projeto/$projectId/demandas': typeof AuthenticatedProjetoProjectIdDemandasRoute
   '/projeto/$projectId/documentos': typeof AuthenticatedProjetoProjectIdDocumentosRoute
   '/projeto/$projectId/modulos': typeof AuthenticatedProjetoProjectIdModulosRoute
 }
