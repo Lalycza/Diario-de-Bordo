@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, BookOpen, CalendarRange, LayoutGrid } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarRange, LayoutGrid, ClipboardList } from "lucide-react";
 
 const tabs = [
   { to: "/projeto/$projectId/cronograma", label: "Cronograma", icon: CalendarRange },
   { to: "/projeto/$projectId/modulos", label: "Módulos", icon: LayoutGrid },
   { to: "/projeto/$projectId/diario", label: "Diário de bordo", icon: BookOpen },
+  { to: "/projeto/$projectId/demandas", label: "Demandas", icon: ClipboardList },
 ] as const;
 
 export function ProjectHeader({
