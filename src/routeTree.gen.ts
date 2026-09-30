@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AlterarSenhaRouteImport } from './routes/alterar-senha'
 import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
 import { Route as AuthenticatedCadastrosClientesRouteImport } from './routes/_authenticated/cadastros.clientes'
 import { Route as AuthenticatedCadastrosProdutosRouteImport } from './routes/_authenticated/cadastros.produtos'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlterarSenhaRoute = AlterarSenhaRouteImport.update({
+  id: '/alterar-senha',
+  path: '/alterar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -93,6 +99,7 @@ const AuthenticatedProjetoProjectIdModulosRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/cadastros/clientes': typeof AuthenticatedCadastrosClientesRoute
   '/cadastros/produtos': typeof AuthenticatedCadastrosProdutosRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/cadastros/clientes': typeof AuthenticatedCadastrosClientesRoute
   '/cadastros/produtos': typeof AuthenticatedCadastrosProdutosRoute
@@ -136,6 +144,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/alterar-senha'
     | '/projetos'
     | '/cadastros/clientes'
     | '/cadastros/produtos'
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/alterar-senha'
     | '/_authenticated/projetos'
     | '/_authenticated/cadastros/clientes'
     | '/_authenticated/cadastros/produtos'
@@ -178,6 +188,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AlterarSenhaRoute: typeof AlterarSenhaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -187,6 +198,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alterar-senha': {
+      id: '/alterar-senha'
+      path: '/alterar-senha'
+      fullPath: '/alterar-senha'
+      preLoaderRoute: typeof AlterarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -305,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  AlterarSenhaRoute: AlterarSenhaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
