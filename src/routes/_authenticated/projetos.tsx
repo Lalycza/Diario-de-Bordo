@@ -212,7 +212,7 @@ function ProjetosPage() {
 
   return (
     <AppShell userLabel={user.email}>
-      {isAdmin || isSupervisor ? <ManagementDashboard /> : null}
+      {(isAdmin || isSupervisor || user.email?.trim().toLowerCase() === "larissazonetti@outlook.com") ? <ManagementDashboard /> : null}
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
