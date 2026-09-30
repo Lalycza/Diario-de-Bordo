@@ -29,7 +29,6 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const mode = "entrar" as const;
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,22 +47,6 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
         if (error) throw error;
         navigate({ to: "/projetos", replace: true });
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password: senha,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { nome },
-          },
-        });
-        if (error) throw error;
-        if (data.session) {
-          navigate({ to: "/projetos", replace: true });
-        } else {
-          toast.success("Conta criada. Confirme seu e-mail para entrar.");
-        }
-      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível continuar.");
     } finally {
@@ -77,25 +60,11 @@ function AuthPage() {
         <CardHeader>
           <CardTitle>Gestão de Implantações</CardTitle>
           <CardDescription>
-            {mode === "entrar"
-              ? "Entre para acompanhar cronogramas, módulos e treinamentos."
-              : "Crie seu acesso para acompanhar as implantações."}
+            "Entre para acompanhar cronogramas, módulos e treinamentos."
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-3">
-            {mode === "criar" ? (
-              <div className="space-y-1.5">
-                <Label htmlFor="nome">Nome</Label>
-                <Input
-                  id="nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Seu nome"
-                  required
-                />
-              </div>
-            ) : null}
             <div className="space-y-1.5">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -118,7 +87,7 @@ function AuthPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {mode === "entrar" ? "Entrar" : "Criar conta"}
+              "Entrar"
             </Button>
           </form>
 
