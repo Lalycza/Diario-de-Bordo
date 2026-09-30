@@ -29,8 +29,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"entrar" | "criar">("entrar");
-  const [nome, setNome] = useState("");
+  const mode = "entrar" as const;
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
@@ -124,15 +123,6 @@ function AuthPage() {
           </form>
 
 
-          <button
-            type="button"
-            className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => setMode(mode === "entrar" ? "criar" : "entrar")}
-          >
-            {mode === "entrar"
-              ? "Não tem acesso? Criar conta"
-              : "Já tem acesso? Entrar"}
-          </button>
         </CardContent>
       </Card>
     </div>
