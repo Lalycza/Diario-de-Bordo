@@ -11,7 +11,7 @@ export function useRole() {
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
-      const email = userData.user?.email?.toLowerCase() ?? null;
+      const email = userData.user?.email?.trim().toLowerCase() ?? null;
       if (!uid) return { roles: [] as AppRole[], email };
 
       const { data, error } = await supabase
@@ -19,9 +19,16 @@ export function useRole() {
         .select("role")
         .eq("user_id", uid);
 
-      if (error) throw error;
+      // O Administrador principal é protegido pelo e-mail e não pode perder
+      // acesso gerencial caso a tabela de papéis esteja indisponível.
+      if (error) {
+        if (email === PROTECTED_ADMIN_EMAIL) return { roles: ["admin"] as AppRole[], email };
+        throw error;
+      }
+
       return { roles: (data ?? []).map((r) => r.role as AppRole), email };
     },
+    retry: 1,
   });
 
   const roles = query.data?.roles ?? [];
