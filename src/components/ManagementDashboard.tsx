@@ -62,8 +62,14 @@ export function ManagementDashboard() {
     const onTrack = dated.filter((p) => daysUntil(p.previsao_conclusao!) >= 0);
     const pendingDemands = demands.filter((d) => d.status !== "finalizado");
     const highPriority = pendingDemands.filter((d) => d.priority === "alta");
+    const overdueDemands = pendingDemands.filter((d) => d.delivery_deadline && daysUntil(d.delivery_deadline) < 0);
+    const demandsByStatus = {
+      pendente: demands.filter((d) => d.status === "pendente").length,
+      em_andamento: demands.filter((d) => d.status === "em_andamento").length,
+      finalizado: demands.filter((d) => d.status === "finalizado").length,
+    };
 
-    return { projects, overdue, upcoming, onTrack, pendingDemands, highPriority };
+    return { projects, overdue, upcoming, onTrack, pendingDemands, highPriority, overdueDemands, demandsByStatus };
   }, [projectsQuery.data, demandsQuery.data]);
 
   if (projectsQuery.isLoading || demandsQuery.isLoading) {
@@ -107,6 +113,40 @@ export function ManagementDashboard() {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><CalendarClock className="size-4" />Projetos ativos</CardTitle></CardHeader>
           <CardContent><p className="text-2xl font-semibold">{summary.projects.length}</p><p className="text-xs text-muted-foreground">na carteira atual</p></CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader><CardTitle className="text-base">📋 Demandas por status</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between text-sm"><span>Pendentes</span><span className="font-semibold">{summary.demandsByStatus.pendente}</span></div>
+            <div className="flex items-center justify-between text-sm"><span>Em andamento</span><span className="font-semibold">{summary.demandsByStatus.em_andamento}</span></div>
+            <div className="flex items-center justify-between text-sm"><span>Finalizadas</span><span className="font-semibold">{summary.demandsByStatus.finalizado}</span></div>
+            <div className="border-t pt-3 text-xs text-muted-foreground">{summary.overdueDemands.length} demanda(s) com prazo vencido</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">⚠️ Demandas que exigem atenção</CardTitle></CardHeader>
+          <CardContent>
+            {summary.overdueDemands.length === 0 && summary.highPriority.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma demanda crítica no momento.</p>
+            ) : (
+              <div className="space-y-2">
+                {summary.overdueDemands.slice(0, 4).map((d) => <div key={d.id} className="rounded-md border border-destructive/20 p-2 text-sm"><div className="font-medium">Prazo vencido</div><div className="text-xs text-muted-foreground">{formatDate(d.delivery_deadline)}</div></div>)}
+                {summary.highPriority.filter((d) => !summary.overdueDemands.some((o) => o.id === d.id)).slice(0, 4).map((d) => <div key={d.id} className="rounded-md border p-2 text-sm"><div className="font-medium">Alta prioridade</div><div className="text-xs text-muted-foreground">{d.delivery_deadline ? formatDate(d.delivery_deadline) : "Sem prazo"}</div></div>)}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">📊 Carteira</CardTitle></CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center justify-between"><span>Projetos ativos</span><span className="font-semibold">{summary.projects.length}</span></div>
+            <div className="flex items-center justify-between"><span>Go Lives em 15 dias</span><span className="font-semibold">{summary.upcoming.length}</span></div>
+            <div className="flex items-center justify-between"><span>Projetos atrasados</span><span className="font-semibold">{summary.overdue.length}</span></div>
+            <div className="flex items-center justify-between"><span>Demandas abertas</span><span className="font-semibold">{summary.pendingDemands.length}</span></div>
+          </CardContent>
         </Card>
       </div>
 
