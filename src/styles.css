@@ -158,3 +158,55 @@
     color: var(--color-foreground);
   }
 }
+
+
+/* Portal entry: technology/circuit-board visual in both themes. */
+.portal-login {
+  background-color: #e9ecef;
+  background-image:
+    linear-gradient(90deg, rgba(55, 65, 81, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(55, 65, 81, 0.08) 1px, transparent 1px),
+    linear-gradient(135deg, transparent 0 47%, rgba(75, 85, 99, 0.18) 48%, transparent 49%),
+    linear-gradient(25deg, transparent 0 57%, rgba(107, 114, 128, 0.16) 58%, transparent 59%);
+  background-size: 44px 44px, 44px 44px, 260px 190px, 310px 220px;
+}
+
+.portal-login::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 16% 22%, rgba(255,255,255,.65) 0 2px, transparent 3px),
+    radial-gradient(circle at 78% 70%, rgba(255,255,255,.55) 0 2px, transparent 3px),
+    radial-gradient(circle at 62% 28%, rgba(55,65,81,.22) 0 2px, transparent 3px);
+  background-size: 170px 170px, 230px 230px, 190px 190px;
+  opacity: .75;
+}
+
+.portal-login__content {
+  background: rgba(255, 255, 255, .94);
+  border-color: rgba(100, 116, 139, .25);
+  backdrop-filter: blur(10px);
+}
+
+.dark .portal-login {
+  background-color: #2f3338;
+  background-image:
+    linear-gradient(90deg, rgba(229, 231, 235, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(229, 231, 235, 0.07) 1px, transparent 1px),
+    linear-gradient(135deg, transparent 0 47%, rgba(209, 213, 219, 0.16) 48%, transparent 49%),
+    linear-gradient(25deg, transparent 0 57%, rgba(156, 163, 175, 0.14) 58%, transparent 59%);
+}
+
+.dark .portal-login::after {
+  background:
+    radial-gradient(circle at 16% 22%, rgba(255,255,255,.24) 0 2px, transparent 3px),
+    radial-gradient(circle at 78% 70%, rgba(255,255,255,.20) 0 2px, transparent 3px),
+    radial-gradient(circle at 62% 28%, rgba(255,255,255,.18) 0 2px, transparent 3px);
+}
+
+.dark .portal-login__content {
+  background: rgba(24, 28, 33, .94);
+  border-color: rgba(156, 163, 175, .28);
+}
