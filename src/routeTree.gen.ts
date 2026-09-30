@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AlterarSenhaRouteImport } from './routes/alterar-senha'
 import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
 import { Route as AuthenticatedCadastrosClientesRouteImport } from './routes/_authenticated/cadastros.clientes'
 import { Route as AuthenticatedCadastrosProdutosRouteImport } from './routes/_authenticated/cadastros.produtos'
 import { Route as AuthenticatedCadastrosUsuariosRouteImport } from './routes/_authenticated/cadastros.usuarios'
 import { Route as AuthenticatedProjetoProjectIdCronogramaRouteImport } from './routes/_authenticated/projeto.$projectId.cronograma'
+import { Route as AuthenticatedProjetoProjectIdDemandasRouteImport } from './routes/_authenticated/projeto.$projectId.demandas'
 import { Route as AuthenticatedProjetoProjectIdDiarioRouteImport } from './routes/_authenticated/projeto.$projectId.diario'
 import { Route as AuthenticatedProjetoProjectIdDocumentosRouteImport } from './routes/_authenticated/projeto.$projectId.documentos'
 import { Route as AuthenticatedProjetoProjectIdModulosRouteImport } from './routes/_authenticated/projeto.$projectId.modulos'
@@ -28,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlterarSenhaRoute = AlterarSenhaRouteImport.update({
+  id: '/alterar-senha',
+  path: '/alterar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -64,6 +71,12 @@ const AuthenticatedProjetoProjectIdCronogramaRoute =
     path: '/projeto/$projectId/cronograma',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProjetoProjectIdDemandasRoute =
+  AuthenticatedProjetoProjectIdDemandasRouteImport.update({
+    id: '/projeto/$projectId/demandas',
+    path: '/projeto/$projectId/demandas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProjetoProjectIdDiarioRoute =
   AuthenticatedProjetoProjectIdDiarioRouteImport.update({
     id: '/projeto/$projectId/diario',
@@ -86,18 +99,21 @@ const AuthenticatedProjetoProjectIdModulosRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/cadastros/clientes': typeof AuthenticatedCadastrosClientesRoute
   '/cadastros/produtos': typeof AuthenticatedCadastrosProdutosRoute
   '/cadastros/usuarios': typeof AuthenticatedCadastrosUsuariosRoute
   '/projeto/$projectId/cronograma': typeof AuthenticatedProjetoProjectIdCronogramaRoute
   '/projeto/$projectId/diario': typeof AuthenticatedProjetoProjectIdDiarioRoute
+  '/projeto/$projectId/demandas': typeof AuthenticatedProjetoProjectIdDemandasRoute
   '/projeto/$projectId/documentos': typeof AuthenticatedProjetoProjectIdDocumentosRoute
   '/projeto/$projectId/modulos': typeof AuthenticatedProjetoProjectIdModulosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/cadastros/clientes': typeof AuthenticatedCadastrosClientesRoute
   '/cadastros/produtos': typeof AuthenticatedCadastrosProdutosRoute
@@ -118,6 +134,7 @@ export interface FileRoutesById {
   '/_authenticated/cadastros/usuarios': typeof AuthenticatedCadastrosUsuariosRoute
   '/_authenticated/projeto/$projectId/cronograma': typeof AuthenticatedProjetoProjectIdCronogramaRoute
   '/_authenticated/projeto/$projectId/diario': typeof AuthenticatedProjetoProjectIdDiarioRoute
+  '/_authenticated/projeto/$projectId/demandas': typeof AuthenticatedProjetoProjectIdDemandasRoute
   '/_authenticated/projeto/$projectId/documentos': typeof AuthenticatedProjetoProjectIdDocumentosRoute
   '/_authenticated/projeto/$projectId/modulos': typeof AuthenticatedProjetoProjectIdModulosRoute
 }
@@ -126,12 +143,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/alterar-senha'
     | '/projetos'
     | '/cadastros/clientes'
     | '/cadastros/produtos'
     | '/cadastros/usuarios'
     | '/projeto/$projectId/cronograma'
     | '/projeto/$projectId/diario'
+    | '/projeto/$projectId/demandas'
     | '/projeto/$projectId/documentos'
     | '/projeto/$projectId/modulos'
   fileRoutesByTo: FileRoutesByTo
@@ -144,6 +163,7 @@ export interface FileRouteTypes {
     | '/cadastros/usuarios'
     | '/projeto/$projectId/cronograma'
     | '/projeto/$projectId/diario'
+    | '/projeto/$projectId/demandas'
     | '/projeto/$projectId/documentos'
     | '/projeto/$projectId/modulos'
   id:
@@ -151,12 +171,14 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/alterar-senha'
     | '/_authenticated/projetos'
     | '/_authenticated/cadastros/clientes'
     | '/_authenticated/cadastros/produtos'
     | '/_authenticated/cadastros/usuarios'
     | '/_authenticated/projeto/$projectId/cronograma'
     | '/_authenticated/projeto/$projectId/diario'
+    | '/_authenticated/projeto/$projectId/demandas'
     | '/_authenticated/projeto/$projectId/documentos'
     | '/_authenticated/projeto/$projectId/modulos'
   fileRoutesById: FileRoutesById
@@ -165,6 +187,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AlterarSenhaRoute: typeof AlterarSenhaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -174,6 +197,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alterar-senha': {
+      id: '/alterar-senha'
+      path: '/alterar-senha'
+      fullPath: '/alterar-senha'
+      preLoaderRoute: typeof AlterarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -225,6 +255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetoProjectIdCronogramaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/projeto/$projectId/demandas': {
+      id: '/_authenticated/projeto/$projectId/demandas'
+      path: '/projeto/$projectId/demandas'
+      fullPath: '/projeto/$projectId/demandas'
+      preLoaderRoute: typeof AuthenticatedProjetoProjectIdDemandasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/projeto/$projectId/diario': {
       id: '/_authenticated/projeto/$projectId/diario'
       path: '/projeto/$projectId/diario'
@@ -255,6 +292,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCadastrosProdutosRoute: typeof AuthenticatedCadastrosProdutosRoute
   AuthenticatedCadastrosUsuariosRoute: typeof AuthenticatedCadastrosUsuariosRoute
   AuthenticatedProjetoProjectIdCronogramaRoute: typeof AuthenticatedProjetoProjectIdCronogramaRoute
+  AuthenticatedProjetoProjectIdDemandasRoute: typeof AuthenticatedProjetoProjectIdDemandasRoute
   AuthenticatedProjetoProjectIdDiarioRoute: typeof AuthenticatedProjetoProjectIdDiarioRoute
   AuthenticatedProjetoProjectIdDocumentosRoute: typeof AuthenticatedProjetoProjectIdDocumentosRoute
   AuthenticatedProjetoProjectIdModulosRoute: typeof AuthenticatedProjetoProjectIdModulosRoute
@@ -267,6 +305,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCadastrosUsuariosRoute: AuthenticatedCadastrosUsuariosRoute,
   AuthenticatedProjetoProjectIdCronogramaRoute:
     AuthenticatedProjetoProjectIdCronogramaRoute,
+  AuthenticatedProjetoProjectIdDemandasRoute:
+    AuthenticatedProjetoProjectIdDemandasRoute,
   AuthenticatedProjetoProjectIdDiarioRoute:
     AuthenticatedProjetoProjectIdDiarioRoute,
   AuthenticatedProjetoProjectIdDocumentosRoute:
@@ -282,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  AlterarSenhaRoute: AlterarSenhaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

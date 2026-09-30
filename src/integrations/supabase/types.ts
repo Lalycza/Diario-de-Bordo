@@ -307,18 +307,24 @@ export type Database = {
           email: string | null
           id: string
           nome: string
+          name: string | null
+          must_change_password: boolean
         }
         Insert: {
           created_at?: string
           email?: string | null
           id: string
           nome?: string
+          name?: string | null
+          must_change_password?: boolean
         }
         Update: {
           created_at?: string
           email?: string | null
           id?: string
           nome?: string
+          name?: string | null
+          must_change_password?: boolean
         }
         Relationships: []
       }
@@ -448,6 +454,136 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      demands: {
+        Row: {
+          commercial_proposal_approved_at: string | null
+          commercial_proposal_approved_by: string | null
+          commercial_proposal_sent_at: string | null
+          commercial_proposal_sent_by: string | null
+          created_at: string
+          created_by: string | null
+          delivery_deadline: string | null
+          development_estimated_time: string | null
+          development_evaluated_at: string | null
+          development_evaluated_by: string | null
+          id: string
+          notes: string | null
+          os_number: string | null
+          project_id: string
+          scope: string
+          priority: string
+          responsible_person: string | null
+          sector: string | null
+          scope_approved_at: string | null
+          scope_approved_by: string | null
+          scope_raised_at: string | null
+          scope_raised_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commercial_proposal_approved_at?: string | null
+          commercial_proposal_approved_by?: string | null
+          commercial_proposal_sent_at?: string | null
+          commercial_proposal_sent_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_deadline?: string | null
+          development_estimated_time?: string | null
+          development_evaluated_at?: string | null
+          development_evaluated_by?: string | null
+          id?: string
+          notes?: string | null
+          os_number?: string | null
+          project_id: string
+          scope: string
+          priority?: string
+          responsible_person?: string | null
+          sector?: string | null
+          scope_approved_at?: string | null
+          scope_approved_by?: string | null
+          scope_raised_at?: string | null
+          scope_raised_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commercial_proposal_approved_at?: string | null
+          commercial_proposal_approved_by?: string | null
+          commercial_proposal_sent_at?: string | null
+          commercial_proposal_sent_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_deadline?: string | null
+          development_estimated_time?: string | null
+          development_evaluated_at?: string | null
+          development_evaluated_by?: string | null
+          id?: string
+          notes?: string | null
+          os_number?: string | null
+          project_id?: string
+          priority?: string
+          responsible_person?: string | null
+          sector?: string | null
+          scope?: string
+          scope_approved_at?: string | null
+          scope_approved_by?: string | null
+          scope_raised_at?: string | null
+          scope_raised_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demands_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demand_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          demand_id: string
+          id: string
+          snapshot: Json
+          status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          demand_id: string
+          id?: string
+          snapshot: Json
+          status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          demand_id?: string
+          id?: string
+          snapshot?: Json
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_history_demand_id_fkey"
+            columns: ["demand_id"]
+            isOneToOne: false
+            referencedRelation: "demands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demand_attachments: {
+        Row: { created_at: string; created_by: string | null; demand_id: string; file_name: string; file_size: number | null; id: string; mime_type: string | null; storage_path: string }
+        Insert: { created_at?: string; created_by?: string | null; demand_id: string; file_name: string; file_size?: number | null; id?: string; mime_type?: string | null; storage_path: string }
+        Update: { created_at?: string; created_by?: string | null; demand_id?: string; file_name?: string; file_size?: number | null; id?: string; mime_type?: string | null; storage_path?: string }
+        Relationships: [{ foreignKeyName: "demand_attachments_demand_id_fkey"; columns: ["demand_id"]; isOneToOne: false; referencedRelation: "demands"; referencedColumns: ["id"] }]
       }
       project_stages: {
         Row: {
@@ -626,7 +762,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "operador"
+      app_role: "admin" | "supervisor" | "analista" | "operador" | "comercial" | "cliente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -754,7 +890,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "operador"],
+      app_role: ["admin", "supervisor", "analista", "operador", "comercial", "cliente"],
     },
   },
 } as const
