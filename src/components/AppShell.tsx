@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutList, LogOut } from "lucide-react";
+import { LayoutList, LogOut, LayoutDashboard, ClipboardList } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { ReactNode } from "react";
 
@@ -28,14 +28,14 @@ export function AppShell({
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-          <Link to="/projetos" className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <LayoutList className="size-4" />
-            </span>
-            <span className="text-sm font-semibold tracking-tight">
+          <nav className="flex items-center gap-1">
+            <Link to="/projetos" className="mr-2 flex items-center gap-2 text-sm font-semibold tracking-tight">
+              <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground"><LayoutList className="size-4" /></span>
               Gestão de Implantações
-            </span>
-          </Link>
+            </Link>
+            <Link to="/dashboard" className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent"><LayoutDashboard className="size-4" />Dashboard</Link>
+            <Link to="/demandas" className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent"><ClipboardList className="size-4" />Demandas</Link>
+          </nav>
           <div className="flex items-center gap-3">
             {userLabel ? (
               <span className="hidden text-xs text-muted-foreground sm:inline">{userLabel}</span>
