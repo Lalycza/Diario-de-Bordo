@@ -1,12 +1,8 @@
-import { createStart, createCsrfMiddleware } from "@tanstack/react-start";
-
-const csrfMiddleware = createCsrfMiddleware({
-  filter: (ctx) => ctx.handlerType === "serverFn",
-});
+import { createStart } from "@tanstack/react-start";
 
 export const startInstance = createStart(() => ({
-  // Keep the app client-rendered by default so browser-only Supabase
-  // authentication/storage code does not break the initial Vercel request.
+  // The application uses browser-side Supabase authentication.
+  // Keep the initial app client-rendered so the Vercel server does not
+  // execute browser-only authentication/storage code during the first request.
   defaultSsr: false,
-  requestMiddleware: [csrfMiddleware],
 }));
