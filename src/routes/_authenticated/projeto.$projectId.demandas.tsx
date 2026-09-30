@@ -158,7 +158,7 @@ function DemandasPage() {
             <tr><th className="px-3 py-3">OS</th><th className="px-3 py-3">Escopo</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Prioridade</th><th className="px-3 py-3">Em posse de</th><th className="px-3 py-3">Setor</th><th className="px-3 py-3">Prazo</th><th className="px-3 py-3">Escopo levantado</th><th className="px-3 py-3">Escopo aprovado</th><th className="px-3 py-3">Proposta</th><th className="px-3 py-3">Desenvolvimento</th><th className="px-3 py-3"></th></tr>
           </thead>
           <tbody>
-            {demands.length === 0 ? <tr><td colSpan={12} className="px-4 py-10 text-center text-muted-foreground">Nenhuma demanda cadastrada.</td></tr> : demands.map((d: any) => (
+            {demands.length === 0 ? <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">Nenhuma demanda cadastrada.</td></tr> : demands.map((d: any) => (
               <tr key={d.id} className="border-t align-top">
                 <td className="px-3 py-3 font-medium">{d.os_number ?? "—"}</td>
                 <td className="px-3 py-3 max-w-[280px]">{d.scope}</td>
