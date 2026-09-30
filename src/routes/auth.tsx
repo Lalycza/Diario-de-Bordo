@@ -43,9 +43,9 @@ function AuthPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10">
+    <div className="portal-login relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10">
       <div className="pointer-events-none absolute inset-0 opacity-70" style={{ backgroundImage: "linear-gradient(90deg,rgba(148,163,184,.12) 1px,transparent 1px),linear-gradient(rgba(148,163,184,.10) 1px,transparent 1px),radial-gradient(circle at 20% 20%,rgba(59,130,246,.20),transparent 28%),radial-gradient(circle at 80% 75%,rgba(14,165,233,.14),transparent 30%)", backgroundSize: "44px 44px,44px 44px,auto,auto" }} />
-      <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: "linear-gradient(135deg,transparent 0 48%,rgba(148,163,184,.22) 49%,transparent 50%),linear-gradient(25deg,transparent 0 58%,rgba(96,165,250,.18) 59%,transparent 60%)", backgroundSize: "260px 190px,310px 220px" }} />
+      <div className="pointer-events-none absolute inset-0 opacity-35" style={{ backgroundImage: "linear-gradient(135deg,transparent 0 48%,rgba(148,163,184,.22) 49%,transparent 50%),linear-gradient(25deg,transparent 0 58%,rgba(96,165,250,.18) 59%,transparent 60%)", backgroundSize: "260px 190px,310px 220px" }} />
       <div className="absolute right-4 top-4 z-20"><ThemeToggle /></div>
       <Card className="relative z-10 w-full max-w-md">
         <CardHeader>
