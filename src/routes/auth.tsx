@@ -42,9 +42,10 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <Card className="w-full max-w-md">
-        <CardHeader>
+    <div className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-10" style={{ backgroundImage: 'url("https://i.ibb.co/mVwHbWBZ/Fundo-Entrada.jpg")' }}>
+      <Card className="w-full max-w-md bg-background/95 backdrop-blur-sm">
+        <CardHeader className="items-center text-center">
+          <img src="https://i.ibb.co/QFNCQzYv/7892-Logotipo-HPRO-vertical-CMYK.png" alt="HPRO" className="mb-4 h-40 w-auto object-contain" />
           <CardTitle>Gestão de Implantações</CardTitle>
           <CardDescription>Entre para acompanhar cronogramas, módulos e treinamentos.</CardDescription>
         </CardHeader>

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutList, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -27,13 +27,12 @@ export function AppShell({
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-          <Link to="/projetos" className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <LayoutList className="size-4" />
-            </span>
-            <span className="text-sm font-semibold tracking-tight">
-              Gestão de Implantações
-            </span>
+          <Link to="/projetos" className="flex items-center">
+            <img
+              src="https://i.ibb.co/QFNCQzYv/7892-Logotipo-HPRO-vertical-CMYK.png"
+              alt="HPRO"
+              className="h-12 w-auto object-contain"
+            />
           </Link>
           <div className="flex items-center gap-3">
             {userLabel ? (
