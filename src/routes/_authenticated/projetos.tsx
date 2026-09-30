@@ -328,7 +328,7 @@ function ProjetosPage() {
                   <Progress value={p.percent} />
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <Button asChild variant="outline" size="sm">
                     <Link to="/projeto/$projectId/cronograma" params={{ projectId: project.id }}>
                       Cronograma
@@ -342,6 +342,11 @@ function ProjetosPage() {
                   <Button asChild variant="outline" size="sm">
                     <Link to="/projeto/$projectId/diario" params={{ projectId: project.id }}>
                       Diário
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/projeto/$projectId/demandas" params={{ projectId: project.id }}>
+                      Demandas
                     </Link>
                   </Button>
                 </div>
