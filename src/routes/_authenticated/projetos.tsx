@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { effectiveStageStatus, formatDate } from "@/lib/status";
 import { TEMPLATE_FASES } from "@/lib/template";
 import { AppShell } from "@/components/AppShell";
+import { ManagementDashboard } from "@/components/ManagementDashboard";
+import { useRole } from "@/lib/useRole";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -70,6 +72,7 @@ const emptyForm: ProjectForm = {
 
 function ProjetosPage() {
   const { user } = Route.useRouteContext();
+  const { isAdmin, isSupervisor } = useRole();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<ProjectForm | null>(null);
@@ -209,6 +212,8 @@ function ProjetosPage() {
 
   return (
     <AppShell userLabel={user.email}>
+      {isAdmin || isSupervisor ? <ManagementDashboard /> : null}
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Projetos</h1>
