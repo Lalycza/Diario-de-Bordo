@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Pencil, Plus, Trash2, History, Paperclip, Download, X } from "lucide-react";
 import { toast } from "sonner";
@@ -130,6 +130,16 @@ function DemandasPage() {
   });
 
   const demands = demandsQuery.data ?? [];
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [priorityFilter, setPriorityFilter] = useState("todos");
+  const [search, setSearch] = useState("");
+  const filteredDemands = useMemo(() => demands.filter((d: any) => {
+    const matchesStatus = statusFilter === "todos" || d.status === statusFilter;
+    const matchesPriority = priorityFilter === "todos" || d.priority === priorityFilter;
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term || [d.os_number, d.scope, d.responsible_person, d.sector].some((v) => String(v ?? "").toLowerCase().includes(term));
+    return matchesStatus && matchesPriority && matchesSearch;
+  }), [demands, statusFilter, priorityFilter, search]);
   const statusLabel = (s: string) => STATUSES.find(([key]) => key === s)?.[1] ?? s;
   const formFrom = (d: any): DemandForm => ({
     id: d.id, os_number: d.os_number ?? "", scope: d.scope ?? "", status: d.status ?? "pendente", priority: d.priority ?? "media", responsible_person: d.responsible_person ?? "", sector: d.sector ?? "",
@@ -152,13 +162,20 @@ function DemandasPage() {
         {canEdit ? <Button className="ml-auto" onClick={() => setForm({ ...emptyForm })}><Plus className="size-4" /> Nova demanda</Button> : null}
       </div>
 
+      <div className="mb-3 flex flex-wrap items-end gap-2 rounded-lg border bg-card p-3">
+        <div className="min-w-[220px] flex-1"><Label>Buscar</Label><Input className="mt-1" placeholder="OS, escopo, responsável ou setor" value={search} onChange={e => setSearch(e.target.value)} /></div>
+        <div className="w-[180px]"><Label>Status</Label><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem>{STATUSES.map(([k,l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></div>
+        <div className="w-[180px]"><Label>Prioridade</Label><Select value={priorityFilter} onValueChange={setPriorityFilter}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todas</SelectItem><SelectItem value="alta">Alta</SelectItem><SelectItem value="media">Média</SelectItem><SelectItem value="baixa">Baixa</SelectItem></SelectContent></Select></div>
+        <div className="pb-0 text-xs text-muted-foreground">{filteredDemands.length} de {demands.length} demanda(s)</div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full min-w-[1100px] text-sm">
           <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
             <tr><th className="px-3 py-3">OS</th><th className="px-3 py-3">Escopo</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Prioridade</th><th className="px-3 py-3">Em posse de</th><th className="px-3 py-3">Setor</th><th className="px-3 py-3">Prazo</th><th className="px-3 py-3">Escopo levantado</th><th className="px-3 py-3">Escopo aprovado</th><th className="px-3 py-3">Proposta</th><th className="px-3 py-3">Desenvolvimento</th><th className="px-3 py-3">Anexos</th><th className="px-3 py-3">Ações</th></tr>
           </thead>
           <tbody>
-            {demands.length === 0 ? <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">Nenhuma demanda cadastrada.</td></tr> : demands.map((d: any) => (
+            {filteredDemands.length === 0 ? <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">{demands.length === 0 ? "Nenhuma demanda cadastrada." : "Nenhuma demanda encontrada com os filtros atuais."}</td></tr> : filteredDemands.map((d: any) => (
               <tr key={d.id} className="border-t align-top">
                 <td className="px-3 py-3 font-medium">{d.os_number ?? "—"}</td>
                 <td className="px-3 py-3 max-w-[280px]">{d.scope}</td>
