@@ -82,11 +82,97 @@ function restoreState(){try{
   if(Array.isArray(st.ps)&&st.ps.length)ps=st.ps;
   setTimeout(persistState,50);
 }catch(e){console.warn('Não foi possível restaurar os dados locais',e)}}
+async function hydrateFromSupabase(){
+  if(window._dbHydrated||!supabaseSession)return;
+  window._dbHydrated=true;
+  try{
+    const [pr,mo,su,cl,pg,pp,pm,tr]=await Promise.all([
+      supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
+      supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
+      supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
+      supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,city,state,legacy_id,status').order('created_at'),
+      supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id').order('created_at'),
+      supabaseClient.from('project_products').select('project_id,product_id'),
+      supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
+      supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date')
+    ]);
+    for(const q of [pr,mo,su,cl,pg,pp,pm,tr])if(q.error)throw q.error;
+    const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
+    const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
+    const moduleByDb=new Map((mo.data||[]).map(x=>[x.id,lid(x.legacy_id,'module')]));
+    const subByDb=new Map((su.data||[]).map(x=>[x.id,lid(x.legacy_id,'submodule')]));
+    const clientByDb=new Map((cl.data||[]).map(x=>[x.id,lid(x.legacy_id,'client')]));
+    const projectByDb=new Map((pg.data||[]).map(x=>[x.id,lid(x.legacy_id,'project')]));
+
+    const oldProducts=productsData||[];
+    const oldModules=modulesData||[];
+    const oldClients=clientsData||[];
+    const oldProjects=ps||[];
+
+    productsData=(pr.data||[]).map(x=>{
+      const id=productByDb.get(x.id);
+      const old=oldProducts.find(p=>String(p.id)===String(id));
+      return {...(old||{}),id,name:x.name,customized:!!x.custom,moduleIds:[]};
+    });
+    modulesData=(mo.data||[]).map(x=>{
+      const id=moduleByDb.get(x.id);
+      const old=oldModules.find(m=>String(m.id)===String(id));
+      return {...(old||{}),id,name:x.name,subs:[],productIds:[]};
+    });
+    for(const x of (mo.data||[])){
+      const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.id)));
+      const p=productsData.find(v=>String(v.id)===String(productByDb.get(x.product_id)));
+      if(m&&p){m.productIds.push(p.id);p.moduleIds.push(m.id)}
+    }
+    for(const x of (su.data||[])){
+      const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
+      if(m)m.subs.push(x.name);
+    }
+
+    clientsData=(cl.data||[]).map(x=>{
+      const id=clientByDb.get(x.id);
+      const old=oldClients.find(c=>String(c.id)===String(id));
+      return {...(old||{}),id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo'};
+    });
+
+    const monthNames=cronMonths;
+    ps=(pg.data||[]).map(x=>{
+      const id=projectByDb.get(x.id);
+      const old=oldProjects.find(p=>String(p.id)===String(id));
+      const client=clientsData.find(c=>String(c.id)===String(clientByDb.get(x.client_id)));
+      return {...(old||{}),id,n:x.name,c:client?.name||old?.c||'',clientId:client?.id||old?.clientId||null,progress:Number(x.progress||0),baseDate:x.start_date||old?.baseDate||'',startDate:x.start_date||old?.startDate||'',endDate:x.delivery_date||old?.endDate||'',productIds:[],m:[],t:Array.isArray(old?.t)?old.t:[],d:old?.d||[],docs:old?.docs||[],emails:old?.emails||[],kickoff:old?.kickoff||{status:'Pendente',notes:''},handoff:old?.handoff||{status:'Pendente',notes:''},pesquisa:old?.pesquisa||{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:old?.homologacao||{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''}};
+    });
+    for(const x of (pp.data||[])){
+      const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
+      const prod=productByDb.get(x.product_id);
+      if(p&&prod!=null)p.productIds.push(prod);
+    }
+    for(const x of (pm.data||[])){
+      const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
+      const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
+      if(p&&m)p.m.push([m.name,m.subs||[],{plannedDate:x.planned_training_date||null}]);
+    }
+    const grouped={};
+    for(const x of (tr.data||[])){
+      const pid=projectByDb.get(x.project_id);
+      if(!grouped[pid])grouped[pid]=[];
+      const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
+      const sm=(su.data||[]).find(v=>v.id===x.submodule_id);
+      grouped[pid].push({module:m?.name||'',submodule:sm?.name||'',subject:x.subject||'',month:x.planned_month?monthNames[Number(x.planned_month)-1]:'',week:x.planned_week||null,plannedDate:x.planned_date||'',trainingDate:x.realization_date||'',status:x.status||'Pendente',responsible:x.responsible||''});
+    }
+    ps.forEach(p=>{if(grouped[p.id]?.length)p.t=grouped[p.id]});
+    persistState();
+    render();
+  }catch(e){
+    window._dbHydrated=false;
+    console.warn('Não foi possível carregar os dados do Supabase',e);
+  }
+}
 restoreState();
 setInterval(persistState,800);
 window.addEventListener('beforeunload',persistState);
 restoreSupabaseSession();
-supabaseClient.auth.onAuthStateChange((_event,session)=>{supabaseSession=session});
+supabaseClient.auth.onAuthStateChange((_event,session)=>{supabaseSession=session;if(session)setTimeout(hydrateFromSupabase,0)});
 ps.forEach(p=>{p.t=(p.t||[]).map((t,idx)=>{let x=taskObj(t);if(!x.month)x.month=cronMonths[Math.min(idx,11)];return x})});
 
 document.addEventListener('keydown',function(e){if(e.key!=='Enter'||e.target?.tagName==='TEXTAREA')return;if(e.target?.id==='email'){e.preventDefault();document.getElementById('password')?.focus();return}if(e.target?.id==='password'){e.preventDefault();login();return}});
