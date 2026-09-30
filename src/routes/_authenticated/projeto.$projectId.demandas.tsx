@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Pencil, Plus, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
 
@@ -208,6 +209,6 @@ function DemandasPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return <div><Label>{label}</Label><div className="mt-1">{children}</div></div>;
 }
