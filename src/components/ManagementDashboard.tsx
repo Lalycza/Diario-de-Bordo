@@ -1,3 +1,4 @@
+// Dashboard gerencial — publicação forçada sem alteração de layout
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
