@@ -415,12 +415,12 @@ function localLegacy(prefix,id){return prefix+'-'+String(id)}
 function monthNumber(name){let i=cronMonths.indexOf(name);return i>=0?i+1:null}
 function parseBRDate(v){if(!v)return null;let m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);return m?m[3]+'-'+m[2]+'-'+m[1]:v}
 function snapshotLocalState(){return {version:'V35',createdAt:new Date().toISOString(),storageKey:STORAGE_KEY,usersData,modulesData,productsData,clientsData,ps};}
-function downloadV35Backup(silent=false){try{const snapshot=snapshotLocalState();localStorage.setItem('implanta_state_v35_safety_backup',JSON.stringify(snapshot));const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='IMPLANTA_V35_BACKUP_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);if(!silent){const el=document.getElementById('backupStatus');if(el)el.textContent='Backup criado e arquivo JSON baixado com sucesso em '+new Date().toLocaleString('pt-BR')+' .';alert('Backup da V35 criado.\n\nO estado atual foi preservado no navegador e também baixado em arquivo JSON.');}return true}catch(e){console.error(e);if(!silent)alert('Não foi possível criar o backup: '+(e.message||e));return false}}
+function downloadV35Backup(silent=false,downloadFile=true){try{const snapshot=snapshotLocalState();localStorage.setItem('implanta_state_v35_safety_backup',JSON.stringify(snapshot));if(downloadFile){const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='IMPLANTA_V35_BACKUP_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}if(!silent){const el=document.getElementById('backupStatus');if(el)el.textContent='Backup criado e arquivo JSON baixado com sucesso em '+new Date().toLocaleString('pt-BR')+' .';alert('Backup da V35 criado.\n\nO estado atual foi preservado no navegador e também baixado em arquivo JSON.');}return true}catch(e){console.error(e);if(!silent)alert('Não foi possível criar o backup: '+(e.message||e));return false}}
 function checkSyncTables(){return true}
 async function syncLocalToSupabase(){
  if(currentUser?.role!=='admin')return alert('Entre como Administrador para salvar no Supabase.');
  if(window._syncing)return alert('A sincronização já está em andamento.');
- if(!downloadV35Backup(true))return;
+ if(!downloadV35Backup(true,false))return;
  const beforeProjects=ps.length,beforeClients=clientsData.length,beforeProducts=productsData.length;
  window._syncing=true;
  try{
@@ -435,6 +435,11 @@ async function syncLocalToSupabase(){
      const payload={legacy_id:localLegacy('client',c.id),razao_social:c.name||'Cliente sem nome',nome_fantasia:c.fantasy||null,cnpj:c.cnpj||null,ie:c.ie||null,im:c.im||null,email:c.email||null,phone:c.phone||null,cep:c.zip||null,address:c.address||null,number:c.number||null,complement:c.complement||null,neighborhood:c.neighborhood||null,city:c.city||null,state:c.state||null,contact_name:clientResponsible(c).name||null,status:c.status||'Ativo',notes:c.notes||null};
      const {data,error}=await supabaseClient.from('clients').upsert(payload,{onConflict:'legacy_id'}).select('id,legacy_id').single();
      if(error)throw new Error('Clientes: '+error.message); clientMap[c.id]=data.id;
+     // A lista local é a fonte da verdade durante a sincronização. Antes de marcar
+     // um novo responsável, retiramos a marca dos responsáveis remotos anteriores
+     // para respeitar a regra de um único responsável por cliente.
+     const {error:re}=await supabaseClient.from('client_contacts').update({is_project_responsible:false}).eq('client_id',data.id);
+     if(re)throw new Error('Responsável do cliente '+c.name+': '+re.message);
      for(const ct of clientContacts(c)){
        const cp={legacy_id:localLegacy('contact',c.id+'-'+ct.id),client_id:data.id,name:ct.name||'',email:ct.email||null,phone:ct.phone||null,is_project_responsible:!!ct.projectResponsible};
        const {error:ce}=await supabaseClient.from('client_contacts').upsert(cp,{onConflict:'legacy_id'}); if(ce)throw new Error('Contatos do cliente '+c.name+': '+ce.message);
