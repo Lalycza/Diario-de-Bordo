@@ -188,10 +188,9 @@ async function openPasswordChange(force){
       if(p1!==p2){msg.textContent='As senhas não conferem.';return}
       const {error}=await supabaseClient.auth.updateUser({password:p1});
       if(error){msg.textContent='Não foi possível alterar a senha: '+error.message;return}
-      if(currentUser?.id){
-        const {error:pe}=await supabaseClient.from('profiles').update({must_change_password:false,updated_at:new Date().toISOString()}).eq('id',currentUser.id);
-        if(pe){msg.textContent='Senha alterada, mas não foi possível concluir a liberação: '+pe.message;return}
-      }
+      const {data:cleared,error:pe}=await supabaseClient.rpc('clear_must_change_password');
+      if(pe || cleared!==true){msg.textContent='Senha alterada, mas não foi possível concluir a liberação: '+(pe?.message||'perfil não liberado');return}
+      if(supabaseProfile)supabaseProfile.must_change_password=false;
       closeModal();alert('Senha alterada com sucesso.');
     });
 }
