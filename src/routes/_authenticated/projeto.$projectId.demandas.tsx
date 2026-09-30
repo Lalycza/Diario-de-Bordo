@@ -222,8 +222,6 @@ function DemandasPage() {
             <div className="space-y-2">{(attachmentsQuery.data??[]).length===0 ? <p className="text-sm text-muted-foreground">Nenhum anexo.</p> : (attachmentsQuery.data??[]).map((a:any)=><div key={a.id} className="flex items-center justify-between rounded border p-3"><span className="truncate font-medium">{a.file_name}</span><div className="flex gap-1"><Button variant="ghost" size="icon" onClick={async()=>{const r=await supabase.storage.from("demand-attachments").createSignedUrl(a.storage_path,300);if(r.data?.signedUrl)window.open(r.data.signedUrl,"_blank");}}><Download className="size-4"/></Button>{canEdit?<Button variant="ghost" size="icon" onClick={async()=>{await supabase.storage.from("demand-attachments").remove([a.storage_path]);await supabase.from("demand_attachments").delete().eq("id",a.id);qc.invalidateQueries({queryKey:["demand-attachments",attachmentsId]});}}><X className="size-4"/></Button>:null}</div></div>)}</div>
           </div> : null}</DialogContent>
       </Dialog>
-
-      </Dialog>
     </AppShell>
   );
 }
