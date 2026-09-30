@@ -517,6 +517,9 @@ export type Database = {
           notes?: string | null
           os_number?: string | null
           project_id?: string
+          priority?: string
+          responsible_person?: string | null
+          sector?: string | null
           scope?: string
           scope_approved_at?: string | null
           scope_approved_by?: string | null
