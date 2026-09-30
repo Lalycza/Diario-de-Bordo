@@ -514,5 +514,5 @@ async function bootPublicSurvey(){let params=new URLSearchParams(location.search
 async function submitPublicSurvey(token){let answers={};surveyQuestions.forEach(q=>answers[q[0]]=document.getElementById('pub_'+q[0]).value);let payload={company:document.getElementById('pubCompany').value,name:document.getElementById('pubName').value,role:document.getElementById('pubRole').value,email:document.getElementById('pubEmail').value,product:document.getElementById('pubProduct').value,answers,comment:document.getElementById('pubComment').value};try{let {error}=await supabaseClient.rpc('submit_public_survey',{p_token:token,p_payload:payload});if(error)throw error;document.getElementById('publicSurveyForm').innerHTML='<div class="hint"><b>Obrigado!</b> Sua resposta foi registrada com sucesso.</div>'}catch(e){alert('Não foi possível enviar a pesquisa: '+e.message)}}
 
 bootPublicSurvey();
-</script>document.addEventListener('DOMContentLoaded',()=>setTimeout(applyRoleVisibility,50));
+</script>
 </body></html>
