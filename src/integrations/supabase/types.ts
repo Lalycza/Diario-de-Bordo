@@ -449,6 +449,121 @@ export type Database = {
           },
         ]
       }
+      demands: {
+        Row: {
+          commercial_proposal_approved_at: string | null
+          commercial_proposal_approved_by: string | null
+          commercial_proposal_sent_at: string | null
+          commercial_proposal_sent_by: string | null
+          created_at: string
+          created_by: string | null
+          delivery_deadline: string | null
+          development_estimated_time: string | null
+          development_evaluated_at: string | null
+          development_evaluated_by: string | null
+          id: string
+          notes: string | null
+          os_number: string | null
+          project_id: string
+          scope: string
+          scope_approved_at: string | null
+          scope_approved_by: string | null
+          scope_raised_at: string | null
+          scope_raised_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commercial_proposal_approved_at?: string | null
+          commercial_proposal_approved_by?: string | null
+          commercial_proposal_sent_at?: string | null
+          commercial_proposal_sent_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_deadline?: string | null
+          development_estimated_time?: string | null
+          development_evaluated_at?: string | null
+          development_evaluated_by?: string | null
+          id?: string
+          notes?: string | null
+          os_number?: string | null
+          project_id: string
+          scope: string
+          scope_approved_at?: string | null
+          scope_approved_by?: string | null
+          scope_raised_at?: string | null
+          scope_raised_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commercial_proposal_approved_at?: string | null
+          commercial_proposal_approved_by?: string | null
+          commercial_proposal_sent_at?: string | null
+          commercial_proposal_sent_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_deadline?: string | null
+          development_estimated_time?: string | null
+          development_evaluated_at?: string | null
+          development_evaluated_by?: string | null
+          id?: string
+          notes?: string | null
+          os_number?: string | null
+          project_id?: string
+          scope?: string
+          scope_approved_at?: string | null
+          scope_approved_by?: string | null
+          scope_raised_at?: string | null
+          scope_raised_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demands_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demand_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          demand_id: string
+          id: string
+          snapshot: Json
+          status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          demand_id: string
+          id?: string
+          snapshot: Json
+          status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          demand_id?: string
+          id?: string
+          snapshot?: Json
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_history_demand_id_fkey"
+            columns: ["demand_id"]
+            isOneToOne: false
+            referencedRelation: "demands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_stages: {
         Row: {
           created_at: string
