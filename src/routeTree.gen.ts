@@ -17,6 +17,7 @@ import { Route as AuthenticatedCadastrosClientesRouteImport } from './routes/_au
 import { Route as AuthenticatedCadastrosProdutosRouteImport } from './routes/_authenticated/cadastros.produtos'
 import { Route as AuthenticatedCadastrosUsuariosRouteImport } from './routes/_authenticated/cadastros.usuarios'
 import { Route as AuthenticatedProjetoProjectIdCronogramaRouteImport } from './routes/_authenticated/projeto.$projectId.cronograma'
+import { Route as AuthenticatedProjetoProjectIdDemandasRouteImport } from './routes/_authenticated/projeto.$projectId.demandas'
 import { Route as AuthenticatedProjetoProjectIdDiarioRouteImport } from './routes/_authenticated/projeto.$projectId.diario'
 import { Route as AuthenticatedProjetoProjectIdDocumentosRouteImport } from './routes/_authenticated/projeto.$projectId.documentos'
 import { Route as AuthenticatedProjetoProjectIdModulosRouteImport } from './routes/_authenticated/projeto.$projectId.modulos'
@@ -64,6 +65,12 @@ const AuthenticatedProjetoProjectIdCronogramaRoute =
     path: '/projeto/$projectId/cronograma',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProjetoProjectIdDemandasRoute =
+  AuthenticatedProjetoProjectIdDemandasRouteImport.update({
+    id: '/projeto/$projectId/demandas',
+    path: '/projeto/$projectId/demandas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProjetoProjectIdDiarioRoute =
   AuthenticatedProjetoProjectIdDiarioRouteImport.update({
     id: '/projeto/$projectId/diario',
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/cadastros/usuarios': typeof AuthenticatedCadastrosUsuariosRoute
   '/projeto/$projectId/cronograma': typeof AuthenticatedProjetoProjectIdCronogramaRoute
   '/projeto/$projectId/diario': typeof AuthenticatedProjetoProjectIdDiarioRoute
+  '/projeto/$projectId/demandas': typeof AuthenticatedProjetoProjectIdDemandasRoute
   '/projeto/$projectId/documentos': typeof AuthenticatedProjetoProjectIdDocumentosRoute
   '/projeto/$projectId/modulos': typeof AuthenticatedProjetoProjectIdModulosRoute
 }
@@ -255,6 +263,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCadastrosProdutosRoute: typeof AuthenticatedCadastrosProdutosRoute
   AuthenticatedCadastrosUsuariosRoute: typeof AuthenticatedCadastrosUsuariosRoute
   AuthenticatedProjetoProjectIdCronogramaRoute: typeof AuthenticatedProjetoProjectIdCronogramaRoute
+  AuthenticatedProjetoProjectIdDemandasRoute: typeof AuthenticatedProjetoProjectIdDemandasRoute
   AuthenticatedProjetoProjectIdDiarioRoute: typeof AuthenticatedProjetoProjectIdDiarioRoute
   AuthenticatedProjetoProjectIdDocumentosRoute: typeof AuthenticatedProjetoProjectIdDocumentosRoute
   AuthenticatedProjetoProjectIdModulosRoute: typeof AuthenticatedProjetoProjectIdModulosRoute
