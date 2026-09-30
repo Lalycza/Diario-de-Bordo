@@ -208,7 +208,31 @@ function projectGoLiveFor(p){const mods=(p.m||[]).map(m=>m[0]),g=p.goLive||{};re
 function openP(id){cur=ps.find(p=>p.id===id);if(!cur||!canAccess(cur)){alert('Você não tem acesso a este projeto.');return}homeSec(false);document.getElementById('title').textContent=cur.n;const cli=clientsData.find(x=>x.id===cur.clientId)||{},analyst=(usersData.find(u=>u.email===cur.owner)||{}).name||cur.owner||'',gs=projectGoLiveFor(cur),prod=gs.filter(x=>x.status==='Em produção').length,planned=gs.filter(x=>x.status==='Go Live programado').length,notProd=gs.filter(x=>x.status==='Não entrou em produção').length,projectStatus=cur.homologacao?.status==='Homologado'?'Homologado':'Em implantação';document.getElementById('info').innerHTML='<div class="project-summary"><span><b>Cliente</b>'+esc(cli.name||cur.c)+'</span><span><b>Analista</b>'+esc(analyst)+'</span><span><b>Status da implantação</b>'+esc(projectStatus)+'</span><span><b>Operação</b>'+(prod?'<span class="badge ok">'+prod+' em produção</span>':'<span class="badge">Nenhum módulo em produção</span>')+(planned?' <span class="badge">'+planned+' programado(s)</span>':'')+(notProd?' <span class="badge">'+notProd+' fora de produção</span>':'')+'</span><span><b>Responsável cliente</b>'+esc(cli.contact||'Não informado')+'</span><span><b>E-mail</b>'+esc(cli.email||'Não informado')+'</span><span><b>Telefone</b>'+esc(cli.phone||'Não informado')+'</span></div>'+ '<div class="project-toolbar"><button class="secondary" type="button" onclick="toggleAudit()">🕘 Histórico de alterações</button>'+(cur.finalizado?'<span class="badge finalized-badge">🔒 Finalizado · somente consulta</span>'+(currentUser.role==='admin'?'<button class="secondary" type="button" onclick="reabrirProjeto()">↻ Reabrir para edição</button>':''):(cur.homologacao?.status==='Homologado'&&currentUser.role==='analyst'?'<button class="primary" type="button" onclick="finalizarProjeto()">🔒 Finalizar projeto</button>':''))+'</div><div id="auditPanel" class="audit-panel hidden"><div class="section-title">Histórico de alterações</div>'+auditHtml()+'</div>';document.getElementById('editProjBtn').classList.toggle('hidden',!canEdit());tab('cron')}
 function finalizarProjeto(){if(!cur||currentUser?.role!=='analyst'||cur.finalizado)return;if(cur.homologacao?.status!=='Homologado'){alert('O projeto precisa estar homologado antes de ser finalizado.');return}if(!confirm('Finalizar este projeto? Depois da finalização, ele ficará somente para consulta para o analista.'))return;cur.finalizado=true;cur.finalizadoAt=new Date().toISOString();cur.finalizadoBy=currentUser.name||currentUser.email;audit('Projeto finalizado','Projeto encerrado para edição do analista. A partir de agora, somente consulta.');persistState();openP(cur.id);render()}
 function reabrirProjeto(){if(!cur||currentUser?.role!=='admin'||!cur.finalizado)return;if(!confirm('Reabrir este projeto para edição?'))return;cur.finalizado=false;cur.finalizadoAt='';cur.finalizadoBy='';audit('Projeto reaberto','Administrador reabriu o projeto para edição.');persistState();openP(cur.id);render()}
-async function excluirProjeto(id){if(currentUser?.role!=='admin'){alert('Somente Administrador pode excluir projetos.');return}const p=ps.find(x=>x.id===id);if(!p)return;const nome=p.n||'este projeto';const confirmacao=prompt('EXCLUSÃO DEFINITIVA\n\nPara limpar projetos de teste, digite exatamente o nome do projeto:\n\n'+nome,'');if(confirmacao!==nome)return;let remoteOk=false;let remoteMsg='';try{if(!window.supabaseClient||!supabaseSession){remoteMsg='Sessão Supabase não está ativa.'}else{const legacy=localLegacy('project',id);const {data,error}=await supabaseClient.rpc('admin_delete_project_by_legacy',{p_legacy_id:legacy});if(error)remoteMsg=error.message||String(error);else if(data!==true)remoteMsg='O Supabase não encontrou o projeto para exclusão.';else remoteOk=true}}catch(e){remoteMsg=e.message||String(e)}if(!remoteOk){alert('A exclusão NÃO foi concluída. O projeto continua na lista e no Supabase.\n\nErro: '+remoteMsg);return}ps=ps.filter(x=>x.id!==id);if(cur?.id===id)cur=null;persistState();home();alert('Projeto excluído definitivamente do IMPLANTA e do Supabase.');}
+async function excluirProjeto(id){
+ if(currentUser?.role!=='admin'){alert('Somente Administrador pode excluir projetos.');return}
+ const p=ps.find(x=>x.id===id);if(!p)return;
+ const nome=p.n||'este projeto';
+ const confirmacao=prompt('EXCLUSÃO DEFINITIVA\\n\\nPara excluir este projeto, digite exatamente o nome do projeto:\\n\\n'+nome,'');
+ if(confirmacao!==nome)return;
+ if(!window.supabaseClient||!supabaseSession){alert('Não foi possível excluir: sessão do Supabase não está ativa.');return}
+ const legacy=localLegacy('project',id);
+ try{
+   const {data,error}=await supabaseClient.rpc('admin_delete_project_by_legacy',{p_legacy_id:legacy});
+   if(error)throw error;
+   if(data!==true)throw new Error('O Supabase não encontrou o projeto com o identificador '+legacy+'.');
+   const {data:check,error:checkError}=await supabaseClient.from('projects').select('id').eq('legacy_id',legacy).maybeSingle();
+   if(checkError)throw checkError;
+   if(check)throw new Error('O Supabase ainda possui o projeto após a exclusão.');
+   ps=ps.filter(x=>x.id!==id);
+   if(cur?.id===id)cur=null;
+   persistState();
+   home();
+   alert('Projeto excluído com sucesso do IMPLANTA e do Supabase.');
+ }catch(e){
+   console.error(e);
+   alert('A exclusão NÃO foi concluída. O projeto foi mantido na tela e no Supabase.\\n\\nErro: '+(e.message||e));
+ }
+}
 function homeSec(x){hideSections();document.getElementById(x?'home':'proj').classList.remove('hidden')}
 function toggleAudit(){let el=document.getElementById('auditPanel');if(!el)return;el.classList.toggle('hidden');el.innerHTML='<div class="section-title">Histórico de alterações</div>'+auditHtml()}
 function tab(x){['cron','map','diary','docs','emails','handoff','homologacao','pesquisa'].forEach(k=>document.getElementById(k).classList.toggle('hidden',k!==x));['tc','tm','td','tdocs','temails','thand','thom','tpesq'].forEach(id=>document.getElementById(id).classList.remove('active'));const ids={cron:'tc',map:'tm',diary:'td',docs:'tdocs',emails:'temails',handoff:'thand',homologacao:'thom',pesquisa:'tpesq'};document.getElementById(ids[x]).classList.add('active');if(x==='cron')cronView();else if(x==='map')mapView();else if(x==='diary')diaryView();else if(x==='docs')docsView();else if(x==='emails')emailsView();else if(x==='handoff')phaseView('handoff');else if(x==='homologacao')homologacaoView();else pesquisaView()}
