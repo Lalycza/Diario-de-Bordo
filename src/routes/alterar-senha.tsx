@@ -1,9 +1,9 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { clearPasswordChangeFlag } from "@/lib/password.functions";
+import { changeOwnPassword } from "@/lib/password.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/alterar-senha")({
 
 function AlterarSenhaPage() {
   const navigate = useNavigate();
-  const liberar = useServerFn(clearPasswordChangeFlag);
+  const alterarSenha = useServerFn(changeOwnPassword);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -29,7 +29,7 @@ function AlterarSenhaPage() {
 
   const valid = newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /\d/.test(newPassword) && newPassword === confirmation && newPassword !== currentPassword;
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     if (!valid) {
       toast.error("A nova senha deve ter pelo menos 8 caracteres, letra maiúscula, minúscula e número, e as confirmações devem coincidir.");
@@ -42,9 +42,7 @@ function AlterarSenhaPage() {
       if (!email) throw new Error("Sessão inválida.");
       const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
       if (loginError) throw new Error("A senha temporária atual está incorreta.");
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      await liberar({ data: undefined });
+      await alterarSenha({ data: { newPassword } });
       toast.success("Senha alterada com sucesso.");
       navigate({ to: "/projetos" });
     } catch (error) {
