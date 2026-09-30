@@ -262,7 +262,7 @@ async function carregarDemandas(){
 async function projetoDbId(localId){const legacy=localLegacy('project',localId);const {data,error}=await supabaseClient.from('projects').select('id').eq('legacy_id',legacy).maybeSingle();if(error)throw error;if(!data)throw new Error('Projeto não encontrado no Supabase.');return data.id}
 function demandasTable(rows){return '<table class="table"><thead><tr><th>OS</th><th>Escopo</th><th>Status</th><th>Prioridade</th><th>Responsável</th><th>Setor</th><th>Prazo</th></tr></thead><tbody>'+rows.map(d=>'<tr><td>'+esc(d.os_number||'')+'</td><td>'+esc(d.scope||'')+'</td><td>'+esc(d.status||'')+'</td><td>'+esc(d.priority||'')+'</td><td>'+esc(d.responsible_person||'')+'</td><td>'+esc(d.sector||'')+'</td><td>'+esc(d.delivery_deadline?formatDateBR(d.delivery_deadline):'')+'</td></tr>').join('')+'</tbody></table>'}
 function filtrarDemandas(){const q=(document.getElementById('demandasSearch')?.value||'').toLowerCase();const rows=(window._demandasRows||[]).filter(d=>(String(d.os_number||'')+' '+String(d.scope||'')+' '+String(d.responsible_person||'')+' '+String(d.sector||'')).toLowerCase().includes(q));document.getElementById('demandasTable').innerHTML=demandasTable(rows)}
-function excluirProjeto(id){
+async function excluirProjeto(id){
  if(currentUser?.role!=='admin'){alert('Somente Administrador pode excluir projetos.');return}
  const p=ps.find(x=>x.id===id);if(!p)return;
  const nome=p.n||'este projeto';
