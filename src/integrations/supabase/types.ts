@@ -466,6 +466,9 @@ export type Database = {
           os_number: string | null
           project_id: string
           scope: string
+          priority: string
+          responsible_person: string | null
+          sector: string | null
           scope_approved_at: string | null
           scope_approved_by: string | null
           scope_raised_at: string | null
@@ -489,6 +492,9 @@ export type Database = {
           os_number?: string | null
           project_id: string
           scope: string
+          priority?: string
+          responsible_person?: string | null
+          sector?: string | null
           scope_approved_at?: string | null
           scope_approved_by?: string | null
           scope_raised_at?: string | null
@@ -563,6 +569,12 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      demand_attachments: {
+        Row: { created_at: string; created_by: string | null; demand_id: string; file_name: string; file_size: number | null; id: string; mime_type: string | null; storage_path: string }
+        Insert: { created_at?: string; created_by?: string | null; demand_id: string; file_name: string; file_size?: number | null; id?: string; mime_type?: string | null; storage_path: string }
+        Update: { created_at?: string; created_by?: string | null; demand_id?: string; file_name?: string; file_size?: number | null; id?: string; mime_type?: string | null; storage_path?: string }
+        Relationships: [{ foreignKeyName: "demand_attachments_demand_id_fkey"; columns: ["demand_id"]; isOneToOne: false; referencedRelation: "demands"; referencedColumns: ["id"] }]
       }
       project_stages: {
         Row: {
