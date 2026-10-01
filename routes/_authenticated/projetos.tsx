@@ -151,6 +151,29 @@ function ProjetosPage() {
       if (values.id) {
         const { error } = await supabase.from("projects").update(payload).eq("id", values.id);
         if (error) throw error;
+
+        if (values.product_id) {
+          const { data: catalogModules, error: catalogError } = await supabase
+            .from("modules")
+            .select("id")
+            .eq("product_id", values.product_id)
+            .eq("active", true);
+          if (catalogError) throw catalogError;
+
+          const { error: clearError } = await supabase
+            .from("project_modules")
+            .delete()
+            .eq("project_id", values.id);
+          if (clearError) throw clearError;
+
+          const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
+          if (uniqueModuleIds.length > 0) {
+            const { error: linksError } = await supabase.from("project_modules").insert(
+              uniqueModuleIds.map((moduleId) => ({ project_id: values.id, module_id: moduleId })),
+            );
+            if (linksError) throw linksError;
+          }
+        }
         return;
       }
 
