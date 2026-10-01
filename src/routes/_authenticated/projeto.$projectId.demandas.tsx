@@ -22,7 +22,9 @@ export const Route = createFileRoute("/_authenticated/projeto/$projectId/demanda
 
 const STATUSES = [
   ["pendente", "Pendente"],
+  ["em_levantamento", "Em levantamento"],
   ["em_andamento", "Em andamento"],
+  ["aguardando_cliente", "Aguardando cliente"],
   ["finalizado", "Finalizado"],
 ] as const;
 
@@ -33,12 +35,12 @@ const PRIORITIES = [
 ] as const;
 
 const EVENTS = [
-  ["alignment", "Alinhamento / levantamento"],
-  ["development", "Avaliação do Desenvolvimento"],
-  ["commercial_proposal", "Proposta comercial"],
+  ["alignment", "Alinhamento analista / cliente"],
+  ["development", "Avaliação do desenvolvimento"],
+  ["commercial_proposal", "Envio da proposta comercial"],
   ["client_approval", "Aprovação do cliente"],
   ["status_update", "Alteração de status"],
-  ["note", "Nova observação"],
+  ["note", "Observação"],
   ["correction", "Correção / complemento"],
 ] as const;
 
@@ -221,7 +223,7 @@ function DemandasPage() {
 
   function openNew() {
     setForm({
-      os_number: "", scope: "", status: "pendente", priority: "media", responsible_person: "", sector: "", delivery_deadline: "",
+      os_number: "", scope: "", status: "em_levantamento", priority: "media", responsible_person: "", sector: "", delivery_deadline: "",
       scope_raised_by: "", scope_raised_at: "", scope_approved_by: "", scope_approved_at: "",
       commercial_proposal_sent_by: "", commercial_proposal_sent_at: "", commercial_proposal_approved_by: "", commercial_proposal_approved_at: "",
       development_evaluated_by: "", development_evaluated_at: "", development_estimated_time: "", notes: "",
@@ -241,7 +243,7 @@ function DemandasPage() {
     const rows = sourceHistory.map((h: any) => `<div style="border-bottom:1px solid #ddd;padding:8px 0"><b>${h.event}</b><br>${fmtDate(h.occurred)} · ${h.actor}<br>${h.details || ""}</div>`).join("");
     const w = window.open("", "_blank");
     if (!w) return;
-    w.document.write(`<!doctype html><html><head><title>Relatório da demanda</title><style>body{font-family:Arial;padding:30px;color:#182236}h1{font-size:20px}p{line-height:1.5}.meta{color:#666;font-size:12px}</style></head><body><h1>Relatório da Demanda${demand.os_number ? " · OS " + demand.os_number : ""}</h1><p><b>Necessidade:</b> ${demand.scope}</p><p><b>Status:</b> ${label(STATUSES,demand.status)} · <b>Prioridade:</b> ${label(PRIORITIES,demand.priority)}</p><p><b>Prazo:</b> ${fmtDate(demand.delivery_deadline)} · <b>Responsável:</b> ${demand.responsible_person || "—"} · <b>Setor:</b> ${demand.sector || "—"}</p><h2>Linha do tempo</h2>${rows || "<p>Nenhum histórico carregado. Abra o histórico antes de imprimir para incluir os registros.</p>"}</body></html>`);
+    w.document.write(`<!doctype html><html><head><title>Relatório da demanda</title><style>body{font-family:Arial;padding:30px;color:#182236}h1{font-size:20px}p{line-height:1.5}.meta{color:#666;font-size:12px}</style></head><body><h1>Relatório da Demanda${demand.os_number ? " · OS " + demand.os_number : ""}</h1><p><b>Necessidade:</b> ${demand.scope}</p><p><b>Status:</b> ${label(STATUSES,demand.status)} · <b>Prioridade:</b> ${label(PRIORITIES,demand.priority)}</p><p><b>Prazo:</b> ${fmtDate(demand.delivery_deadline)} · <b>Responsável:</b> ${demand.responsible_person || "—"} · <b>Setor:</b> ${demand.sector || "—"}</p><h2>Linha do tempo</h2>${rows || "<p>Nenhum registro de histórico disponível para impressão.</p>"}</body></html>`);
     w.document.close(); w.focus(); w.print();
   }
 
