@@ -86,7 +86,7 @@ async function hydrateFromSupabase(){
   if(window._dbHydrated||!supabaseSession)return;
   window._dbHydrated=true;
   try{
-    const [pr,mo,su,cl,pg,pp,pm,pa,tr]=await Promise.all([
+    const [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
@@ -95,9 +95,10 @@ async function hydrateFromSupabase(){
       supabaseClient.from('project_products').select('project_id,product_id'),
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
       supabaseClient.from('project_analysts').select('project_id,profile_id'),
-      supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date')
+      supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date'),
+      supabaseClient.from('profiles').select('id,name,email,role,active').eq('active',true)
     ]);
-    for(const q of [pr,mo,su,cl,pg,pp,pm,pa,tr])if(q.error)throw q.error;
+    for(const q of [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ])if(q.error)throw q.error;
     const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
     const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
     const moduleByDb=new Map((mo.data||[]).map(x=>[x.id,lid(x.legacy_id,'module')]));
@@ -143,9 +144,14 @@ async function hydrateFromSupabase(){
       const client=clientsData.find(c=>String(c.id)===String(clientByDb.get(x.client_id)));
       return {...(old||{}),id,n:x.name,c:client?.name||old?.c||'',clientId:client?.id||old?.clientId||null,progress:Number(x.progress||0),baseDate:x.start_date||old?.baseDate||'',startDate:x.start_date||old?.startDate||'',endDate:x.delivery_date||old?.endDate||'',productIds:[],m:[],t:Array.isArray(old?.t)?old.t:[],d:old?.d||[],docs:old?.docs||[],emails:old?.emails||[],kickoff:old?.kickoff||{status:'Pendente',notes:''},handoff:old?.handoff||{status:'Pendente',notes:''},pesquisa:old?.pesquisa||{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:old?.homologacao||{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''}};
     });
+    const profileById=new Map((profilesQ.data||[]).map(u=>[String(u.id),u]));
     for(const x of (pa.data||[])){
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
-      if(p){p.operatorIds=p.operatorIds||[];const u=(usersData||[]).find(v=>String(v.id)===String(x.profile_id)||String(v.email||'').toLowerCase()===String(x.profile_id).toLowerCase());if(u&&!p.operatorIds.some(v=>String(v)===String(u.id)))p.operatorIds.push(u.id)}
+      if(p){
+        p.operatorIds=p.operatorIds||[];
+        const profileId=String(x.profile_id||'');
+        if(profileId&&!p.operatorIds.some(v=>String(v)===profileId))p.operatorIds.push(profileId);
+      }
     }
     for(const x of (pp.data||[])){
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
