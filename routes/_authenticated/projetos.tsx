@@ -47,6 +47,7 @@ export const Route = createFileRoute("/_authenticated/projetos")({
 type ProjectForm = {
   id?: string;
   cliente: string;
+  client_id: string;
   product_id: string;
   descricao: string;
   responsavel: string;
@@ -61,6 +62,7 @@ type ProjectForm = {
 
 const emptyForm: ProjectForm = {
   cliente: "",
+  client_id: "",
   product_id: "",
   descricao: "",
   responsavel: "",
@@ -88,6 +90,52 @@ function ProjetosPage() {
       return data ?? [];
     },
   });
+
+  const clientsQuery = useQuery({
+    queryKey: ["clients-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, razao_social, nome_fantasia, email, product_id")
+        .order("razao_social");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const clientProductsQuery = useQuery({
+    queryKey: ["client-products-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("client_products").select("client_id, product_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const projectProductsQuery = useQuery({
+    queryKey: ["project-products-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("project_products").select("project_id, product_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const clientId = new URLSearchParams(window.location.search).get("client_id");
+    if (!clientId || form || !clientsQuery.data || !clientProductsQuery.data) return;
+    const client = clientsQuery.data.find((item) => item.id === clientId);
+    if (!client) return;
+    const linkedProduct = clientProductsQuery.data.find((link) => link.client_id === client.id)?.product_id ?? client.product_id ?? "";
+    setForm({
+      ...emptyForm,
+      client_id: client.id,
+      cliente: client.razao_social ?? client.nome_fantasia ?? "",
+      email_cliente: client.email ?? "",
+      product_id: linkedProduct,
+    });
+    window.history.replaceState({}, "", "/projetos");
+  }, [clientsQuery.data, clientProductsQuery.data, form]);
 
   const projectsQuery = useQuery({
     queryKey: ["projects"],
@@ -137,6 +185,7 @@ function ProjetosPage() {
   const saveProject = useMutation({
     mutationFn: async (values: ProjectForm) => {
       const payload = {
+        client_id: values.client_id || null,
         cliente: values.cliente,
         descricao: values.descricao || null,
         responsavel: values.responsavel || null,
@@ -159,6 +208,20 @@ function ProjetosPage() {
 
         const { error } = await supabase.from("projects").update(payload).eq("id", values.id);
         if (error) throw error;
+
+        await supabase.from("project_products").delete().eq("project_id", values.id);
+        if (values.product_id) {
+          const { error: productLinkError } = await supabase
+            .from("project_products")
+            .insert({ project_id: values.id, product_id: values.product_id });
+          if (productLinkError) throw productLinkError;
+          if (values.client_id) {
+            const { error: clientProductError } = await supabase
+              .from("client_products")
+              .upsert({ client_id: values.client_id, product_id: values.product_id });
+            if (clientProductError) throw clientProductError;
+          }
+        }
 
         // Só recria os módulos quando o produto realmente mudou.
         // Assim, editar cliente/analista/datas não apaga o Mapa nem as datas de treinamento.
@@ -196,7 +259,22 @@ function ProjetosPage() {
         .single();
       if (error) throw error;
 
-      if (!created || !values.product_id) return;
+      if (!created) return;
+
+      if (values.product_id) {
+        const { error: productLinkError } = await supabase
+          .from("project_products")
+          .insert({ project_id: created.id, product_id: values.product_id });
+        if (productLinkError) throw productLinkError;
+        if (values.client_id) {
+          const { error: clientProductError } = await supabase
+            .from("client_products")
+            .upsert({ client_id: values.client_id, product_id: values.product_id });
+          if (clientProductError) throw clientProductError;
+        }
+      }
+
+      if (!values.product_id) return;
 
       const { data: catalogModules, error: catalogError } = await supabase
         .from("modules")
@@ -306,7 +384,8 @@ function ProjetosPage() {
                     <Button variant="ghost" size="icon" aria-label="Editar projeto" onClick={() => setForm({
                       id: project.id,
                       cliente: project.cliente,
-                      product_id: project.product_id ?? "",
+                      client_id: project.client_id ?? "",
+                      product_id: project.product_id ?? projectProductsQuery.data?.find((link) => link.project_id === project.id)?.product_id ?? "",
                       descricao: project.descricao ?? "",
                       responsavel: project.responsavel ?? "",
                       analista: project.analista ?? "",
@@ -364,8 +443,26 @@ function ProjetosPage() {
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="cliente">Cliente</Label>
-                  <Input id="cliente" value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} required />
+                  <Label>Cliente</Label>
+                  <Select value={form.client_id || undefined} onValueChange={(value) => {
+                    const client = clientsQuery.data?.find((item) => item.id === value);
+                    const allowed = clientProductsQuery.data?.filter((link) => link.client_id === value).map((link) => link.product_id) ?? [];
+                    setForm((current) => current ? {
+                      ...current,
+                      client_id: value,
+                      cliente: client?.razao_social ?? client?.nome_fantasia ?? current.cliente,
+                      email_cliente: client?.email ?? current.email_cliente,
+                      product_id: allowed.includes(current.product_id) ? current.product_id : (allowed[0] ?? client?.product_id ?? ""),
+                    } : current);
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                    <SelectContent>
+                      {(clientsQuery.data ?? []).map((client) => (
+                        <SelectItem key={client.id} value={client.id}>{client.razao_social}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input className="mt-2" value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} required placeholder="Nome do projeto/cliente" />
                 </div>
 
                 <div className="space-y-1.5 md:col-span-2 rounded-lg border p-4">
@@ -377,7 +474,9 @@ function ProjetosPage() {
                   <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
                     <SelectTrigger className="mt-3 w-full"><SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} /></SelectTrigger>
                     <SelectContent>
-                      {(productsQuery.data ?? []).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
+                      {((clientProductsQuery.data ?? []).some((link) => link.client_id === form.client_id)
+                        ? (productsQuery.data ?? []).filter((product) => (clientProductsQuery.data ?? []).some((link) => link.client_id === form.client_id && link.product_id === product.id))
+                        : (productsQuery.data ?? [])).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   {!productsQuery.isLoading && (productsQuery.data ?? []).length === 0 ? (
