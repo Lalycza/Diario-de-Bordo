@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Mail, Pencil, Plus, Search, FolderPlus, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -242,12 +242,12 @@ function ClientesPage() {
     onError: () => toast.error("Não foi possível salvar o cliente."),
   });
 
-  if (form?.id && clientProductsEditQuery.data && form.product_ids.length <= 1) {
-    // Mantém a seleção real de múltiplos produtos ao abrir a edição.
+  useEffect(() => {
+    if (!form?.id || !clientProductsEditQuery.data) return;
     if (JSON.stringify(form.product_ids) !== JSON.stringify(clientProductsEditQuery.data)) {
       setForm({ ...form, product_ids: clientProductsEditQuery.data });
     }
-  }
+  }, [clientProductsEditQuery.data, form]);
 
   const clients = clientsQuery.data ?? [];
   const clienteDetalhe = clients.find((c) => c.id === detalhe);
