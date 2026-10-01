@@ -133,6 +133,15 @@ function ClientesPage() {
     },
   });
 
+  const projectProductsQuery = useQuery({
+    queryKey: ["client-project-products"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("project_products").select("project_id, product_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const projectsQuery = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
