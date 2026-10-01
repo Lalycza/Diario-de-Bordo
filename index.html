@@ -435,6 +435,13 @@ function editarProjeto(){
  openSimpleModal('Editar projeto','<div class=\"task-form\"><label>Nome do projeto</label><input id=\"editProjName\" value=\"'+escAttr(p.n||'')+'\"><label>Cliente</label><input id=\"editProjClient\" value=\"'+escAttr(p.c||'')+'\"><label>Analista responsável</label><select id=\"editProjOwner\"><option value=\"\">Selecione</option>'+analystOpts+'</select><label>Status do projeto</label><select id=\"editProjStatus\"><option value=\"Ativo\" '+(lifecycle==='Ativo'?'selected':'')+'>Ativo</option><option value=\"Finalizado\" '+(lifecycle==='Finalizado'?'selected':'')+'>Finalizado</option><option value=\"Congelado\" '+(lifecycle==='Congelado'?'selected':'')+'>Congelado</option></select><label>Data base</label><input id=\"editProjBase\" type=\"date\" value=\"'+escAttr(p.baseDate||'')+'\"><label>Data início</label><input id=\"editProjStart\" type=\"date\" value=\"'+escAttr(p.startDate||'')+'\"><label>Data entrega</label><input id=\"editProjEnd\" type=\"date\" value=\"'+escAttr(p.endDate||'')+'\"><div style=\"text-align:right;margin-top:8px\"><button class=\"secondary\" onclick=\"closeModal()\">Cancelar</button> <button class=\"primary\" onclick=\"saveProjetoEdicao()\">Salvar alterações</button></div></div>');
 }
 function excluirProjetoAtual(){if(!canEdit()||!cur)return;let hasInfo=(cur.d?.length||cur.docs?.length||cur.emails?.length||cur.t?.length||cur.handoff?.context||cur.pesquisa?.status&&cur.pesquisa.status!=='Pendente'||cur.homologacao?.status&&cur.homologacao.status!=='Pendente');if(hasInfo)return alert('Este projeto já possui informações de implantação. A exclusão não é permitida. Finalize o projeto ou mantenha-o para consulta.');if(!confirm('Excluir este projeto definitivamente?'))return;let id=cur.id;ps=ps.filter(p=>p.id!==id);cur=null;persistState();closeModal();home()}
+async function syncProjectLifecycleStatusToSupabase(p){
+ if(!p||!p.dbId)return;
+ const allowed=['Ativo','Finalizado','Congelado'];
+ const status=allowed.includes(p.projectStatus)?p.projectStatus:'Ativo';
+ const {error}=await supabaseClient.from('projects').update({status}).eq('id',p.dbId);
+ if(error)throw new Error('Status do projeto: '+error.message);
+}
 async function saveProjetoEdicao(){
  if(!canEdit()||!cur)return;
  let p=cur,v=id=>document.getElementById(id)?.value||'';
@@ -445,10 +452,17 @@ async function saveProjetoEdicao(){
  p.n=n;p.c=c;
  if(au){p.owner=au.email||p.owner||'';p.operatorIds=[au.id];}
  p.baseDate=v('editProjBase');p.startDate=v('editProjStart');p.endDate=v('editProjEnd');p.projectStatus=v('editProjStatus')||'Ativo';
- audit('Projeto alterado','Dados cadastrais do projeto atualizados.');
+ audit('Projeto alterado','Dados cadastrais do projeto atualizados. Status: '+p.projectStatus+'.');
  if(typeof persistState==='function')persistState();
  closeModal();openP(p.id);render();
- if(currentUser?.role==='admin' && typeof syncLocalToSupabase==='function') await syncLocalToSupabase();
+ try{
+   await syncProjectLifecycleStatusToSupabase(p);
+   if(currentUser?.role==='admin' && typeof syncLocalToSupabase==='function'){
+     try{await syncLocalToSupabase()}catch(e){console.warn('Sincronização geral não concluída:',e);}
+   }
+ }catch(e){
+   alert('O status do projeto foi salvo localmente, mas não foi possível sincronizá-lo no Supabase: '+(e.message||e));
+ }
 }
 function usuarios(){if(currentUser.role!=='admin')return;hideSections();document.getElementById('users').classList.remove('hidden');renderUsers()}
 function localLegacy(prefix,id){return prefix+'-'+String(id)}
