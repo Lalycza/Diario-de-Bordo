@@ -635,15 +635,31 @@ function canAddDemandEvent(type){if(!currentUser)return false;if(currentUser.rol
 function canDeleteDemand(){return isSuperAdmin()}
 
 /* ---------- Painel gerencial (admin e supervisor) ---------- */
+function dashboardAttention(p){
+  const end=p.endDate;
+  if(!end)return {attention:false,reason:''};
+  const done=['CONCLUÍDO','CONCLUIDO','HOMOLOGADO'];
+  const tasks=(p.t||[]).map(taskObj);
+  const datedPending=tasks.filter(t=>t.trainingDate&&!done.includes(String(t.status||'PENDENTE').toUpperCase())&&t.trainingDate<=end);
+  if(datedPending.length){
+    const first=datedPending.slice().sort((a,b)=>String(a.trainingDate).localeCompare(String(b.trainingDate)))[0];
+    const days=demDaysUntil(first.trainingDate);
+    const timing=days<0?'vencido há '+Math.abs(days)+' dia(s)':days===0?'previsto para hoje':'previsto para '+demFmt(first.trainingDate);
+    return {attention:true,reason:datedPending.length+' treinamento(s) do Mapa ainda não concluído(s)/homologado(s); '+timing};
+  }
+  return {attention:false,reason:''};
+}
 function dashboardHtml(arr){
   if(!isManager())return '';
   const active=arr.filter(p=>!p.finalizado),dated=active.filter(p=>p.endDate);
   const overdue=dated.filter(p=>demDaysUntil(p.endDate)<0).sort((a,b)=>demDaysUntil(a.endDate)-demDaysUntil(b.endDate));
   const upcoming=dated.filter(p=>{const d=demDaysUntil(p.endDate);return d>=0&&d<=15}).sort((a,b)=>demDaysUntil(a.endDate)-demDaysUntil(b.endDate));
-  const onTrack=dated.filter(p=>demDaysUntil(p.endDate)>=0);
+  const attention=active.map(p=>({p,a:dashboardAttention(p)})).filter(x=>x.a.attention).sort((a,b)=>demDaysUntil(a.p.endDate)-demDaysUntil(b.p.endDate));
+  const attentionIds=new Set(attention.map(x=>x.p.id));
+  const onTrack=dated.filter(p=>demDaysUntil(p.endDate)>=0&&!attentionIds.has(p.id));
   const row=(p,extra)=>`<div class="row" style="border:1px solid #e5e9f0;border-radius:10px;padding:10px;margin:6px 0"><span><b>${esc(p.n)}</b><br><span class="muted">${esc(p.owner||'Sem responsável')}</span></span><span style="text-align:right"><b>${demFmt(p.endDate)}</b><br>${extra}</span></div>`;
   setTimeout(loadDashboardDemands,0);
-  return `<div class="card" style="margin-bottom:16px"><h2 style="margin:0 0 4px">Painel gerencial</h2><p class="muted" style="margin-top:0">Visão rápida da carteira, prazos e demandas.</p><div class="overview-grid"><div class="metric"><b>${upcoming.length}</b><span>Entregas nos próximos 15 dias</span></div><div class="metric"><b style="color:#b42318">${overdue.length}</b><span>Projetos atrasados</span></div><div class="metric"><b>${onTrack.length}</b><span>No prazo</span></div><div class="metric"><b id="dashDemOpen">…</b><span id="dashDemSub">Demandas abertas</span></div><div class="metric"><b>${active.length}</b><span>Projetos ativos</span></div></div><div class="cards" style="margin-top:12px"><div class="card"><b>🚀 Próximas entregas</b>${upcoming.slice(0,6).map(p=>{const d=demDaysUntil(p.endDate);return row(p,'<span class="muted">'+(d===0?'hoje':'em '+d+' dia(s)')+'</span>')}).join('')||'<p class="muted">Nenhuma entrega nos próximos 15 dias.</p>'}</div><div class="card"><b>🔴 Precisam de atenção</b>${overdue.slice(0,6).map(p=>row(p,'<span style="color:#b42318">'+Math.abs(demDaysUntil(p.endDate))+' dia(s) de atraso</span>')).join('')||'<p class="muted">Nenhum projeto com prazo vencido.</p>'}</div></div></div>`;
+  return `<div class="card" style="margin-bottom:16px"><h2 style="margin:0 0 4px">Painel gerencial</h2><p class="muted" style="margin-top:0">Visão rápida da carteira, prazos e demandas.</p><div class="overview-grid"><div class="metric"><b>${upcoming.length}</b><span>Entregas nos próximos 15 dias</span></div><div class="metric"><b style="color:#b42318">${overdue.length}</b><span>Projetos atrasados</span></div><div class="metric"><b>${onTrack.length}</b><span>No prazo</span></div><div class="metric"><b id="dashDemOpen">…</b><span id="dashDemSub">Demandas abertas</span></div><div class="metric"><b>${active.length}</b><span>Projetos ativos</span></div></div><div class="cards" style="margin-top:12px"><div class="card"><b>🚀 Próximas entregas</b>${upcoming.slice(0,6).map(p=>{const d=demDaysUntil(p.endDate);return row(p,'<span class="muted">'+(d===0?'hoje':'em '+d+' dia(s)')+'</span>')}).join('')||'<p class="muted">Nenhuma entrega nos próximos 15 dias.</p>'}</div><div class="card"><b>🔴 Precisam de atenção</b>${attention.slice(0,6).map(x=>row(x.p,'<span style="color:#b42318">'+esc(x.a.reason)+'</span>')).join('')||'<p class="muted">Nenhum treinamento do Mapa exige atenção neste momento.</p>'}</div></div></div>`;
 }
 async function loadDashboardDemands(){const el=document.getElementById('dashDemOpen'),sub=document.getElementById('dashDemSub');if(!el)return;try{if(!supabaseClient||!supabaseSession)throw new Error('sem sessão');const {data,error}=await supabaseClient.from('demands').select('id,status,priority');if(error)throw error;const open=(data||[]).filter(d=>d.status!=='finalizado');el.textContent=open.length;sub.textContent='Demandas abertas · '+open.filter(d=>d.priority==='alta').length+' de alta prioridade'}catch(e){el.textContent='—';sub.textContent='Demandas: não foi possível carregar';console.warn('Painel: demandas',e)}}
 
