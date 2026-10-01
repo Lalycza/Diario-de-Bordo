@@ -21,6 +21,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/cadastros/clientes")({
   head: () => ({
@@ -43,6 +45,7 @@ export const Route = createFileRoute("/_authenticated/cadastros/clientes")({
 
 type ClientForm = {
   id?: string;
+  product_id: string;
   cnpj: string;
   razao_social: string;
   nome_fantasia: string;
@@ -61,6 +64,7 @@ type ClientForm = {
 };
 
 const emptyClient: ClientForm = {
+  product_id: "",
   cnpj: "",
   razao_social: "",
   nome_fantasia: "",
@@ -84,6 +88,15 @@ function ClientesPage() {
   const buscarCnpj = useServerFn(lookupCnpj);
   const [form, setForm] = useState<ClientForm | null>(null);
   const [detalhe, setDetalhe] = useState<string | null>(null);
+
+  const productsQuery = useQuery({
+    queryKey: ["products-for-client"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("products").select("id, name").eq("active", true).order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const clientsQuery = useQuery({
     queryKey: ["clients"],
@@ -149,6 +162,7 @@ function ClientesPage() {
   const saveClient = useMutation({
     mutationFn: async (values: ClientForm) => {
       const payload = {
+        product_id: values.product_id || null,
         cnpj: values.cnpj.replace(/\D/g, "") || null,
         razao_social: values.razao_social,
         nome_fantasia: values.nome_fantasia || null,
@@ -247,6 +261,7 @@ function ClientesPage() {
                       onClick={() =>
                         setForm({
                           id: client.id,
+                          product_id: client.product_id ?? "",
                           cnpj: client.cnpj ?? "",
                           razao_social: client.razao_social,
                           nome_fantasia: client.nome_fantasia ?? "",
@@ -371,6 +386,12 @@ function ClientesPage() {
                 saveClient.mutate(form);
               }}
             >
+              <Tabs defaultValue="dados" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="dados">Dados do cliente</TabsTrigger>
+                  <TabsTrigger value="produto">Produto</TabsTrigger>
+                </TabsList>
+                <TabsContent value="dados" className="space-y-3">
               <div className="flex items-end gap-2">
                 <div className="flex-1 space-y-1.5">
                   <Label htmlFor="cnpj">CNPJ</Label>
@@ -504,6 +525,26 @@ function ClientesPage() {
                   onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
                 />
               </div>
+                </TabsContent>
+                <TabsContent value="produto" className="space-y-4">
+                  <div className="rounded-lg border p-4">
+                    <div className="space-y-1.5">
+                      <Label>Produto / sistema</Label>
+                      <p className="text-xs text-muted-foreground">Cadastre aqui o produto principal do cliente. Ele será levado automaticamente para novos projetos desse cliente.</p>
+                      <Select value={form.product_id || undefined} onValueChange={(value) => setForm({ ...form, product_id: value })}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(productsQuery.data ?? []).map((product) => (
+                            <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setForm(null)}>
                   Cancelar
