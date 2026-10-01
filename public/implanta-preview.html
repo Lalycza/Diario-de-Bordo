@@ -69,7 +69,23 @@ let cur=null,currentUser=null;
 // Persistência local do protótipo: mantém inclusões/edições após atualizar ou reabrir a página.
 const STORAGE_KEY='implanta_state_v32';
 const LEGACY_STORAGE_KEYS=['implanta_state_v31','implanta_state_v30','implanta_state_v29','implanta_state_v28','implanta_state_v27','implanta_state_v26'];
-function persistState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({usersData,modulesData,productsData,clientsData,ps}));}catch(e){}}
+let _autoSyncTimer=null,_autoSyncDirty=false,_suppressAutoSync=false;
+function queueSupabaseSync(){
+  if(_suppressAutoSync||!supabaseSession||!currentUser)return;
+  _autoSyncDirty=true;
+  clearTimeout(_autoSyncTimer);
+  _autoSyncTimer=setTimeout(async()=>{
+    if(window._syncing)return;
+    _autoSyncDirty=false;
+    await syncLocalToSupabase(true);
+    if(_autoSyncDirty)queueSupabaseSync();
+  },1200);
+}
+function persistState(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({usersData,modulesData,productsData,clientsData,ps}));}
+  catch(e){}
+  queueSupabaseSync();
+}
 function readStateKey(key){try{const raw=localStorage.getItem(key);if(!raw)return null;const st=JSON.parse(raw);return st&&typeof st==='object'?st:null}catch(e){return null}}
 function restoreState(){try{
   const keys=[STORAGE_KEY,...LEGACY_STORAGE_KEYS];
@@ -175,7 +191,6 @@ async function hydrateFromSupabase(){
   }
 }
 restoreState();
-setInterval(persistState,800);
 window.addEventListener('beforeunload',persistState);
 restoreSupabaseSession();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{supabaseSession=session;if(session)setTimeout(hydrateFromSupabase,0)});
@@ -450,8 +465,11 @@ function parseBRDate(v){if(!v)return null;let m=/^(\d{2})\/(\d{2})\/(\d{4})$/.ex
 function snapshotLocalState(){return {version:'V35',createdAt:new Date().toISOString(),storageKey:STORAGE_KEY,usersData,modulesData,productsData,clientsData,ps};}
 function downloadV35Backup(silent=false){try{const snapshot=snapshotLocalState();localStorage.setItem('implanta_state_v35_safety_backup',JSON.stringify(snapshot));const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='IMPLANTA_V35_BACKUP_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);if(!silent){const el=document.getElementById('backupStatus');if(el)el.textContent='Backup criado e arquivo JSON baixado com sucesso em '+new Date().toLocaleString('pt-BR')+' .';alert('Backup da V35 criado.\n\nO estado atual foi preservado no navegador e também baixado em arquivo JSON.');}return true}catch(e){console.error(e);if(!silent)alert('Não foi possível criar o backup: '+(e.message||e));return false}}
 function checkSyncTables(){return true}
-async function syncLocalToSupabase(){
- if(currentUser?.role!=='admin')return alert('Entre como Administrador para salvar no Supabase.');
+async function syncLocalToSupabase(silent=false){
+ if(!supabaseSession||!currentUser)return;
+ const canSyncProjects=currentUser.role==='admin'||currentUser.role==='analyst';
+ const canSyncClients=currentUser.role==='admin'||currentUser.role==='commercial';
+ const canSyncCatalog=currentUser.role==='admin';
  if(window._syncing)return alert('A sincronização já está em andamento.');
  if(!downloadV35Backup(true))return;
  const beforeProjects=ps.length,beforeClients=clientsData.length,beforeProducts=productsData.length;
@@ -461,9 +479,20 @@ async function syncLocalToSupabase(){
    if(pe)throw pe;
    const profileByEmail=Object.fromEntries((profiles||[]).map(x=>[String(x.email||'').toLowerCase(),x.id]));
    const clientMap={},productMap={},moduleMap={},submoduleMap={};
+   const [ec,ep,em,es]=await Promise.all([
+     supabaseClient.from('clients').select('id,legacy_id'),
+     supabaseClient.from('products').select('id,legacy_id'),
+     supabaseClient.from('modules').select('id,legacy_id'),
+     supabaseClient.from('submodules').select('id,legacy_id')
+   ]);
+   for(const q of [ec,ep,em,es])if(q.error)throw q.error;
+   (ec.data||[]).forEach(x=>{const m=/^client-(.+)$/.exec(String(x.legacy_id||''));if(m)clientMap[m[1]]=x.id;});
+   (ep.data||[]).forEach(x=>{const m=/^product-(.+)$/.exec(String(x.legacy_id||''));if(m)productMap[m[1]]=x.id;});
+   (em.data||[]).forEach(x=>{const m=/^module-(.+)$/.exec(String(x.legacy_id||''));if(m)moduleMap[m[1]]=x.id;});
+   (es.data||[]).forEach(x=>{const m=/^submodule-(.+)$/.exec(String(x.legacy_id||''));if(m)submoduleMap[m[1]]=x.id;});
 
    // CLIENTES + CONTATOS
-   for(const c0 of clientsData){
+   if(canSyncClients) for(const c0 of clientsData){
      const c=normalizeClient(c0);
      const payload={legacy_id:localLegacy('client',c.id),razao_social:c.name||'Cliente sem nome',nome_fantasia:c.fantasy||null,cnpj:c.cnpj||null,ie:c.ie||null,im:c.im||null,email:c.email||null,phone:c.phone||null,cep:c.zip||null,address:c.address||null,number:c.number||null,complement:c.complement||null,neighborhood:c.neighborhood||null,city:c.city||null,state:c.state||null,contact_name:clientResponsible(c).name||null,status:c.status||'Ativo',notes:c.notes||null};
      const {data,error}=await supabaseClient.from('clients').upsert(payload,{onConflict:'legacy_id'}).select('id,legacy_id').single();
@@ -475,11 +504,11 @@ async function syncLocalToSupabase(){
    }
 
    // PRODUTOS + MÓDULOS + SUBMÓDULOS
-   for(const p0 of productsData){
+   if(canSyncCatalog) for(const p0 of productsData){
      const {data,error}=await supabaseClient.from('products').upsert({legacy_id:localLegacy('product',p0.id),name:p0.name||'Produto sem nome',custom:!!p0.customized,active:true},{onConflict:'legacy_id'}).select('id').single();
      if(error)throw new Error('Produtos: '+error.message); productMap[p0.id]=data.id;
    }
-   for(const m0 of modulesData){
+   if(canSyncCatalog) for(const m0 of modulesData){
      const pid=(m0.productIds||[]).map(x=>productMap[x]).find(Boolean); if(!pid)continue;
      const {data,error}=await supabaseClient.from('modules').upsert({legacy_id:localLegacy('module',m0.id),product_id:pid,name:m0.name||'Módulo sem nome',active:true},{onConflict:'legacy_id'}).select('id').single();
      if(error)throw new Error('Módulos: '+error.message); moduleMap[m0.id]=data.id;
@@ -491,7 +520,7 @@ async function syncLocalToSupabase(){
    }
 
    // PROJETOS E DADOS DE IMPLANTAÇÃO
-   for(const p0 of ps){
+   if(canSyncProjects) for(const p0 of ps){
      const ownerId=profileByEmail[String(p0.owner||'').toLowerCase()]||currentUser.id;
      const dbClient=clientMap[p0.clientId]||null;
      const projectPayload={legacy_id:localLegacy('project',p0.id),name:p0.n||'Projeto sem nome',client_id:dbClient,owner_id:ownerId,status:p0.homologacao?.status==='Homologado'?'Homologado':'Em andamento',progress:Number(p0.progress||0),start_date:p0.startDate||null,delivery_date:p0.endDate||null,original_delivery_date:p0.originalEndDate||null,base_date:p0.baseDate||null,finalized:!!p0.finalizado,finalized_at:p0.finalizadoAt||null,finalized_by:profileByEmail[String(p0.finalizadoBy||'').toLowerCase()]||null,created_by:currentUser.id};
@@ -532,8 +561,9 @@ async function syncLocalToSupabase(){
      const {error:se}=await supabaseClient.from('surveys').upsert({legacy_id:localLegacy('survey',p0.id),project_id:projectId,status:sv.status||'Pendente',sent_at:sv.sentAt||null,returned_at:sv.returnedAt||null,respondent_name:sv.respondent?.name||null,respondent_role:sv.respondent?.role||null,respondent_email:sv.respondent?.email||null,product:sv.respondent?.product||null,answers:sv.answers||{},observations:sv.comment||null,created_by:currentUser.id},{onConflict:'legacy_id'});if(se)throw new Error('Pesquisa do projeto '+p0.n+': '+se.message);
    }
 
+   window._lastSyncError='';
    const el=document.getElementById('syncStatus');if(el)el.textContent='Sincronização concluída em '+new Date().toLocaleString('pt-BR')+' — Projetos: '+beforeProjects+' | Clientes: '+beforeClients+' | Produtos: '+beforeProducts+'. Nenhum registro remoto foi apagado.';alert('Backup criado e V35 salva no Supabase.\n\nProjetos enviados: '+beforeProjects+'\nClientes: '+beforeClients+'\nProdutos: '+beforeProducts+'\n\nNenhum registro remoto foi apagado por esta operação.');
- }catch(e){console.error(e);const el=document.getElementById('syncStatus');if(el)el.textContent='Sincronização interrompida: '+(e.message||e)+'. O backup permanece preservado.';alert('O backup foi criado, mas a sincronização foi interrompida.\n\nErro: '+(e.message||e)+'\n\nO estado da V35 continua preservado no navegador e no arquivo de backup.');}
+ }catch(e){window._lastSyncError=e.message||String(e);console.error(e);const el=document.getElementById('syncStatus');if(el)el.textContent='Sincronização interrompida: '+(e.message||e)+'. O backup permanece preservado.';if(!silent)alert('O backup foi criado, mas a sincronização foi interrompida.\n\nErro: '+(e.message||e)+'\n\nO estado da V35 continua preservado no navegador e no arquivo de backup.');}
  finally{window._syncing=false}
 }
 
