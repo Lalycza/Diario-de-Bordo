@@ -457,6 +457,18 @@ function checkSyncTables(){return true}
 async function syncLocalToSupabase(){
  if(currentUser?.role!=='admin')return alert('Entre como Administrador para salvar no Supabase.');
  if(window._syncing)return alert('A sincronização já está em andamento.');
+ // A aba pode manter o currentUser local enquanto a sessão Supabase muda
+ // em outra aba/dispositivo. Revalida a sessão imediatamente antes de gravar,
+ // para que o RLS seja avaliado para o mesmo usuário que a tela está usando.
+ const {data:sessionData,error:sessionError}=await supabaseClient.auth.getSession();
+ if(sessionError)throw sessionError;
+ const liveSession=sessionData?.session;
+ if(!liveSession?.user?.id)throw new Error('Sessão Supabase expirada ou não identificada. Entre novamente antes de salvar.');
+ if(String(liveSession.user.id)!==String(currentUser.id)){
+   await finishSupabaseLogin(liveSession.user);
+   if(currentUser?.role!=='admin')throw new Error('A sessão atual não possui permissão de Administrador para sincronizar.');
+ }
+ supabaseSession=liveSession;
  const beforeProjects=ps.length,beforeClients=clientsData.length,beforeProducts=productsData.length;
  window._syncing=true;
  try{
