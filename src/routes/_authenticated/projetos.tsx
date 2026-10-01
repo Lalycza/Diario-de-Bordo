@@ -86,7 +86,7 @@ function ProjetosPage() {
   const clientsQuery = useQuery({
     queryKey: ["clients-for-project"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id, razao_social, nome_fantasia, email, product_id").order("razao_social");
+      const { data, error } = await supabase.from("clients").select("id, razao_social, nome_fantasia, email, product_id, client_products(product_id)").order("razao_social");
       if (error) throw error;
       return data ?? [];
     },
@@ -111,7 +111,7 @@ function ProjetosPage() {
       client_id: client.id,
       cliente: client.razao_social ?? client.nome_fantasia ?? "",
       email_cliente: client.email ?? "",
-      product_id: client.product_id ?? "",
+      product_id: client.client_products?.[0]?.product_id ?? client.product_id ?? "",
     });
     window.history.replaceState({}, "", "/projetos");
   }, [clientsQuery.data, form]);
@@ -227,7 +227,7 @@ function ProjetosPage() {
 
       if (effectiveProductId) {
         const { data: catalogModules, error: catalogError } = await supabase
-          .from("modules").select("id").eq("product_id", values.product_id).eq("active", true);
+          .from("modules").select("id").eq("product_id", effectiveProductId).eq("active", true);
         if (catalogError) throw catalogError;
         const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
         if (uniqueModuleIds.length > 0) {
@@ -503,7 +503,7 @@ function ProjetosPage() {
                       client_id: value,
                       cliente: client?.razao_social ?? client?.nome_fantasia ?? current.cliente,
                       email_cliente: client?.email ?? current.email_cliente,
-                      product_id: client?.product_id ?? current.product_id,
+                      product_id: client?.client_products?.[0]?.product_id ?? client?.product_id ?? current.product_id,
                     } : current);
                   }}
                 >
@@ -525,11 +525,14 @@ function ProjetosPage() {
                   <Package className="size-4" />
                   <Label>Produto / sistema vinculado ao projeto (paliativo)</Label>
                 </div>
-                <p className="text-xs text-muted-foreground">Preferencialmente o produto vem do cadastro do cliente. Este campo permanece como paliativo para projetos criados sem produto no nascimento do cliente.</p>
+                <p className="text-xs text-muted-foreground">Selecione o produto deste projeto entre os produtos vinculados ao cliente. O campo continua disponível como paliativo quando o cliente ainda não tiver produto cadastrado.</p>
                 <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
                   <SelectTrigger className="w-full"><SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} /></SelectTrigger>
                   <SelectContent>
-                    {(productsQuery.data ?? []).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
+                    {((clientsQuery.data ?? []).find((client) => client.id === form.client_id)?.client_products?.length
+                      ? (productsQuery.data ?? []).filter((product) => (clientsQuery.data ?? []).find((client) => client.id === form.client_id)?.client_products?.some((link) => link.product_id === product.id))
+                      : (productsQuery.data ?? [])
+                    ).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
