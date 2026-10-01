@@ -27,18 +27,31 @@ function AuthPage() {
     });
   }, [navigate]);
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function handleLogin() {
+    if (!email.trim() || !senha) {
+      toast.error("Informe o e-mail e a senha.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: senha,
+      });
       if (error) throw error;
-      navigate({ to: "/projetos", replace: true });
+      await navigate({ to: "/projetos", replace: true });
     } catch (error) {
+      console.error("[Login] Falha ao entrar:", error);
       toast.error(error instanceof Error ? error.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void handleLogin();
   }
 
   return (
@@ -49,10 +62,12 @@ function AuthPage() {
           <CardDescription>Entre para acompanhar cronogramas, módulos e treinamentos.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div className="space-y-1.5"><Label htmlFor="email">E-mail</Label><Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
             <div className="space-y-1.5"><Label htmlFor="senha">Senha</Label><Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required /></div>
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
+            <Button type="button" className="w-full" disabled={loading} onClick={() => void handleLogin()}>
+              {loading ? "Entrando..." : "Entrar"}
+            </Button>
           </form>
         </CardContent>
       </Card>
