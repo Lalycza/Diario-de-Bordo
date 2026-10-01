@@ -291,7 +291,7 @@ function ClientesPage() {
       )}
 
       <Dialog open={detalhe !== null} onOpenChange={(open) => !open && setDetalhe(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[94vh] overflow-y-auto" onEscapeKeyDown={() => setForm(null)}>
           <DialogHeader>
             <DialogTitle>{clienteDetalhe?.razao_social ?? "Cliente"}</DialogTitle>
             <DialogDescription>
