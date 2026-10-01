@@ -88,7 +88,7 @@ async function hydrateFromSupabase(){
   if(window._dbHydrated||!supabaseSession)return;
   window._dbHydrated=true;
   try{
-    const [pr,mo,su,cl,pg,pp,pm,tr]=await Promise.all([
+    const [pr,mo,su,cl,pg,pp,pm,tr,cd]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
@@ -96,9 +96,10 @@ async function hydrateFromSupabase(){
       supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,original_delivery_date,legacy_id,owner_id').order('created_at'),
       supabaseClient.from('project_products').select('project_id,product_id'),
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
-      supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date')
+      supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date'),
+      supabaseClient.from('client_documents').select('id,client_id,name,storage_path,mime_type,size_bytes,description,created_at').order('created_at',{ascending:false})
     ]);
-    for(const q of [pr,mo,su,cl,pg,pp,pm,tr])if(q.error)throw q.error;
+    for(const q of [pr,mo,su,cl,pg,pp,pm,tr,cd])if(q.error)throw q.error;
     const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
     const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
     const moduleByDb=new Map((mo.data||[]).map(x=>[x.id,lid(x.legacy_id,'module')]));
@@ -131,10 +132,13 @@ async function hydrateFromSupabase(){
       if(m)m.subs.push(x.name);
     }
 
+    const clientDocsByDb={};
+    for(const d of (cd.data||[])){
+      (clientDocsByDb[d.client_id]||(clientDocsByDb[d.client_id]=[])).push({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:d.created_at?new Date(d.created_at).toLocaleDateString('pt-BR'):'',content:d.description||'',storagePath:d.storage_path||'',mimeType:d.mime_type||'',sizeBytes:d.size_bytes||0,description:d.description||''});
+    }
     clientsData=(cl.data||[]).map(x=>{
-      const id=clientByDb.get(x.id);
-      const old=oldClients.find(c=>String(c.id)===String(id));
-      return {...(old||{}),id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo'};
+      const id=clientByDb.get(x.id); const old=oldClients.find(c=>String(c.id)===String(id));
+      return {...(old||{}),id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo',documents:clientDocsByDb[x.id]||old?.documents||[]};
     });
 
     const monthNames=cronMonths;
@@ -610,9 +614,56 @@ function saveClientForm(id){if(!canEditClient())return;let c=id?clientsData.find
 function addClientContact(cid){if(!canEditClient())return;openSimpleModal('Novo contato','<div class="task-form"><label>Nome</label><input id="ctName"><label>E-mail</label><input id="ctEmail" type="email"><label>Telefone</label><input id="ctPhone"><label><input type="checkbox" id="ctResponsible"> Responsável pelo projeto</label></div>',()=>{let c=clientsData.find(x=>x.id===cid),name=document.getElementById('ctName').value.trim();if(!c||!name)return alert('Informe o nome.');normalizeClient(c);let ct={id:Date.now(),name,email:document.getElementById('ctEmail').value.trim(),phone:document.getElementById('ctPhone').value.trim(),projectResponsible:document.getElementById('ctResponsible').checked};if(ct.projectResponsible)c.contacts.forEach(x=>x.projectResponsible=false);c.contacts.push(ct);persistState();closeModal();editClient(cid);clientModalTab('contacts')})}
 function editClientContact(cid,i){let c=clientsData.find(x=>x.id===cid);if(!c||!canEditClient())return;let ct=c.contacts[i];openSimpleModal('Editar contato','<div class="task-form"><label>Nome</label><input id="ctName" value="'+escAttr(ct.name)+'"><label>E-mail</label><input id="ctEmail" value="'+escAttr(ct.email||'')+'"><label>Telefone</label><input id="ctPhone" value="'+escAttr(ct.phone||'')+'"><label><input type="checkbox" id="ctResponsible" '+(ct.projectResponsible?'checked':'')+'> Responsável pelo projeto</label></div>',()=>{ct.name=document.getElementById('ctName').value.trim();ct.email=document.getElementById('ctEmail').value.trim();ct.phone=document.getElementById('ctPhone').value.trim();ct.projectResponsible=document.getElementById('ctResponsible').checked;if(ct.projectResponsible)c.contacts.forEach((x,j)=>{if(j!==i)x.projectResponsible=false});let r=clientResponsible(c);c.email=r.email||'';c.phone=r.phone||'';c.contact=r.name||'';persistState();closeModal();editClient(cid);clientModalTab('contacts')})}
 function deleteClientContact(cid,i){if(!canEditClient())return;let c=clientsData.find(x=>x.id===cid);if(!c)return;if(confirm('Excluir este contato?')){c.contacts.splice(i,1);if(c.contacts.length&&!c.contacts.some(x=>x.projectResponsible))c.contacts[0].projectResponsible=true;let r=clientResponsible(c);c.email=r.email||'';c.phone=r.phone||'';c.contact=r.name||'';persistState();editClient(cid);clientModalTab('contacts')}}
-function addClientDocument(cid){if(!canEditClient())return;openSimpleModal('Inserir documento do cliente','<div class="task-form"><label>Nome do documento</label><input id="clDocName"><label>Tipo</label><input id="clDocType" value="PDF / Ficha cadastral"><label>Conteúdo / observação</label><textarea id="clDocContent" rows="6"></textarea></div>',()=>{let c=clientsData.find(x=>x.id===cid),name=document.getElementById('clDocName').value.trim();if(!c||!name)return alert('Informe o nome.');normalizeClient(c);c.documents.unshift({id:Date.now(),name,type:document.getElementById('clDocType').value,date:new Date().toLocaleDateString('pt-BR'),content:document.getElementById('clDocContent').value});persistState();closeModal();editClient(cid);clientModalTab('docs')})}
-function deleteClientDoc(cid,i){if(!canEditClient())return;let c=clientsData.find(x=>x.id===cid);if(!c)return;if(confirm('Excluir documento?')){c.documents.splice(i,1);persistState();editClient(cid);clientModalTab('docs')}}
-function downloadClientDoc(cid,i){let c=clientsData.find(x=>x.id===cid);let d=c?.documents?.[i];if(!d)return;let blob=new Blob([d.content||'Documento do cliente'],{type:'text/plain;charset=utf-8'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=d.name.replace(/\s+/g,'_')+'.txt';a.click();URL.revokeObjectURL(a.href)}
+async function clientDbIdFor(cid){
+  const c=clientsData.find(x=>String(x.id)===String(cid)); if(!c)return null;
+  const legacy=localLegacy('client',c.id);
+  const {data,error}=await supabaseClient.from('clients').select('id').eq('legacy_id',legacy).maybeSingle();
+  if(error)throw error;
+  if(data?.id)return data.id;
+  if(currentUser?.role!=='admin'&&currentUser?.role!=='commercial')throw new Error('Este cliente ainda não está sincronizado com o banco.');
+  const payload={legacy_id:legacy,razao_social:c.name||'Cliente sem nome',nome_fantasia:c.fantasy||null,cnpj:c.cnpj||null,ie:c.ie||null,im:c.im||null,email:c.email||null,phone:c.phone||null,cep:c.zip||null,address:c.address||null,number:c.number||null,complement:c.complement||null,neighborhood:c.neighborhood||null,city:c.city||null,state:c.state||null,contact_name:clientResponsible(c).name||null,status:c.status||'Ativo',notes:c.notes||null};
+  const {data:created,error:createError}=await supabaseClient.from('clients').upsert(payload,{onConflict:'legacy_id'}).select('id').single();
+  if(createError)throw createError; return created.id;
+}
+async function addClientDocument(cid){
+  if(!canEditClient())return;
+  openSimpleModal('Inserir documento do cliente','<div class="task-form"><label>Arquivo</label><input id="clDocFile" type="file"><label>Descrição / observação</label><textarea id="clDocContent" rows="4" placeholder="Opcional"></textarea><div class="hint">O arquivo será armazenado no Supabase e ficará disponível neste cliente e em todos os projetos vinculados a ele.</div></div>',async()=>{
+    const c=clientsData.find(x=>String(x.id)===String(cid)),file=document.getElementById('clDocFile')?.files?.[0];
+    if(!c||!file)return alert('Selecione um arquivo.');
+    try{
+      const dbClientId=await clientDbIdFor(cid);
+      const safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
+      const path=dbClientId+'/'+crypto.randomUUID()+'-'+safeName;
+      const {error:uploadError}=await supabaseClient.storage.from('client-documents').upload(path,file,{upsert:false,contentType:file.type||'application/octet-stream'});
+      if(uploadError)throw uploadError;
+      const description=document.getElementById('clDocContent')?.value?.trim()||null;
+      const {data,error}=await supabaseClient.from('client_documents').insert({client_id:dbClientId,name:file.name,storage_path:path,mime_type:file.type||'application/octet-stream',size_bytes:file.size,description,uploaded_by:currentUser.id}).select('id,created_at').single();
+      if(error){await supabaseClient.storage.from('client-documents').remove([path]);throw error;}
+      normalizeClient(c);
+      c.documents.unshift({id:data.id,name:file.name,type:file.type||'Arquivo',date:new Date(data.created_at||Date.now()).toLocaleDateString('pt-BR'),content:description||'',storagePath:path,mimeType:file.type||'',sizeBytes:file.size,description:description||''});
+      persistState();closeModal();editClient(cid);clientModalTab('docs');
+    }catch(e){alert('Não foi possível anexar o arquivo: '+(e.message||e))}
+  });
+}
+async function deleteClientDoc(cid,i){
+  if(!canEditClient())return;
+  const c=clientsData.find(x=>String(x.id)===String(cid));if(!c)return;
+  const d=c.documents?.[i];if(!d)return;
+  if(!confirm('Excluir documento?'))return;
+  try{
+    if(d.storagePath)await supabaseClient.storage.from('client-documents').remove([d.storagePath]);
+    if(d.id&&String(d.id).length>10){const {error}=await supabaseClient.from('client_documents').delete().eq('id',d.id);if(error)throw error}
+    c.documents.splice(i,1);persistState();editClient(cid);clientModalTab('docs');
+  }catch(e){alert('Não foi possível excluir o documento: '+(e.message||e))}
+}
+async function downloadClientDoc(cid,i){
+  const c=clientsData.find(x=>String(x.id)===String(cid)),d=c?.documents?.[i];if(!d)return;
+  if(d.storagePath){
+    try{const {data,error}=await supabaseClient.storage.from('client-documents').createSignedUrl(d.storagePath,3600);if(error)throw error;window.open(data.signedUrl,'_blank','noopener');}
+    catch(e){alert('Não foi possível abrir o arquivo: '+(e.message||e))} return;
+  }
+  const blob=new Blob([d.content||'Documento do cliente'],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=d.name.replace(/\s+/g,'_')+'.txt';a.click();URL.revokeObjectURL(a.href);
+}
 function renderClients(){let q=(document.getElementById('clientSearch')?.value||'').toLowerCase();let base=currentUser?.role==='client'?clientsData.filter(c=>String(c.id)===String(currentUser.clientId)):clientsData;let arr=base.filter(c=>(c.name+' '+c.cnpj+' '+c.email+' '+(c.fantasy||'')+' '+(c.city||'')).toLowerCase().includes(q));document.getElementById('clientsBody').innerHTML=arr.map(c=>{normalizeClient(c);let count=ps.filter(p=>p.clientId===c.id).length,r=clientResponsible(c);return '<div class="card"><div class="top"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.fantasy||'')+'</div></div><span class="badge">'+count+' projeto(s)</span></div><p class="muted">CNPJ: '+esc(c.cnpj||'não informado')+'<br>Responsável: '+esc(r.name||'não informado')+'<br>E-mail: '+esc(r.email||'não informado')+'<br>Telefone: '+esc(r.phone||'não informado')+'</p><button class="secondary" onclick="editClient('+c.id+')">Abrir cadastro</button> <button class="secondary" onclick="lookupCnpj('+c.id+')">Consultar CNPJ</button></div>'}).join('')||'<div class="card muted">Nenhum cliente encontrado.</div>'}
 function fillClientFromCnpj(cnpj,formMode){return fillClientFromCnpjAsync(cnpj,formMode)}
 async function fillClientFromCnpjAsync(cnpj,formMode){let clean=(cnpj||'').replace(/\D/g,'');if(clean.length!==14)return false;let status=document.getElementById('cnpjStatus');if(status)status.textContent='Consultando dados cadastrais...';try{let r=await fetch('https://brasilapi.com.br/api/cnpj/v1/'+clean);if(!r.ok)throw new Error();let d=await r.json();if(formMode){let map={clientName:d.razao_social||d.nome_fantasia,clientFantasy:d.nome_fantasia,clientZip:d.cep,clientState:d.uf,clientAddress:d.logradouro,clientNumber:d.numero,clientComplement:d.complemento,clientNeighborhood:d.bairro,clientCity:d.municipio};Object.entries(map).forEach(([id,v])=>{let el=document.getElementById(id);if(el&&v)el.value=v});let ie=document.getElementById('clientIe');if(ie&&d.inscricao_estadual)ie.value=d.inscricao_estadual}else{let c=clientsData.find(x=>x.cnpj.replace(/\D/g,'')===clean);if(c){Object.assign(c,{name:d.razao_social||d.nome_fantasia||c.name,fantasy:d.nome_fantasia||c.fantasy,zip:d.cep||c.zip,state:d.uf||c.state,address:d.logradouro||c.address,number:d.numero||c.number,complement:d.complemento||c.complement,neighborhood:d.bairro||c.neighborhood,city:d.municipio||c.city});persistState();renderClients()}}if(status)status.textContent='Dados preenchidos pela consulta pública do CNPJ.';return true}catch(e){if(status)status.textContent='Não foi possível consultar o CNPJ agora.';return false}}
