@@ -464,7 +464,7 @@ function ProjetosPage() {
       )}
 
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-6xl max-h-[94vh] overflow-y-auto" onEscapeKeyDown={() => setForm(null)}>
           <DialogHeader>
             <DialogTitle>{form?.id ? "Editar projeto" : "Novo projeto"}</DialogTitle>
             <DialogDescription>Dados gerais da implantação do cliente.</DialogDescription>
