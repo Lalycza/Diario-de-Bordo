@@ -443,8 +443,8 @@ function ProjetosPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Produto / sistema</Label>
-                <Select value={form.product_id || undefined} onValueChange={(value) => setForm({ ...form, product_id: value })}>
+                <Label>Produto / sistema — vincular ao projeto</Label>
+                <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
                   <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
                   <SelectContent>
                     {(productsQuery.data ?? []).map((product) => (
@@ -466,8 +466,9 @@ function ProjetosPage() {
                   <Label htmlFor="analista">Analista de implantação</Label>
                   <Input
                     id="analista"
-                    value={form.analista}
-                    onChange={(e) => setForm({ ...form, analista: e.target.value })}
+                    value={form.analista ?? ""}
+                    onChange={(e) => setForm((current) => current ? { ...current, analista: e.target.value } : current)}
+                    placeholder="Analista já vinculado permanece aqui"
                   />
                 </div>
                 <div className="space-y-1.5">
