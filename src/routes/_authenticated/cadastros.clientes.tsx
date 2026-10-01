@@ -183,7 +183,13 @@ function ClientesPage() {
       return buscarCnpj({ data: { cnpj: normalized } });
     },
     onSuccess: (dados) => {
-      setForm((current) => (current ? { ...current, ...dados, product_ids: current.product_ids } : current));
+      setForm((current) => {
+        if (!current) return current;
+        const preserved = Object.fromEntries(
+          Object.entries(dados).filter(([, value]) => value !== null && value !== undefined && value !== ""),
+        );
+        return { ...current, ...preserved, product_ids: current.product_ids };
+      });
       toast.success("Dados da Receita carregados.");
     },
     onError: (error: Error) => {
