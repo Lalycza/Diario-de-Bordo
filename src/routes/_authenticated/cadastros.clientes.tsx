@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Mail, Pencil, Plus, Search } from "lucide-react";
+import { Mail, Pencil, Plus, Search, FolderPlus, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +88,10 @@ function ClientesPage() {
   const buscarCnpj = useServerFn(lookupCnpj);
   const [form, setForm] = useState<ClientForm | null>(null);
   const [detalhe, setDetalhe] = useState<string | null>(null);
+
+  const abrirNovoProjeto = (clientId: string) => {
+    window.location.href = "/projetos?client_id=" + encodeURIComponent(clientId);
+  };
 
   const productsQuery = useQuery({
     queryKey: ["products-for-client"],
@@ -291,85 +295,62 @@ function ClientesPage() {
       )}
 
       <Dialog open={detalhe !== null} onOpenChange={(open) => !open && setDetalhe(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[94vh] overflow-y-auto" onEscapeKeyDown={() => setForm(null)}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[94vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{clienteDetalhe?.razao_social ?? "Cliente"}</DialogTitle>
-            <DialogDescription>
-              Projetos, documentos e e-mails registrados para este cliente.
-            </DialogDescription>
+            <DialogDescription>Cadastro, contatos, documentos e histórico de projetos deste cliente.</DialogDescription>
           </DialogHeader>
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Projetos</h3>
-            {projetosDoCliente.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum projeto vinculado.</p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {projetosDoCliente.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-2">
-                    <Link
-                      to="/projeto/$projectId/cronograma"
-                      params={{ projectId: p.id }}
-                      className="hover:underline"
-                    >
-                      {p.cliente}
-                    </Link>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(p.data_inicio)} → {formatDate(p.previsao_conclusao)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Documentos</h3>
-            {(documentsQuery.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum documento anexado.</p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {(documentsQuery.data ?? []).map((doc) => (
-                  <li key={doc.id} className="flex items-center justify-between gap-2">
-                    <Link
-                      to="/projeto/$projectId/documentos"
-                      params={{ projectId: doc.project_id }}
-                      className="hover:underline"
-                    >
-                      {doc.nome}
-                    </Link>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(doc.created_at)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">E-mails registrados</h3>
-            {(emailsQuery.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum e-mail registrado.</p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {(emailsQuery.data ?? []).map((mail) => (
-                  <li key={mail.id} className="rounded-md border p-2">
-                    <p className="flex items-center gap-2 font-medium">
-                      <Mail className="size-3.5 text-muted-foreground" />
-                      {mail.assunto ?? mail.tipo ?? "E-mail"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {mail.destinatario} · {formatDate(mail.created_at)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {clienteDetalhe ? (
+            <Tabs defaultValue="cadastro" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
+                <TabsTrigger value="contato">Contato</TabsTrigger>
+                <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                <TabsTrigger value="projetos">Projetos/Histórico</TabsTrigger>
+              </TabsList>
+              <TabsContent value="cadastro" className="mt-4 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div><Label>Razão social</Label><p className="text-sm">{clienteDetalhe.razao_social || "—"}</p></div>
+                  <div><Label>Nome fantasia</Label><p className="text-sm">{clienteDetalhe.nome_fantasia || "—"}</p></div>
+                  <div><Label>CNPJ</Label><p className="text-sm">{clienteDetalhe.cnpj || "—"}</p></div>
+                  <div><Label>Município/UF</Label><p className="text-sm">{clienteDetalhe.municipio ? clienteDetalhe.municipio + "/" + (clienteDetalhe.uf ?? "") : "—"}</p></div>
+                  <div><Label>Produto</Label><p className="text-sm">{(productsQuery.data ?? []).find((p) => p.id === clienteDetalhe.product_id)?.name ?? "Não definido"}</p></div>
+                  <div><Label>Situação cadastral</Label><p className="text-sm">{clienteDetalhe.situacao_cadastral || "—"}</p></div>
+                </div>
+              </TabsContent>
+              <TabsContent value="contato" className="mt-4 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div><Label>E-mail</Label><p className="text-sm">{clienteDetalhe.email || "—"}</p></div>
+                  <div><Label>Telefone</Label><p className="text-sm">{clienteDetalhe.telefone || "—"}</p></div>
+                  <div><Label>Endereço</Label><p className="text-sm">{[clienteDetalhe.logradouro, clienteDetalhe.numero, clienteDetalhe.complemento].filter(Boolean).join(", ") || "—"}</p></div>
+                  <div><Label>Bairro / CEP</Label><p className="text-sm">{[clienteDetalhe.bairro, clienteDetalhe.cep].filter(Boolean).join(" · ") || "—"}</p></div>
+                </div>
+                {clienteDetalhe.observacoes ? <div><Label>Observações</Label><p className="text-sm whitespace-pre-wrap">{clienteDetalhe.observacoes}</p></div> : null}
+              </TabsContent>
+              <TabsContent value="documentos" className="mt-4 space-y-3">
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm font-medium">Documentos vinculados aos projetos</p>
+                  {(documentsQuery.data ?? []).length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Nenhum documento anexado.</p> : (
+                    <ul className="mt-3 space-y-2 text-sm">
+                      {(documentsQuery.data ?? []).map((doc) => <li key={doc.id} className="flex items-center justify-between gap-2 rounded-md border p-2"><Link to="/projeto/$projectId/documentos" params={{ projectId: doc.project_id }} className="hover:underline">{doc.nome}</Link><span className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</span></li>)}
+                    </ul>
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="projetos" className="mt-4 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/20 p-4">
+                  <div><p className="font-medium">Projetos deste cliente</p><p className="text-xs text-muted-foreground">Crie um projeto já vinculado a este cliente e ao produto cadastrado.</p></div>
+                  <Button type="button" onClick={() => abrirNovoProjeto(clienteDetalhe.id)}><FolderPlus className="size-4" /> Novo projeto</Button>
+                </div>
+                {projetosDoCliente.length === 0 ? <div className="rounded-lg border border-dashed p-6 text-center"><p className="text-sm text-muted-foreground">Nenhum projeto vinculado a este cliente.</p><Button type="button" className="mt-3" variant="outline" onClick={() => abrirNovoProjeto(clienteDetalhe.id)}>Criar o primeiro projeto</Button></div> : (
+                  <div className="space-y-2">{projetosDoCliente.map((p) => <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border p-3"><div><Link to="/projeto/$projectId/cronograma" params={{ projectId: p.id }} className="font-medium hover:underline">{p.cliente}</Link><p className="text-xs text-muted-foreground">{formatDate(p.data_inicio)} → {formatDate(p.previsao_conclusao)}</p></div><Button asChild type="button" variant="outline" size="sm"><Link to="/projeto/$projectId/cronograma" params={{ projectId: p.id }}><ExternalLink className="size-4" /> Abrir projeto</Link></Button></div>)}</div>
+                )}
+                <section className="rounded-lg border p-4"><div className="flex items-center gap-2"><Mail className="size-4 text-muted-foreground" /><h3 className="text-sm font-semibold">Histórico de e-mails</h3></div>{(emailsQuery.data ?? []).length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Nenhum e-mail registrado.</p> : <ul className="mt-3 space-y-2 text-sm">{(emailsQuery.data ?? []).map((mail) => <li key={mail.id} className="rounded-md border p-2"><p className="font-medium">{mail.assunto ?? mail.tipo ?? "E-mail"}</p><p className="text-xs text-muted-foreground">{mail.destinatario} · {formatDate(mail.created_at)}</p></li>)}</ul>}</section>
+              </TabsContent>
+            </Tabs>
+          ) : null}
         </DialogContent>
       </Dialog>
-
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
