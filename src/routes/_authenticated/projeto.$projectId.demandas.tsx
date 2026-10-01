@@ -85,6 +85,19 @@ function DemandasPage() {
     },
   });
 
+  // Mantém a prévia da linha do tempo visível em cada demanda, como na versão testada.
+  const projectHistoryQuery = useQuery({
+    queryKey: ["demand-history-project", projectId],
+    queryFn: async () => {
+      const ids = (demandsQuery.data ?? []).map((d) => d.id);
+      if (!ids.length) return [];
+      const { data, error } = await supabase.from("demand_history").select("*").in("demand_id", ids).order("changed_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !demandsQuery.isLoading,
+  });
+
   const historyQuery = useQuery({
     queryKey: ["demand-history", historyId],
     enabled: Boolean(historyId),
@@ -190,6 +203,16 @@ function DemandasPage() {
   });
 
   const demands = demandsQuery.data ?? [];
+  const projectHistory = projectHistoryQuery.data ?? [];
+  const recentHistoryByDemand = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const h of projectHistory) {
+      const list = map.get(h.demand_id) ?? [];
+      if (list.length < 3) list.push(h);
+      map.set(h.demand_id, list);
+    }
+    return map;
+  }, [projectHistory]);
   const selectedHistory = historyQuery.data ?? [];
   const historyRows = useMemo(() => selectedHistory.map((h: any) => {
     const s = h.snapshot ?? {};
@@ -211,7 +234,11 @@ function DemandasPage() {
   }
 
   function printDemand(demand: Demand) {
-    const rows = (selectedHistory.length && historyId === demand.id ? historyRows : []).map((h: any) => `<div style="border-bottom:1px solid #ddd;padding:8px 0"><b>${h.event}</b><br>${fmtDate(h.occurred)} · ${h.actor}<br>${h.details || ""}</div>`).join("");
+    const sourceHistory = historyId === demand.id && selectedHistory.length ? historyRows : (recentHistoryByDemand.get(demand.id) ?? []).map((h: any) => {
+      const s = h.snapshot ?? {};
+      return { ...h, event: s._event_label || "Alteração", details: s._details || "", occurred: s._occurred_on || h.changed_at, actor: s._actor_name || "Usuário" };
+    });
+    const rows = sourceHistory.map((h: any) => `<div style="border-bottom:1px solid #ddd;padding:8px 0"><b>${h.event}</b><br>${fmtDate(h.occurred)} · ${h.actor}<br>${h.details || ""}</div>`).join("");
     const w = window.open("", "_blank");
     if (!w) return;
     w.document.write(`<!doctype html><html><head><title>Relatório da demanda</title><style>body{font-family:Arial;padding:30px;color:#182236}h1{font-size:20px}p{line-height:1.5}.meta{color:#666;font-size:12px}</style></head><body><h1>Relatório da Demanda${demand.os_number ? " · OS " + demand.os_number : ""}</h1><p><b>Necessidade:</b> ${demand.scope}</p><p><b>Status:</b> ${label(STATUSES,demand.status)} · <b>Prioridade:</b> ${label(PRIORITIES,demand.priority)}</p><p><b>Prazo:</b> ${fmtDate(demand.delivery_deadline)} · <b>Responsável:</b> ${demand.responsible_person || "—"} · <b>Setor:</b> ${demand.sector || "—"}</p><h2>Linha do tempo</h2>${rows || "<p>Nenhum histórico carregado. Abra o histórico antes de imprimir para incluir os registros.</p>"}</body></html>`);
@@ -239,6 +266,17 @@ function DemandasPage() {
               <div className="flex gap-2"><Badge className={d.status === "finalizado" ? "bg-emerald-100 text-emerald-800 border-emerald-200" : d.status === "em_andamento" ? "bg-sky-100 text-sky-800 border-sky-200" : "bg-amber-100 text-amber-800 border-amber-200"}>{label(STATUSES,d.status)}</Badge><Badge className={d.priority === "alta" ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-muted"}>Prioridade {label(PRIORITIES,d.priority)}</Badge></div>
             </div>
             {d.notes ? <p className="mt-3 whitespace-pre-wrap text-sm">{d.notes}</p> : null}
+            <div className="mt-4">
+              <div className="mb-2 text-sm font-semibold">Últimas inclusões</div>
+              {(recentHistoryByDemand.get(d.id) ?? []).length ? (
+                <div className="space-y-2 border-l-2 pl-4">
+                  {(recentHistoryByDemand.get(d.id) ?? []).map((h: any) => {
+                    const s = h.snapshot ?? {};
+                    return <div key={h.id} className="text-sm"><div className="font-medium">{s._event_label || "Alteração"}</div><div className="text-xs text-muted-foreground">{fmtDate(s._occurred_on || h.changed_at)} · {s._actor_name || "Usuário"}</div>{s._details ? <div className="mt-1 whitespace-pre-wrap text-muted-foreground">{s._details}</div> : null}</div>;
+                  })}
+                </div>
+              ) : <div className="text-sm text-muted-foreground">Nenhuma ocorrência registrada.</div>}
+            </div>
             <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
               <div><b>Escopo levantado</b><br />{d.scope_raised_by || "—"} {d.scope_raised_at ? `· ${fmtDate(d.scope_raised_at)}` : ""}</div>
               <div><b>Escopo aprovado</b><br />{d.scope_approved_by || "—"} {d.scope_approved_at ? `· ${fmtDate(d.scope_approved_at)}` : ""}</div>
