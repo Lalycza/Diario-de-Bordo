@@ -430,8 +430,7 @@ async function saveProjetoEdicao(){
  if(goLiveChanged){p.goLiveHistory=Array.isArray(p.goLiveHistory)?p.goLiveHistory:[];p.goLiveHistory.push({oldDate:oldEnd,newDate:newEnd,changedAt:new Date().toISOString(),changedBy:currentUser?.name||currentUser?.email||'Usuário'});}
  try{
   if(!supabaseClient||!supabaseSession)throw new Error('Sessão do Supabase não disponível.');
-  const ownerEmail=String(p.owner||'').toLowerCase(),ownerProfile=(usersData||[]).find(u=>String(u.email||'').toLowerCase()===ownerEmail),clientObj=clientsData.find(x=>String(x.id)===String(p.clientId));
-  const payload={name:p.n,client_id:clientObj?._dbId||null,owner_id:ownerProfile?.id||currentUser.id,start_date:p.startDate||null,delivery_date:p.endDate||null,original_delivery_date:p.originalEndDate||null};
+  const payload={name:p.n,start_date:p.startDate||null,delivery_date:p.endDate||null,original_delivery_date:p.originalEndDate||null};
   const {data:rows,error}=await supabaseClient.from('projects').update(payload).eq('legacy_id',localLegacy('project',p.id)).select('id');
   if(error)throw error;
   if(goLiveChanged){const details=JSON.stringify({field:'Go Live',oldDate:oldEnd||null,newDate:newEnd||null,originalDate:p.originalEndDate||null,changedAt:new Date().toISOString()}),projectDbId=rows?.[0]?.id;const {error:ae}=await supabaseClient.from('audit_logs').insert({project_id:projectDbId||null,user_id:currentUser?.id||null,action:'Alteração de Go Live',details});if(ae)console.warn('Auditoria Go Live:',ae);}
