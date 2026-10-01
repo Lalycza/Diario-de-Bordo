@@ -214,6 +214,38 @@ function ProjetosPage() {
     <AppShell userLabel={user.email}>
       {isAdmin || isSupervisor ? <ManagementDashboard /> : null}
 
+      {!showArchived && (isAdmin || isSupervisor) ? (() => {
+        const visible = projects;
+        const homologados = visible.filter((p) => p.finalized).length;
+        const emImplantacao = visible.filter((p) => !p.finalized).length;
+        return (
+          <section className="mb-6 rounded-xl border bg-card p-4" aria-label="Resumo da carteira">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">{visible.length} Projetos visíveis</h2>
+              <span className="text-xs text-muted-foreground">Carteira atual</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="text-2xl font-semibold">{emImplantacao}</div>
+                <div className="text-xs text-muted-foreground">Em implantação</div>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="text-2xl font-semibold">{homologados}</div>
+                <div className="text-xs text-muted-foreground">Homologados</div>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="text-2xl font-semibold">0</div>
+                <div className="text-xs text-muted-foreground">Treinamentos pendentes</div>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="text-2xl font-semibold">0</div>
+                <div className="text-xs text-muted-foreground">Go Live parcial</div>
+              </div>
+            </div>
+          </section>
+        );
+      })() : null}
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Projetos</h1>
