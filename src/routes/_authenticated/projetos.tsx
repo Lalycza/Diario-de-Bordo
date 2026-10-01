@@ -100,14 +100,25 @@ function ProjetosPage() {
     },
   });
 
-  const modulesQuery = useQuery({
-    queryKey: ["all-modules"],
+  const projectModulesQuery = useQuery({
+    queryKey: ["all-project-modules"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("modules")
-        .select("project_id, parent_id, status");
+        .from("project_modules")
+        .select("project_id, module_id, planned_training_date");
       if (error) throw error;
-      return data;
+      return data ?? [];
+    },
+  });
+
+  const trainingsQuery = useQuery({
+    queryKey: ["all-trainings-for-projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainings")
+        .select("project_id, module_id, status, planned_date");
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -137,44 +148,34 @@ function ProjetosPage() {
         .single();
       if (error) throw error;
 
-      const fases = TEMPLATE_FASES.filter((f) => values.fases.includes(f.fase));
-      if (fases.length === 0 || !created) return;
+      const selectedItems = TEMPLATE_FASES
+        .filter((f) => values.fases.includes(f.fase))
+        .flatMap((f) => f.itens.map((item) => item.nome));
 
-      let ordem = 0;
-      for (const fase of fases) {
-        const { data: pai, error: paiError } = await supabase
-          .from("modules")
-          .insert({
+      if (!created || selectedItems.length === 0) return;
+
+      const { data: catalogModules, error: catalogError } = await supabase
+        .from("modules")
+        .select("id, name")
+        .in("name", selectedItems);
+
+      if (catalogError) throw catalogError;
+
+      const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
+      if (uniqueModuleIds.length > 0) {
+        const { error: linksError } = await supabase.from("project_modules").insert(
+          uniqueModuleIds.map((moduleId) => ({
             project_id: created.id,
-            nome: fase.fase,
-            area: fase.responsavel,
-            status: "pendente",
-            ordem: ordem++,
-            created_by: user.id,
-          })
-          .select("id")
-          .single();
-        if (paiError) throw paiError;
-
-        const filhos = fase.itens.map((item) => ({
-          project_id: created.id,
-          parent_id: pai.id,
-          nome: item.nome,
-          grupo: item.grupo,
-          area: fase.responsavel,
-          status: "pendente",
-          ordem: ordem++,
-          created_by: user.id,
-        }));
-        if (filhos.length > 0) {
-          const { error: filhosError } = await supabase.from("modules").insert(filhos);
-          if (filhosError) throw filhosError;
-        }
+            module_id: moduleId,
+          })),
+        );
+        if (linksError) throw linksError;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      queryClient.invalidateQueries({ queryKey: ["all-modules"] });
+      queryClient.invalidateQueries({ queryKey: ["all-project-modules"] });
+      queryClient.invalidateQueries({ queryKey: ["all-trainings-for-projects"] });
       setForm(null);
       toast.success("Projeto salvo.");
     },
@@ -192,14 +193,13 @@ function ProjetosPage() {
   const projects = (projectsQuery.data ?? []).filter((p) => p.arquivado === showArchived);
 
   function progressFor(projectId: string) {
-    const itens = (modulesQuery.data ?? []).filter(
-      (m) => m.project_id === projectId && m.parent_id,
-    );
+    const assigned = (projectModulesQuery.data ?? []).filter((m) => m.project_id === projectId);
+    const trainings = (trainingsQuery.data ?? []).filter((t) => t.project_id === projectId);
+    const done = trainings.filter((t) => t.status === "Concluído" || t.status === "Homologado").length;
     const stages = (stagesQuery.data ?? []).filter((s) => s.project_id === projectId);
     const late = stages.filter((s) => effectiveStageStatus(s) === "atrasada").length;
-    const done = itens.filter((m) => m.status === "homologado").length;
-    const percent = itens.length === 0 ? 0 : Math.round((done / itens.length) * 100);
-    return { percent, total: itens.length, done, late };
+    const percent = assigned.length === 0 ? 0 : Math.min(100, Math.round((done / assigned.length) * 100));
+    return { percent, total: assigned.length, done, late };
   }
 
   const toggleFase = (fase: string) => {
@@ -234,11 +234,11 @@ function ProjetosPage() {
                 <div className="text-xs text-muted-foreground">Homologados</div>
               </div>
               <div className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-2xl font-semibold">0</div>
+                <div className="text-2xl font-semibold">{(trainingsQuery.data ?? []).filter((t) => t.status !== "Concluído" && t.status !== "Homologado").length}</div>
                 <div className="text-xs text-muted-foreground">Treinamentos pendentes</div>
               </div>
               <div className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-2xl font-semibold">0</div>
+                <div className="text-2xl font-semibold">{new Set((trainingsQuery.data ?? []).filter((t) => t.status !== "Concluído" && t.status !== "Homologado").map((t) => t.project_id)).size}</div>
                 <div className="text-xs text-muted-foreground">Go Live parcial</div>
               </div>
             </div>
