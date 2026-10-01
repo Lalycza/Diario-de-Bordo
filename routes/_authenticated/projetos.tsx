@@ -184,10 +184,6 @@ function ProjetosPage() {
         .single();
       if (error) throw error;
 
-      const selectedItems = TEMPLATE_FASES
-        .filter((f) => values.fases.includes(f.fase))
-        .flatMap((f) => f.itens.map((item) => item.nome));
-
       if (!created || !values.product_id) return;
 
       const { data: catalogModules, error: catalogError } = await supabase
