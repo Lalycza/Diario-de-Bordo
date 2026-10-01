@@ -82,20 +82,6 @@ function ProjetosPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<ProjectForm | null>(null);
 
-  useEffect(() => {
-    const clientId = new URLSearchParams(window.location.search).get("client_id");
-    if (!clientId || form || !clientsQuery.data) return;
-    const client = clientsQuery.data.find((item) => item.id === clientId);
-    if (!client) return;
-    setForm({
-      ...emptyForm,
-      client_id: client.id,
-      cliente: client.razao_social ?? client.nome_fantasia ?? "",
-      email_cliente: client.email ?? "",
-      product_id: client.product_id ?? "",
-    });
-    window.history.replaceState({}, "", "/projetos");
-  }, [clientsQuery.data, form]);
 
   const clientsQuery = useQuery({
     queryKey: ["clients-for-project"],
@@ -115,6 +101,20 @@ function ProjetosPage() {
     },
   });
 
+  useEffect(() => {
+    const clientId = new URLSearchParams(window.location.search).get("client_id");
+    if (!clientId || form || !clientsQuery.data) return;
+    const client = clientsQuery.data.find((item) => item.id === clientId);
+    if (!client) return;
+    setForm({
+      ...emptyForm,
+      client_id: client.id,
+      cliente: client.razao_social ?? client.nome_fantasia ?? "",
+      email_cliente: client.email ?? "",
+      product_id: client.product_id ?? "",
+    });
+    window.history.replaceState({}, "", "/projetos");
+  }, [clientsQuery.data, form]);
   const projectsQuery = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
