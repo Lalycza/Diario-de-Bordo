@@ -147,6 +147,8 @@ function ProjetosPage() {
 
   const saveProject = useMutation({
     mutationFn: async (values: ProjectForm) => {
+      const clientProductId = clientsQuery.data?.find((client) => client.id === values.client_id)?.product_id ?? null;
+      const effectiveProductId = values.product_id || clientProductId;
       const payload = {
         client_id: values.client_id || null,
         cliente: values.cliente,
@@ -155,7 +157,7 @@ function ProjetosPage() {
         analista: values.analista || null,
         coordenacao: values.coordenacao || null,
         email_cliente: values.email_cliente || null,
-        product_id: values.product_id || clientsQuery.data?.find((c) => c.id === values.client_id)?.product_id || null,
+        product_id: effectiveProductId,
         data_inicio: values.data_inicio || null,
         previsao_conclusao: values.previsao_conclusao || null,
         data_entrega_original: values.data_entrega_original || null,
@@ -171,15 +173,15 @@ function ProjetosPage() {
         const { error } = await supabase.from("projects").update(payload).eq("id", values.id);
         if (error) throw error;
 
-        if (currentProject.product_id !== (values.product_id || null)) {
+        if (currentProject.product_id !== effectiveProductId) {
           const { error: clearError } = await supabase.from("project_modules").delete().eq("project_id", values.id);
           if (clearError) throw clearError;
 
-          if (values.product_id) {
+          if (effectiveProductId) {
             const { data: catalogModules, error: catalogError } = await supabase
               .from("modules")
               .select("id")
-              .eq("product_id", values.product_id)
+              .eq("product_id", effectiveProductId)
               .eq("active", true);
             if (catalogError) throw catalogError;
 
@@ -208,7 +210,7 @@ function ProjetosPage() {
 
       if (!created) return;
 
-      if (values.product_id) {
+      if (effectiveProductId) {
         const { data: catalogModules, error: catalogError } = await supabase
           .from("modules").select("id").eq("product_id", values.product_id).eq("active", true);
         if (catalogError) throw catalogError;
@@ -370,8 +372,8 @@ function ProjetosPage() {
                         setForm({
                           id: project.id,
                           cliente: project.cliente,
-                          client_id: project.client_id ?? "",
-                          product_id: project.product_id ?? "",
+                          client_id: project.client_id ?? clientsQuery.data?.find((client) => client.razao_social === project.cliente)?.id ?? "",
+                          product_id: project.product_id ?? clientsQuery.data?.find((client) => client.id === (project.client_id ?? clientsQuery.data?.find((client) => client.razao_social === project.cliente)?.id))?.product_id ?? "",
                           descricao: project.descricao ?? "",
                           responsavel: project.responsavel ?? "",
                           analista: project.analista ?? "",
