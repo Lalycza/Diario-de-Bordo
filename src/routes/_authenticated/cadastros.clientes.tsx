@@ -114,6 +114,16 @@ function ClientesPage() {
     },
   });
 
+  const clientProductsEditQuery = useQuery({
+    queryKey: ["client-products-edit", form?.id],
+    enabled: !!form?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("client_products").select("product_id").eq("client_id", form!.id!);
+      if (error) throw error;
+      return (data ?? []).map((row) => row.product_id);
+    },
+  });
+
   const clientsQuery = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
@@ -231,6 +241,13 @@ function ClientesPage() {
     },
     onError: () => toast.error("Não foi possível salvar o cliente."),
   });
+
+  if (form?.id && clientProductsEditQuery.data && form.product_ids.length <= 1) {
+    // Mantém a seleção real de múltiplos produtos ao abrir a edição.
+    if (JSON.stringify(form.product_ids) !== JSON.stringify(clientProductsEditQuery.data)) {
+      setForm({ ...form, product_ids: clientProductsEditQuery.data });
+    }
+  }
 
   const clients = clientsQuery.data ?? [];
   const clienteDetalhe = clients.find((c) => c.id === detalhe);
