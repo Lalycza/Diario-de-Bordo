@@ -21,11 +21,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  if (typeof window !== "undefined") {
+    window.location.replace("/implanta-preview.html");
+  }
+
   return (
-    <iframe
-      title="Prévia do IMPLANTA"
-      src="/implanta-preview.html"
-      className="block h-screen w-full border-0 bg-background"
-    />
+    <div className="min-h-screen w-full bg-background" aria-label="Abrindo IMPLANTA" />
   );
 }
