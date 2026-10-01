@@ -440,8 +440,15 @@ async function syncProjectLifecycleStatusToSupabase(p){
  if(!p||!p.dbId)return;
  const allowed=['Ativo','Finalizado','Congelado'];
  const status=allowed.includes(p.projectStatus)?p.projectStatus:'Ativo';
- const {error}=await supabaseClient.from('projects').update({status}).eq('id',p.dbId);
- if(error)throw new Error('Status do projeto: '+error.message);
+ const payload={
+   name:p.n||'Projeto sem nome',
+   status,
+   start_date:p.startDate||null,
+   delivery_date:p.endDate||null,
+   base_date:p.baseDate||null
+ };
+ const {error}=await supabaseClient.from('projects').update(payload).eq('id',p.dbId);
+ if(error)throw new Error('Dados do projeto: '+error.message);
 }
 async function saveProjetoEdicao(){
  if(!canEditProject()||!cur)return;
