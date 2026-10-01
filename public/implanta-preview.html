@@ -470,7 +470,7 @@ async function syncLocalToSupabase(silent=false){
  const canSyncProjects=currentUser.role==='admin'||currentUser.role==='analyst';
  const canSyncClients=currentUser.role==='admin'||currentUser.role==='commercial';
  const canSyncCatalog=currentUser.role==='admin';
- if(window._syncing)return alert('A sincronização já está em andamento.');
+ if(window._syncing){_autoSyncDirty=true;return;}
  if(!downloadV35Backup(true))return;
  const beforeProjects=ps.length,beforeClients=clientsData.length,beforeProducts=productsData.length;
  window._syncing=true;
@@ -562,7 +562,7 @@ async function syncLocalToSupabase(silent=false){
    }
 
    window._lastSyncError='';
-   const el=document.getElementById('syncStatus');if(el)el.textContent='Sincronização concluída em '+new Date().toLocaleString('pt-BR')+' — Projetos: '+beforeProjects+' | Clientes: '+beforeClients+' | Produtos: '+beforeProducts+'. Nenhum registro remoto foi apagado.';alert('Backup criado e V35 salva no Supabase.\n\nProjetos enviados: '+beforeProjects+'\nClientes: '+beforeClients+'\nProdutos: '+beforeProducts+'\n\nNenhum registro remoto foi apagado por esta operação.');
+   window._lastSyncError='';const el=document.getElementById('syncStatus');if(el)el.textContent='Sincronização concluída em '+new Date().toLocaleString('pt-BR')+' — Projetos: '+beforeProjects+' | Clientes: '+beforeClients+' | Produtos: '+beforeProducts+'. Nenhum registro remoto foi apagado.';if(!silent)alert('Backup criado e V35 salva no Supabase.\n\nProjetos enviados: '+beforeProjects+'\nClientes: '+beforeClients+'\nProdutos: '+beforeProducts+'\n\nNenhum registro remoto foi apagado por esta operação.');
  }catch(e){window._lastSyncError=e.message||String(e);console.error(e);const el=document.getElementById('syncStatus');if(el)el.textContent='Sincronização interrompida: '+(e.message||e)+'. O backup permanece preservado.';if(!silent)alert('O backup foi criado, mas a sincronização foi interrompida.\n\nErro: '+(e.message||e)+'\n\nO estado da V35 continua preservado no navegador e no arquivo de backup.');}
  finally{window._syncing=false}
 }
