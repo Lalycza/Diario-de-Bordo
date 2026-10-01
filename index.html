@@ -86,7 +86,7 @@ async function hydrateFromSupabase(){
   if(window._dbHydrated||!supabaseSession)return;
   window._dbHydrated=true;
   try{
-    const [pr,mo,su,cl,pg,pp,pm,tr]=await Promise.all([
+    const [pr,mo,su,cl,pg,pp,pm,pa,tr]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
@@ -94,9 +94,10 @@ async function hydrateFromSupabase(){
       supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id').order('created_at'),
       supabaseClient.from('project_products').select('project_id,product_id'),
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
+      supabaseClient.from('project_analysts').select('project_id,profile_id'),
       supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date')
     ]);
-    for(const q of [pr,mo,su,cl,pg,pp,pm,tr])if(q.error)throw q.error;
+    for(const q of [pr,mo,su,cl,pg,pp,pm,pa,tr])if(q.error)throw q.error;
     const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
     const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
     const moduleByDb=new Map((mo.data||[]).map(x=>[x.id,lid(x.legacy_id,'module')]));
@@ -142,6 +143,10 @@ async function hydrateFromSupabase(){
       const client=clientsData.find(c=>String(c.id)===String(clientByDb.get(x.client_id)));
       return {...(old||{}),id,n:x.name,c:client?.name||old?.c||'',clientId:client?.id||old?.clientId||null,progress:Number(x.progress||0),baseDate:x.start_date||old?.baseDate||'',startDate:x.start_date||old?.startDate||'',endDate:x.delivery_date||old?.endDate||'',productIds:[],m:[],t:Array.isArray(old?.t)?old.t:[],d:old?.d||[],docs:old?.docs||[],emails:old?.emails||[],kickoff:old?.kickoff||{status:'Pendente',notes:''},handoff:old?.handoff||{status:'Pendente',notes:''},pesquisa:old?.pesquisa||{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:old?.homologacao||{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''}};
     });
+    for(const x of (pa.data||[])){
+      const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
+      if(p){p.operatorIds=p.operatorIds||[];const u=(usersData||[]).find(v=>String(v.id)===String(x.profile_id));if(u&&!p.operatorIds.some(v=>String(v)===String(u.id)))p.operatorIds.push(u.id)}
+    }
     for(const x of (pp.data||[])){
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
       const prod=productByDb.get(x.product_id);
@@ -405,7 +410,7 @@ function saveProjetoEdicao(){
  let p=cur,v=id=>document.getElementById(id)?.value||'';
  let n=v('editProjName').trim(),c=v('editProjClient').trim();
  if(!n||!c)return alert('Informe o nome do projeto e o cliente.');
- p.n=n;p.c=c;p.owner=v('editProjOwner')||p.owner;p.baseDate=v('editProjBase');p.startDate=v('editProjStart');p.endDate=v('editProjEnd');
+ p.n=n;p.c=c;const selectedAnalyst=v('editProjOwner');if(selectedAnalyst){const au=usersData.find(u=>u.email===selectedAnalyst||String(u.id)===String(selectedAnalyst));p.owner=au?.email||selectedAnalyst;p.operatorIds=au?.id?[au.id]:p.operatorIds||[]}p.baseDate=v('editProjBase');p.startDate=v('editProjStart');p.endDate=v('editProjEnd');
  audit('Projeto alterado','Dados cadastrais do projeto atualizados.');
  if(typeof persistState==='function')persistState();
  closeModal();openP(p.id);render();
@@ -459,12 +464,25 @@ async function syncLocalToSupabase(){
 
    // PROJETOS E DADOS DE IMPLANTAÇÃO
    for(const p0 of ps){
+     const clientForProject=clientsData.find(c=>String(c.id)===String(p0.clientId));
+     if((!Array.isArray(p0.productIds)||!p0.productIds.length) && Array.isArray(clientForProject?.productIds)) p0.productIds=[...clientForProject.productIds];
+     if(Array.isArray(p0.productIds)&&p0.productIds.length) syncProjectMap(p0);
      const ownerId=profileByEmail[String(p0.owner||'').toLowerCase()]||currentUser.id;
      const dbClient=clientMap[p0.clientId]||null;
      const projectPayload={legacy_id:localLegacy('project',p0.id),name:p0.n||'Projeto sem nome',client_id:dbClient,owner_id:ownerId,status:p0.homologacao?.status==='Homologado'?'Homologado':'Em andamento',progress:Number(p0.progress||0),start_date:p0.startDate||null,delivery_date:p0.endDate||null,original_delivery_date:p0.originalEndDate||null,base_date:p0.baseDate||null,finalized:!!p0.finalizado,finalized_at:p0.finalizadoAt||null,finalized_by:profileByEmail[String(p0.finalizadoBy||'').toLowerCase()]||null,created_by:currentUser.id};
      const {data,error}=await supabaseClient.from('projects').upsert(projectPayload,{onConflict:'legacy_id'}).select('id').single();
      if(error)throw new Error('Projeto '+(p0.n||'')+': '+error.message);
      const projectId=data.id;
+
+     const analystIds=[...(p0.operatorIds||[])].filter(Boolean);
+     const ownerProfile=profileByEmail[String(p0.owner||'').toLowerCase()];
+     if(ownerProfile&&!analystIds.some(v=>String(v)===String(ownerProfile))) analystIds.push(ownerProfile);
+     for(const aid of analystIds){
+       const profileId=profileByEmail[String(aid).toLowerCase()]||aid;
+       if(!profileId||!String(profileId).match(/^[0-9a-f-]{36}$/i)) continue;
+       const {error:e}=await supabaseClient.from('project_analysts').upsert({project_id:projectId,profile_id:profileId},{onConflict:'project_id,profile_id'});
+       if(e)throw new Error('Analistas do projeto '+p0.n+': '+e.message);
+     }
 
      for(const pid of (p0.productIds||[])) if(productMap[pid]){const {error:e}=await supabaseClient.from('project_products').upsert({project_id:projectId,product_id:productMap[pid]},{onConflict:'project_id,product_id'});if(e)throw new Error('Produtos do projeto '+p0.n+': '+e.message)}
      for(const m of (p0.m||[])){
