@@ -46,6 +46,7 @@ export const Route = createFileRoute("/_authenticated/projetos")({
 
 type ProjectForm = {
   id?: string;
+  client_id: string;
   cliente: string;
   product_id: string;
   descricao: string;
@@ -60,6 +61,7 @@ type ProjectForm = {
 };
 
 const emptyForm: ProjectForm = {
+  client_id: "",
   cliente: "",
   product_id: "",
   descricao: "",
@@ -79,6 +81,15 @@ function ProjetosPage() {
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<ProjectForm | null>(null);
+
+  const clientsQuery = useQuery({
+    queryKey: ["clients-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("id, razao_social, nome_fantasia, email, product_id").order("razao_social");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const productsQuery = useQuery({
     queryKey: ["products-for-project"],
@@ -136,14 +147,17 @@ function ProjetosPage() {
 
   const saveProject = useMutation({
     mutationFn: async (values: ProjectForm) => {
+      const clientProductId = clientsQuery.data?.find((client) => client.id === values.client_id)?.product_id ?? null;
+      const effectiveProductId = values.product_id || clientProductId;
       const payload = {
+        client_id: values.client_id || null,
         cliente: values.cliente,
         descricao: values.descricao || null,
         responsavel: values.responsavel || null,
         analista: values.analista || null,
         coordenacao: values.coordenacao || null,
         email_cliente: values.email_cliente || null,
-        product_id: values.product_id || null,
+        product_id: effectiveProductId,
         data_inicio: values.data_inicio || null,
         previsao_conclusao: values.previsao_conclusao || null,
         data_entrega_original: values.data_entrega_original || null,
@@ -159,15 +173,15 @@ function ProjetosPage() {
         const { error } = await supabase.from("projects").update(payload).eq("id", values.id);
         if (error) throw error;
 
-        if (currentProject.product_id !== (values.product_id || null)) {
+        if (currentProject.product_id !== effectiveProductId) {
           const { error: clearError } = await supabase.from("project_modules").delete().eq("project_id", values.id);
           if (clearError) throw clearError;
 
-          if (values.product_id) {
+          if (effectiveProductId) {
             const { data: catalogModules, error: catalogError } = await supabase
               .from("modules")
               .select("id")
-              .eq("product_id", values.product_id)
+              .eq("product_id", effectiveProductId)
               .eq("active", true);
             if (catalogError) throw catalogError;
 
@@ -196,7 +210,7 @@ function ProjetosPage() {
 
       if (!created) return;
 
-      if (values.product_id) {
+      if (effectiveProductId) {
         const { data: catalogModules, error: catalogError } = await supabase
           .from("modules").select("id").eq("product_id", values.product_id).eq("active", true);
         if (catalogError) throw catalogError;
@@ -358,7 +372,8 @@ function ProjetosPage() {
                         setForm({
                           id: project.id,
                           cliente: project.cliente,
-                          product_id: project.product_id ?? "",
+                          client_id: project.client_id ?? clientsQuery.data?.find((client) => client.razao_social === project.cliente)?.id ?? "",
+                          product_id: project.product_id ?? clientsQuery.data?.find((client) => client.id === (project.client_id ?? clientsQuery.data?.find((client) => client.razao_social === project.cliente)?.id))?.product_id ?? "",
                           descricao: project.descricao ?? "",
                           responsavel: project.responsavel ?? "",
                           analista: project.analista ?? "",
@@ -449,7 +464,7 @@ function ProjetosPage() {
       )}
 
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-6xl max-h-[94vh] overflow-y-auto" onEscapeKeyDown={() => setForm(null)}>
           <DialogHeader>
             <DialogTitle>{form?.id ? "Editar projeto" : "Novo projeto"}</DialogTitle>
             <DialogDescription>Dados gerais da implantação do cliente.</DialogDescription>
@@ -464,19 +479,38 @@ function ProjetosPage() {
             >
               <div className="space-y-1.5">
                 <Label htmlFor="cliente">Cliente</Label>
-                <Input
-                  id="cliente"
-                  value={form.cliente}
-                  onChange={(e) => setForm({ ...form, cliente: e.target.value })}
-                  required
-                />
+                <Select
+                  value={form.client_id || undefined}
+                  onValueChange={(value) => {
+                    const client = (clientsQuery.data ?? []).find((c) => c.id === value);
+                    setForm((current) => current ? {
+                      ...current,
+                      client_id: value,
+                      cliente: client?.razao_social ?? client?.nome_fantasia ?? current.cliente,
+                      email_cliente: client?.email ?? current.email_cliente,
+                      product_id: client?.product_id ?? current.product_id,
+                    } : current);
+                  }}
+                >
+                  <SelectTrigger id="cliente" className="w-full">
+                    <SelectValue placeholder={clientsQuery.isLoading ? "Carregando clientes..." : "Selecione o cliente"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(clientsQuery.data ?? []).map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.razao_social}{client.nome_fantasia ? ` — ${client.nome_fantasia}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">O produto cadastrado no cliente será levado automaticamente para o projeto.</p>
               </div>
               <div className="space-y-1.5 rounded-lg border p-4">
                 <div className="flex items-center gap-2">
                   <Package className="size-4" />
-                  <Label>Produto / sistema vinculado ao projeto</Label>
+                  <Label>Produto / sistema vinculado ao projeto (paliativo)</Label>
                 </div>
-                <p className="text-xs text-muted-foreground">Ao salvar, os módulos ativos do produto serão vinculados automaticamente. Se você trocar o produto, o vínculo de módulos será atualizado.</p>
+                <p className="text-xs text-muted-foreground">Preferencialmente o produto vem do cadastro do cliente. Este campo permanece como paliativo para projetos criados sem produto no nascimento do cliente.</p>
                 <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
                   <SelectTrigger className="w-full"><SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} /></SelectTrigger>
                   <SelectContent>
