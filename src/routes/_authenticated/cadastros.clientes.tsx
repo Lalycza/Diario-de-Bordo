@@ -46,6 +46,7 @@ export const Route = createFileRoute("/_authenticated/cadastros/clientes")({
 type ClientForm = {
   id?: string;
   product_id: string;
+  product_ids: string[];
   cnpj: string;
   razao_social: string;
   nome_fantasia: string;
@@ -65,6 +66,7 @@ type ClientForm = {
 
 const emptyClient: ClientForm = {
   product_id: "",
+  product_ids: [],
   cnpj: "",
   razao_social: "",
   nome_fantasia: "",
@@ -99,6 +101,16 @@ function ClientesPage() {
       const { data, error } = await supabase.from("products").select("id, name").eq("active", true).order("name");
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const clientProductsQuery = useQuery({
+    queryKey: ["client-products", detalhe],
+    enabled: !!detalhe,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("client_products").select("product_id").eq("client_id", detalhe!);
+      if (error) throw error;
+      return (data ?? []).map((row) => row.product_id);
     },
   });
 
@@ -160,13 +172,16 @@ function ClientesPage() {
       setForm((current) => (current ? { ...current, ...dados } : current));
       toast.success("Dados da Receita carregados.");
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      toast.error(error.message || "Não foi possível consultar o CNPJ.");
+      // A consulta falhou; o formulário permanece intacto.
+    },
   });
 
   const saveClient = useMutation({
     mutationFn: async (values: ClientForm) => {
       const payload = {
-        product_id: values.product_id || null,
+        product_id: values.product_ids[0] || values.product_id || null,
         cnpj: values.cnpj.replace(/\D/g, "") || null,
         razao_social: values.razao_social,
         nome_fantasia: values.nome_fantasia || null,
@@ -184,12 +199,26 @@ function ClientesPage() {
         observacoes: values.observacoes || null,
       };
       if (values.id) {
+        const { error: clearProductsError } = await supabase.from("client_products").delete().eq("client_id", values.id);
+        if (clearProductsError) throw clearProductsError;
+        if (values.product_ids.length > 0) {
+          const { error: productLinksError } = await supabase.from("client_products").insert(
+            values.product_ids.map((product_id) => ({ client_id: values.id!, product_id })),
+          );
+          if (productLinksError) throw productLinksError;
+        }
         const { error } = await supabase.from("clients").update(payload).eq("id", values.id);
         if (error) throw error;
         return;
       }
-      const { error } = await supabase.from("clients").insert({ ...payload, created_by: user.id });
+      const { data: createdClient, error } = await supabase.from("clients").insert({ ...payload, created_by: user.id }).select("id").single();
       if (error) throw error;
+      if (values.product_ids.length > 0 && createdClient) {
+        const { error: productLinksError } = await supabase.from("client_products").insert(
+          values.product_ids.map((product_id) => ({ client_id: createdClient.id, product_id })),
+        );
+        if (productLinksError) throw productLinksError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
@@ -201,7 +230,10 @@ function ClientesPage() {
 
   const clients = clientsQuery.data ?? [];
   const clienteDetalhe = clients.find((c) => c.id === detalhe);
-  const projetosDoCliente = (projectsQuery.data ?? []).filter((p) => p.client_id === detalhe);
+  const projetosDoCliente = (projectsQuery.data ?? []).filter((p) => {
+    if (p.client_id === detalhe) return true;
+    return !!clienteDetalhe && p.cliente?.trim().toLowerCase() === clienteDetalhe.razao_social?.trim().toLowerCase();
+  });
 
   return (
     <AppShell userLabel={user.email}>
@@ -266,6 +298,7 @@ function ClientesPage() {
                         setForm({
                           id: client.id,
                           product_id: client.product_id ?? "",
+                          product_ids: [],
                           cnpj: client.cnpj ?? "",
                           razao_social: client.razao_social,
                           nome_fantasia: client.nome_fantasia ?? "",
@@ -302,10 +335,11 @@ function ClientesPage() {
           </DialogHeader>
           {clienteDetalhe ? (
             <Tabs defaultValue="cadastro" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
                 <TabsTrigger value="contato">Contato</TabsTrigger>
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                <TabsTrigger value="produtos">Produtos</TabsTrigger>
                 <TabsTrigger value="projetos">Projetos/Histórico</TabsTrigger>
               </TabsList>
               <TabsContent value="cadastro" className="mt-4 space-y-3">
@@ -335,6 +369,34 @@ function ClientesPage() {
                       {(documentsQuery.data ?? []).map((doc) => <li key={doc.id} className="flex items-center justify-between gap-2 rounded-md border p-2"><Link to="/projeto/$projectId/documentos" params={{ projectId: doc.project_id }} className="hover:underline">{doc.nome}</Link><span className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</span></li>)}
                     </ul>
                   )}
+                </div>
+              </TabsContent>
+              <TabsContent value="produtos" className="mt-4 space-y-4">
+                <div className="rounded-lg border p-4">
+                  <p className="font-medium">Produtos em andamento</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Um cliente pode ter vários produtos simultaneamente. Estes produtos ficam disponíveis como origem dos novos projetos.</p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {(productsQuery.data ?? []).map((product) => {
+                      const checked = clientProductsQuery.data?.includes(product.id) ?? false;
+                      return (
+                        <label key={product.id} className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm">
+                          <input type="checkbox" checked={checked} onChange={async (e) => {
+                            if (!detalhe) return;
+                            const next = e.target.checked
+                              ? [...new Set([...(clientProductsQuery.data ?? []), product.id])]
+                              : (clientProductsQuery.data ?? []).filter((id) => id !== product.id);
+                            const { error } = e.target.checked
+                              ? await supabase.from("client_products").upsert({ client_id: detalhe, product_id: product.id })
+                              : await supabase.from("client_products").delete().eq("client_id", detalhe).eq("product_id", product.id);
+                            if (error) { toast.error("Não foi possível atualizar os produtos."); return; }
+                            queryClient.setQueryData(["client-products", detalhe], next);
+                            queryClient.invalidateQueries({ queryKey: ["clients"] });
+                          }} />
+                          {product.name}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="projetos" className="mt-4 space-y-4">
@@ -508,6 +570,16 @@ function ClientesPage() {
               </div>
                 </TabsContent>
                 <TabsContent value="produto" className="space-y-4">
+                  <div className="rounded-lg border p-4">
+                    <p className="font-medium">Produtos do cliente</p>
+                    <p className="text-xs text-muted-foreground">Selecione todos os produtos que este cliente possui em andamento.</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {(productsQuery.data ?? []).map((product) => {
+                        const checked = form.product_ids.includes(product.id);
+                        return <label key={product.id} className="flex items-center gap-2 rounded-md border p-3 text-sm"><input type="checkbox" checked={checked} onChange={(e) => setForm({ ...form, product_ids: e.target.checked ? [...new Set([...form.product_ids, product.id])] : form.product_ids.filter((id) => id !== product.id) })} />{product.name}</label>;
+                      })}
+                    </div>
+                  </div>
                   <div className="rounded-lg border p-4">
                     <div className="space-y-1.5">
                       <Label>Produto / sistema</Label>
