@@ -86,7 +86,7 @@ function ProjetosPage() {
   const clientsQuery = useQuery({
     queryKey: ["clients-for-project"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id, razao_social, nome_fantasia, email, product_id, client_products(product_id)").order("razao_social");
+      const { data, error } = await supabase.from("clients").select("id, razao_social, nome_fantasia, email, product_id").order("razao_social");
       if (error) throw error;
       return data ?? [];
     },
@@ -101,9 +101,18 @@ function ProjetosPage() {
     },
   });
 
+  const clientProductsQuery = useQuery({
+    queryKey: ["all-client-products-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("client_products").select("client_id, product_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   useEffect(() => {
     const clientId = new URLSearchParams(window.location.search).get("client_id");
-    if (!clientId || form || !clientsQuery.data) return;
+    if (!clientId || form || !clientsQuery.data || !clientProductsQuery.data) return;
     const client = clientsQuery.data.find((item) => item.id === clientId);
     if (!client) return;
     setForm({
@@ -111,10 +120,10 @@ function ProjetosPage() {
       client_id: client.id,
       cliente: client.razao_social ?? client.nome_fantasia ?? "",
       email_cliente: client.email ?? "",
-      product_id: client.client_products?.[0]?.product_id ?? client.product_id ?? "",
+      product_id: (clientProductsQuery.data ?? []).find((link) => link.client_id === client.id)?.product_id ?? client.product_id ?? "",
     });
     window.history.replaceState({}, "", "/projetos");
-  }, [clientsQuery.data, form]);
+  }, [clientsQuery.data, clientProductsQuery.data, form]);
   const projectsQuery = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
@@ -503,7 +512,7 @@ function ProjetosPage() {
                       client_id: value,
                       cliente: client?.razao_social ?? client?.nome_fantasia ?? current.cliente,
                       email_cliente: client?.email ?? current.email_cliente,
-                      product_id: client?.client_products?.[0]?.product_id ?? client?.product_id ?? current.product_id,
+                      product_id: client?.product_id ?? current.product_id,
                     } : current);
                   }}
                 >
@@ -529,10 +538,9 @@ function ProjetosPage() {
                 <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
                   <SelectTrigger className="w-full"><SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} /></SelectTrigger>
                   <SelectContent>
-                    {((clientsQuery.data ?? []).find((client) => client.id === form.client_id)?.client_products?.length
-                      ? (productsQuery.data ?? []).filter((product) => (clientsQuery.data ?? []).find((client) => client.id === form.client_id)?.client_products?.some((link) => link.product_id === product.id))
-                      : (productsQuery.data ?? [])
-                    ).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
+                    {((clientProductsQuery.data ?? []).some((link) => link.client_id === form.client_id)
+                      ? (productsQuery.data ?? []).filter((product) => (clientProductsQuery.data ?? []).some((link) => link.client_id === form.client_id && link.product_id === product.id))
+                      : (productsQuery.data ?? [])).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
