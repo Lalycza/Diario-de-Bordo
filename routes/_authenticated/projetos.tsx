@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Archive, ArchiveRestore, Pencil, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Plus, Package } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -148,30 +148,42 @@ function ProjetosPage() {
         previsao_conclusao: values.previsao_conclusao || null,
         data_entrega_original: values.data_entrega_original || null,
       };
+
       if (values.id) {
+        const { data: currentProject, error: currentError } = await supabase
+          .from("projects")
+          .select("product_id")
+          .eq("id", values.id)
+          .single();
+        if (currentError) throw currentError;
+
         const { error } = await supabase.from("projects").update(payload).eq("id", values.id);
         if (error) throw error;
 
-        if (values.product_id) {
-          const { data: catalogModules, error: catalogError } = await supabase
-            .from("modules")
-            .select("id")
-            .eq("product_id", values.product_id)
-            .eq("active", true);
-          if (catalogError) throw catalogError;
-
+        // Só recria os módulos quando o produto realmente mudou.
+        // Assim, editar cliente/analista/datas não apaga o Mapa nem as datas de treinamento.
+        if (currentProject.product_id !== (values.product_id || null)) {
           const { error: clearError } = await supabase
             .from("project_modules")
             .delete()
             .eq("project_id", values.id);
           if (clearError) throw clearError;
 
-          const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
-          if (uniqueModuleIds.length > 0) {
-            const { error: linksError } = await supabase.from("project_modules").insert(
-              uniqueModuleIds.map((moduleId) => ({ project_id: values.id, module_id: moduleId })),
-            );
-            if (linksError) throw linksError;
+          if (values.product_id) {
+            const { data: catalogModules, error: catalogError } = await supabase
+              .from("modules")
+              .select("id")
+              .eq("product_id", values.product_id)
+              .eq("active", true);
+            if (catalogError) throw catalogError;
+
+            const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
+            if (uniqueModuleIds.length > 0) {
+              const { error: linksError } = await supabase.from("project_modules").insert(
+                uniqueModuleIds.map((moduleId) => ({ project_id: values.id!, module_id: moduleId })),
+              );
+              if (linksError) throw linksError;
+            }
           }
         }
         return;
@@ -255,22 +267,10 @@ function ProjetosPage() {
               <span className="text-xs text-muted-foreground">Carteira atual</span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-2xl font-semibold">{emImplantacao}</div>
-                <div className="text-xs text-muted-foreground">Em implantação</div>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-2xl font-semibold">{homologados}</div>
-                <div className="text-xs text-muted-foreground">Homologados</div>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-2xl font-semibold">{(trainingsQuery.data ?? []).filter((t) => t.status !== "Concluído" && t.status !== "Homologado").length}</div>
-                <div className="text-xs text-muted-foreground">Treinamentos pendentes</div>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-2xl font-semibold">{new Set((trainingsQuery.data ?? []).filter((t) => t.status !== "Concluído" && t.status !== "Homologado").map((t) => t.project_id)).size}</div>
-                <div className="text-xs text-muted-foreground">Go Live parcial</div>
-              </div>
+              <div className="rounded-lg border bg-muted/20 p-3"><div className="text-2xl font-semibold">{emImplantacao}</div><div className="text-xs text-muted-foreground">Em implantação</div></div>
+              <div className="rounded-lg border bg-muted/20 p-3"><div className="text-2xl font-semibold">{homologados}</div><div className="text-xs text-muted-foreground">Homologados</div></div>
+              <div className="rounded-lg border bg-muted/20 p-3"><div className="text-2xl font-semibold">{(trainingsQuery.data ?? []).filter((t) => t.status !== "Concluído" && t.status !== "Homologado").length}</div><div className="text-xs text-muted-foreground">Treinamentos pendentes</div></div>
+              <div className="rounded-lg border bg-muted/20 p-3"><div className="text-2xl font-semibold">{new Set((trainingsQuery.data ?? []).filter((t) => t.status !== "Concluído" && t.status !== "Homologado").map((t) => t.project_id)).size}</div><div className="text-xs text-muted-foreground">Go Live parcial</div></div>
             </div>
           </section>
         );
@@ -279,28 +279,18 @@ function ProjetosPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Projetos</h1>
-          <p className="text-sm text-muted-foreground">
-            {showArchived ? "Projetos arquivados" : "Implantações em andamento por cliente"}
-          </p>
+          <p className="text-sm text-muted-foreground">{showArchived ? "Projetos arquivados" : "Implantações em andamento por cliente"}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
-            {showArchived ? "Ver ativos" : "Ver arquivados"}
-          </Button>
-          <Button size="sm" onClick={() => setForm({ ...emptyForm })}>
-            <Plus className="size-4" /> Novo projeto
-          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>{showArchived ? "Ver ativos" : "Ver arquivados"}</Button>
+          <Button size="sm" onClick={() => setForm({ ...emptyForm })}><Plus className="size-4" /> Novo projeto</Button>
         </div>
       </div>
 
       {projectsQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : projects.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            {showArchived ? "Nenhum projeto arquivado." : "Nenhum projeto cadastrado ainda."}
-          </p>
-        </div>
+        <div className="rounded-lg border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">{showArchived ? "Nenhum projeto arquivado." : "Nenhum projeto cadastrado ainda."}</p></div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {projects.map((project) => {
@@ -309,109 +299,47 @@ function ProjetosPage() {
               <div key={project.id} className="rounded-lg border bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <Link
-                      to="/projeto/$projectId/cronograma"
-                      params={{ projectId: project.id }}
-                      className="text-base font-semibold hover:underline"
-                    >
-                      {project.cliente}
-                    </Link>
-                    {project.descricao ? (
-                      <p className="mt-0.5 text-sm text-muted-foreground">{project.descricao}</p>
-                    ) : null}
+                    <Link to="/projeto/$projectId/cronograma" params={{ projectId: project.id }} className="text-base font-semibold hover:underline">{project.cliente}</Link>
+                    {project.descricao ? <p className="mt-0.5 text-sm text-muted-foreground">{project.descricao}</p> : null}
                   </div>
                   <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Editar projeto"
-                      onClick={() =>
-                        setForm({
-                          id: project.id,
-                          cliente: project.cliente,
-                          product_id: project.product_id ?? "",
-                          descricao: project.descricao ?? "",
-                          responsavel: project.responsavel ?? "",
-                          analista: project.analista ?? "",
-                          coordenacao: project.coordenacao ?? "",
-                          email_cliente: project.email_cliente ?? "",
-                          data_inicio: project.data_inicio ?? "",
-                          previsao_conclusao: project.previsao_conclusao ?? "",
-                          data_entrega_original: project.data_entrega_original ?? "",
-                          fases: [],
-                        })
-                      }
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={project.arquivado ? "Reativar projeto" : "Arquivar projeto"}
-                      onClick={() =>
-                        toggleArchive.mutate({ id: project.id, arquivado: !project.arquivado })
-                      }
-                    >
-                      {project.arquivado ? (
-                        <ArchiveRestore className="size-4" />
-                      ) : (
-                        <Archive className="size-4" />
-                      )}
+                    <Button variant="ghost" size="icon" aria-label="Editar projeto" onClick={() => setForm({
+                      id: project.id,
+                      cliente: project.cliente,
+                      product_id: project.product_id ?? "",
+                      descricao: project.descricao ?? "",
+                      responsavel: project.responsavel ?? "",
+                      analista: project.analista ?? "",
+                      coordenacao: project.coordenacao ?? "",
+                      email_cliente: project.email_cliente ?? "",
+                      data_inicio: project.data_inicio ?? "",
+                      previsao_conclusao: project.previsao_conclusao ?? "",
+                      data_entrega_original: project.data_entrega_original ?? "",
+                      fases: [],
+                    })}><Pencil className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" aria-label={project.arquivado ? "Reativar projeto" : "Arquivar projeto"} onClick={() => toggleArchive.mutate({ id: project.id, arquivado: !project.arquivado })}>
+                      {project.arquivado ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
                     </Button>
                   </div>
                 </div>
 
                 <dl className="mt-4 grid grid-cols-4 gap-3 text-xs">
-                  <div>
-                    <dt className="text-muted-foreground">Analista</dt>
-                    <dd className="font-medium">{project.analista ?? project.responsavel ?? "—"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Coordenação</dt>
-                    <dd className="font-medium">{project.coordenacao ?? "—"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Início</dt>
-                    <dd className="font-medium">{formatDate(project.data_inicio)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Entrega</dt>
-                    <dd className="font-medium">{formatDate(project.previsao_conclusao)}</dd>
-                  </div>
+                  <div><dt className="text-muted-foreground">Analista</dt><dd className="font-medium">{project.analista ?? project.responsavel ?? "—"}</dd></div>
+                  <div><dt className="text-muted-foreground">Coordenação</dt><dd className="font-medium">{project.coordenacao ?? "—"}</dd></div>
+                  <div><dt className="text-muted-foreground">Início</dt><dd className="font-medium">{formatDate(project.data_inicio)}</dd></div>
+                  <div><dt className="text-muted-foreground">Entrega</dt><dd className="font-medium">{formatDate(project.previsao_conclusao)}</dd></div>
                 </dl>
 
                 <div className="mt-4">
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      {p.done} de {p.total} itens homologados
-                      {p.late > 0 ? ` · ${p.late} etapa(s) atrasada(s)` : ""}
-                    </span>
-                    <span className="font-medium">{p.percent}%</span>
-                  </div>
+                  <div className="mb-1 flex items-center justify-between text-xs"><span className="text-muted-foreground">{p.done} de {p.total} itens homologados{p.late > 0 ? ` · ${p.late} etapa(s) atrasada(s)` : ""}</span><span className="font-medium">{p.percent}%</span></div>
                   <Progress value={p.percent} />
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/projeto/$projectId/cronograma" params={{ projectId: project.id }}>
-                      Cronograma
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/projeto/$projectId/modulos" params={{ projectId: project.id }}>
-                      Mapa
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/projeto/$projectId/diario" params={{ projectId: project.id }}>
-                      Diário
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/projeto/$projectId/demandas" params={{ projectId: project.id }}>
-                      Demandas
-                    </Link>
-                  </Button>
+                  <Button asChild variant="outline" size="sm"><Link to="/projeto/$projectId/cronograma" params={{ projectId: project.id }}>Cronograma</Link></Button>
+                  <Button asChild variant="outline" size="sm"><Link to="/projeto/$projectId/modulos" params={{ projectId: project.id }}>Mapa</Link></Button>
+                  <Button asChild variant="outline" size="sm"><Link to="/projeto/$projectId/diario" params={{ projectId: project.id }}>Diário</Link></Button>
+                  <Button asChild variant="outline" size="sm"><Link to="/projeto/$projectId/demandas" params={{ projectId: project.id }}>Demandas</Link></Button>
                 </div>
               </div>
             );
@@ -420,166 +348,103 @@ function ProjetosPage() {
       )}
 
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{form?.id ? "Editar projeto" : "Novo projeto"}</DialogTitle>
-            <DialogDescription>Dados gerais da implantação do cliente.</DialogDescription>
+            <DialogDescription>Dados gerais da implantação do cliente. Aqui você pode vincular o produto/sistema ao projeto.</DialogDescription>
           </DialogHeader>
+
           {form ? (
             <form
-              className="space-y-3"
+              className="space-y-5"
               onSubmit={(e) => {
                 e.preventDefault();
                 saveProject.mutate(form);
               }}
             >
-              <div className="space-y-1.5">
-                <Label htmlFor="cliente">Cliente</Label>
-                <Input
-                  id="cliente"
-                  value={form.cliente}
-                  onChange={(e) => setForm({ ...form, cliente: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Produto / sistema — vincular ao projeto</Label>
-                <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
-                  <SelectContent>
-                    {(productsQuery.data ?? []).map((product) => (
-                      <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="descricao">Projeto / descrição</Label>
-                <Textarea
-                  id="descricao"
-                  value={form.descricao}
-                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label htmlFor="cliente">Cliente</Label>
+                  <Input id="cliente" value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} required />
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2 rounded-lg border p-4">
+                  <div className="flex items-center gap-2">
+                    <Package className="size-4" />
+                    <Label>Produto / sistema vinculado ao projeto</Label>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Selecione o produto. Ao salvar, os módulos ativos desse produto serão vinculados ao projeto automaticamente.</p>
+                  <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
+                    <SelectTrigger className="mt-3 w-full"><SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} /></SelectTrigger>
+                    <SelectContent>
+                      {(productsQuery.data ?? []).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {!productsQuery.isLoading && (productsQuery.data ?? []).length === 0 ? (
+                    <p className="mt-2 text-xs text-destructive">Nenhum produto ativo disponível para vinculação.</p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label htmlFor="descricao">Projeto / descrição</Label>
+                  <Textarea id="descricao" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
+                </div>
+
                 <div className="space-y-1.5">
                   <Label htmlFor="analista">Analista de implantação</Label>
-                  <Input
-                    id="analista"
-                    value={form.analista ?? ""}
-                    onChange={(e) => setForm((current) => current ? { ...current, analista: e.target.value } : current)}
-                    placeholder="Analista já vinculado permanece aqui"
-                  />
+                  <Input id="analista" value={form.analista} onChange={(e) => setForm((current) => current ? { ...current, analista: e.target.value } : current)} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="coordenacao">Coordenação</Label>
-                  <Input
-                    id="coordenacao"
-                    value={form.coordenacao}
-                    onChange={(e) => setForm({ ...form, coordenacao: e.target.value })}
-                  />
+                  <Input id="coordenacao" value={form.coordenacao} onChange={(e) => setForm({ ...form, coordenacao: e.target.value })} />
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="responsavel">Responsável do cliente</Label>
-                <Input
-                  id="responsavel"
-                  value={form.responsavel}
-                  onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="email_cliente">E-mail do responsável do cliente</Label>
-                <Input
-                  id="email_cliente"
-                  type="email"
-                  value={form.email_cliente}
-                  onChange={(e) => setForm({ ...form, email_cliente: e.target.value })}
-                  placeholder="contato@cliente.com.br"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="responsavel">Responsável do cliente</Label>
+                  <Input id="responsavel" value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email_cliente">E-mail do responsável do cliente</Label>
+                  <Input id="email_cliente" type="email" value={form.email_cliente} onChange={(e) => setForm({ ...form, email_cliente: e.target.value })} placeholder="contato@cliente.com.br" />
+                </div>
+
                 <div className="space-y-1.5">
                   <Label htmlFor="inicio">Início</Label>
-                  <Input
-                    id="inicio"
-                    type="date"
-                    value={form.data_inicio}
-                    onChange={(e) => setForm({ ...form, data_inicio: e.target.value })}
-                  />
+                  <Input id="inicio" type="date" value={form.data_inicio} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="previsao">Data de entrega</Label>
-                  <Input
-                    id="previsao"
-                    type="date"
-                    value={form.previsao_conclusao}
-                    onChange={(e) => setForm({ ...form, previsao_conclusao: e.target.value })}
-                  />
+                  <Input id="previsao" type="date" value={form.previsao_conclusao} onChange={(e) => setForm({ ...form, previsao_conclusao: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="original">Entrega original</Label>
-                  <Input
-                    id="original"
-                    type="date"
-                    value={form.data_entrega_original}
-                    onChange={(e) => setForm({ ...form, data_entrega_original: e.target.value })}
-                  />
+                  <Input id="original" type="date" value={form.data_entrega_original} onChange={(e) => setForm({ ...form, data_entrega_original: e.target.value })} />
                 </div>
               </div>
 
-              {form.id ? null : (
-                <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+              {!form.id ? (
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
                   <div className="flex items-center justify-between">
                     <Label>Fases do modelo</Label>
-                    <button
-                      type="button"
-                      className="text-xs text-primary hover:underline"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          fases:
-                            form.fases.length === TEMPLATE_FASES.length
-                              ? []
-                              : TEMPLATE_FASES.map((f) => f.fase),
-                        })
-                      }
-                    >
-                      {form.fases.length === TEMPLATE_FASES.length
-                        ? "Desmarcar todas"
-                        : "Marcar todas"}
+                    <button type="button" className="text-xs text-primary hover:underline" onClick={() => setForm({ ...form, fases: form.fases.length === TEMPLATE_FASES.length ? [] : TEMPLATE_FASES.map((f) => f.fase) })}>
+                      {form.fases.length === TEMPLATE_FASES.length ? "Desmarcar todas" : "Marcar todas"}
                     </button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    As fases marcadas já entram no mapa com todos os submódulos do modelo.
-                  </p>
+                  <p className="text-xs text-muted-foreground">As fases marcadas já entram no mapa com todos os submódulos do modelo.</p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {TEMPLATE_FASES.map((fase) => (
-                      <label
-                        key={fase.fase}
-                        className="flex items-start gap-2 text-xs leading-tight"
-                      >
-                        <Checkbox
-                          checked={form.fases.includes(fase.fase)}
-                          onCheckedChange={() => toggleFase(fase.fase)}
-                        />
-                        <span>
-                          {fase.fase}
-                          <span className="ml-1 text-muted-foreground">({fase.itens.length})</span>
-                        </span>
+                      <label key={fase.fase} className="flex items-start gap-2 text-xs leading-tight">
+                        <Checkbox checked={form.fases.includes(fase.fase)} onCheckedChange={() => toggleFase(fase.fase)} />
+                        <span>{fase.fase}<span className="ml-1 text-muted-foreground">({fase.itens.length})</span></span>
                       </label>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setForm(null)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={saveProject.isPending}>
-                  Salvar
-                </Button>
+              <DialogFooter className="border-t pt-4">
+                <Button type="button" variant="outline" onClick={() => setForm(null)}>Cancelar</Button>
+                <Button type="submit" disabled={saveProject.isPending}>{saveProject.isPending ? "Salvando..." : "Salvar projeto"}</Button>
               </DialogFooter>
             </form>
           ) : null}
