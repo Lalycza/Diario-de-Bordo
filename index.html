@@ -153,6 +153,18 @@ async function hydrateFromSupabase(){
         if(profileId&&!p.operatorIds.some(v=>String(v)===profileId))p.operatorIds.push(profileId);
       }
     }
+    // O responsável do projeto também fica no projects.owner_id. Isso evita
+    // que um projeto fique sem responsável quando a relação project_analysts
+    // ainda não existir ou estiver sendo reidratada.
+    ps.forEach(p=>{
+      const ownerProfile=profileById.get(String((pg.data||[]).find(x=>String(projectByDb.get(x.id))===String(p.id))?.owner_id||''));
+      const ownerRole=String(ownerProfile?.role||'').toLowerCase();
+      if(ownerProfile && (ownerRole==='analyst'||ownerRole==='analista'||ownerRole==='operator'||ownerRole==='operador')){
+        p.owner=ownerProfile.email||p.owner||'';
+        p.operatorIds=p.operatorIds||[];
+        if(!p.operatorIds.some(v=>String(v)===String(ownerProfile.id)))p.operatorIds.unshift(ownerProfile.id);
+      }
+    });
     for(const x of (pp.data||[])){
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
       const prod=productByDb.get(x.product_id);
@@ -488,7 +500,9 @@ async function syncLocalToSupabase(){
      const clientProductIds=Array.isArray(clientForProject?.productIds)?clientForProject.productIds:[];
      p0.productIds=Array.from(new Set([...(Array.isArray(p0.productIds)?p0.productIds:[]),...clientProductIds]));
      if(p0.productIds.length) syncProjectMap(p0);
-     const ownerId=profileByEmail[String(p0.owner||'').toLowerCase()]||currentUser.id;
+     const primaryLocalId=(p0.operatorIds||[])[0];
+     const primaryUser=(usersData||[]).find(u=>String(u.id)===String(primaryLocalId));
+     const ownerId=profileByEmail[String(primaryUser?.email||'').toLowerCase()]||profileByEmail[String(p0.owner||'').toLowerCase()]||currentUser.id;
      const dbClient=clientMap[p0.clientId]||null;
      const projectPayload={legacy_id:localLegacy('project',p0.id),name:p0.n||'Projeto sem nome',client_id:dbClient,owner_id:ownerId,status:p0.homologacao?.status==='Homologado'?'Homologado':'Em andamento',progress:Number(p0.progress||0),start_date:p0.startDate||null,delivery_date:p0.endDate||null,original_delivery_date:p0.originalEndDate||null,base_date:p0.baseDate||null,finalized:!!p0.finalizado,finalized_at:p0.finalizadoAt||null,finalized_by:profileByEmail[String(p0.finalizadoBy||'').toLowerCase()]||null,created_by:currentUser.id};
      const {data,error}=await supabaseClient.from('projects').upsert(projectPayload,{onConflict:'legacy_id'}).select('id').single();
@@ -498,8 +512,10 @@ async function syncLocalToSupabase(){
      const analystIds=[...(p0.operatorIds||[])].filter(Boolean);
      const {error:da}=await supabaseClient.from('project_analysts').delete().eq('project_id',projectId);
      if(da)throw new Error('Limpeza dos analistas do projeto '+p0.n+': '+da.message);
-     const ownerProfile=profileByEmail[String(p0.owner||'').toLowerCase()];
-     if(ownerProfile&&!analystIds.some(v=>String(v)===String(ownerProfile))) analystIds.push(ownerProfile);
+     const firstAnalystLocalId=analystIds[0];
+     const firstAnalystUser=(usersData||[]).find(u=>String(u.id)===String(firstAnalystLocalId));
+     const firstAnalystProfile=profileByEmail[String(firstAnalystUser?.email||'').toLowerCase()]||profileByEmail[String(firstAnalystLocalId||'').toLowerCase()]||profileByEmail[String(p0.owner||'').toLowerCase()];
+     if(firstAnalystProfile&&!analystIds.some(v=>String(v)===String(firstAnalystProfile))) analystIds.unshift(firstAnalystProfile);
      for(const aid of analystIds){
        const localUser=(usersData||[]).find(u=>String(u.id)===String(aid));
        const profileId=profileByEmail[String(aid).toLowerCase()]||profileByLocalId[String(aid)]||profileByEmail[String(localUser?.email||'').toLowerCase()]||aid;
