@@ -432,6 +432,7 @@ async function syncLocalToSupabase(){
    const {data:profiles,error:pe}=await supabaseClient.from('profiles').select('id,email');
    if(pe)throw pe;
    const profileByEmail=Object.fromEntries((profiles||[]).map(x=>[String(x.email||'').toLowerCase(),x.id]));
+   const profileByLocalId=Object.fromEntries((usersData||[]).map(u=>[String(u.id),profileByEmail[String(u.email||'').toLowerCase()]]).filter(x=>x[1]));
    const clientMap={},productMap={},moduleMap={},submoduleMap={};
 
    // CLIENTES + CONTATOS
@@ -465,8 +466,9 @@ async function syncLocalToSupabase(){
    // PROJETOS E DADOS DE IMPLANTAÇÃO
    for(const p0 of ps){
      const clientForProject=clientsData.find(c=>String(c.id)===String(p0.clientId));
-     if((!Array.isArray(p0.productIds)||!p0.productIds.length) && Array.isArray(clientForProject?.productIds)) p0.productIds=[...clientForProject.productIds];
-     if(Array.isArray(p0.productIds)&&p0.productIds.length) syncProjectMap(p0);
+     const clientProductIds=Array.isArray(clientForProject?.productIds)?clientForProject.productIds:[];
+     p0.productIds=Array.from(new Set([...(Array.isArray(p0.productIds)?p0.productIds:[]),...clientProductIds]));
+     if(p0.productIds.length) syncProjectMap(p0);
      const ownerId=profileByEmail[String(p0.owner||'').toLowerCase()]||currentUser.id;
      const dbClient=clientMap[p0.clientId]||null;
      const projectPayload={legacy_id:localLegacy('project',p0.id),name:p0.n||'Projeto sem nome',client_id:dbClient,owner_id:ownerId,status:p0.homologacao?.status==='Homologado'?'Homologado':'Em andamento',progress:Number(p0.progress||0),start_date:p0.startDate||null,delivery_date:p0.endDate||null,original_delivery_date:p0.originalEndDate||null,base_date:p0.baseDate||null,finalized:!!p0.finalizado,finalized_at:p0.finalizadoAt||null,finalized_by:profileByEmail[String(p0.finalizadoBy||'').toLowerCase()]||null,created_by:currentUser.id};
@@ -478,7 +480,8 @@ async function syncLocalToSupabase(){
      const ownerProfile=profileByEmail[String(p0.owner||'').toLowerCase()];
      if(ownerProfile&&!analystIds.some(v=>String(v)===String(ownerProfile))) analystIds.push(ownerProfile);
      for(const aid of analystIds){
-       const profileId=profileByEmail[String(aid).toLowerCase()]||aid;
+       const localUser=(usersData||[]).find(u=>String(u.id)===String(aid));
+       const profileId=profileByEmail[String(aid).toLowerCase()]||profileByLocalId[String(aid)]||profileByEmail[String(localUser?.email||'').toLowerCase()]||aid;
        if(!profileId||!String(profileId).match(/^[0-9a-f-]{36}$/i)) continue;
        const {error:e}=await supabaseClient.from('project_analysts').upsert({project_id:projectId,profile_id:profileId},{onConflict:'project_id,profile_id'});
        if(e)throw new Error('Analistas do projeto '+p0.n+': '+e.message);
