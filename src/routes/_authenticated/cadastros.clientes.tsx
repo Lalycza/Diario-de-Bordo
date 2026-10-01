@@ -167,9 +167,13 @@ function ClientesPage() {
   });
 
   const consultar = useMutation({
-    mutationFn: async (cnpj: string) => buscarCnpj({ data: { cnpj } }),
+    mutationFn: async (cnpj: string) => {
+      const normalized = cnpj.replace(/\D/g, "");
+      if (normalized.length !== 14) throw new Error("Informe um CNPJ com 14 dígitos.");
+      return buscarCnpj({ data: { cnpj: normalized } });
+    },
     onSuccess: (dados) => {
-      setForm((current) => (current ? { ...current, ...dados } : current));
+      setForm((current) => (current ? { ...current, ...dados, product_ids: current.product_ids } : current));
       toast.success("Dados da Receita carregados.");
     },
     onError: (error: Error) => {
@@ -298,7 +302,7 @@ function ClientesPage() {
                         setForm({
                           id: client.id,
                           product_id: client.product_id ?? "",
-                          product_ids: [],
+                          product_ids: client.product_id ? [client.product_id] : [],
                           cnpj: client.cnpj ?? "",
                           razao_social: client.razao_social,
                           nome_fantasia: client.nome_fantasia ?? "",
