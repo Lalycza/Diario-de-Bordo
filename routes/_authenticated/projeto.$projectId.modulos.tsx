@@ -84,13 +84,6 @@ function ModulosPage() {
     },
   });
 
-  useEffect(() => {
-    if (!vincularOpen) return;
-    const current = modulesQuery.data?.links ?? [];
-    setSelectedModuleIds(current.map((item) => item.module_id));
-    setProdutoId(project.data?.product_id ?? "");
-  }, [vincularOpen, project.data?.product_id, modulesQuery.data?.links]);
-
   const modulesQuery = useQuery({
     queryKey: ["project-catalog-modules", projectId],
     queryFn: async () => {
@@ -126,6 +119,13 @@ function ModulosPage() {
       };
     },
   });
+
+  useEffect(() => {
+    if (!vincularOpen) return;
+    const current = modulesQuery.data?.links ?? [];
+    setSelectedModuleIds(current.map((item) => item.module_id));
+    setProdutoId(project.data?.product_id ?? "");
+  }, [vincularOpen, project.data?.product_id, modulesQuery.data?.links]);
 
   const updateTrainingDate = useMutation({
     mutationFn: async ({ moduleId, date }: { moduleId: string; date: string }) => {
@@ -217,12 +217,17 @@ function ModulosPage() {
             Módulos e submódulos herdados do produto do projeto.
           </p>
         </div>
-        <Input
-          className="max-w-72"
-          placeholder="Buscar módulo ou submódulo…"
-          value={busca}
-          onChange={(event) => setBusca(event.target.value)}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => setVincularOpen(true)}>
+            <Link2 className="size-4" /> Vincular produto e módulos
+          </Button>
+          <Input
+            className="max-w-72"
+            placeholder="Buscar módulo ou submódulo…"
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+          />
+        </div>
       </div>
 
       {modulesQuery.isLoading ? (
