@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Archive, ArchiveRestore, Pencil, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Plus, Package } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { ManagementDashboard } from "@/components/ManagementDashboard";
 import { useRole } from "@/lib/useRole";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/_authenticated/projetos")({
 type ProjectForm = {
   id?: string;
   cliente: string;
+  product_id: string;
   descricao: string;
   responsavel: string;
   analista: string;
@@ -59,6 +61,7 @@ type ProjectForm = {
 
 const emptyForm: ProjectForm = {
   cliente: "",
+  product_id: "",
   descricao: "",
   responsavel: "",
   analista: "",
@@ -76,6 +79,15 @@ function ProjetosPage() {
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<ProjectForm | null>(null);
+
+  const productsQuery = useQuery({
+    queryKey: ["products-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("products").select("id, name").eq("active", true).order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const projectsQuery = useQuery({
     queryKey: ["projects"],
@@ -131,13 +143,43 @@ function ProjetosPage() {
         analista: values.analista || null,
         coordenacao: values.coordenacao || null,
         email_cliente: values.email_cliente || null,
+        product_id: values.product_id || null,
         data_inicio: values.data_inicio || null,
         previsao_conclusao: values.previsao_conclusao || null,
         data_entrega_original: values.data_entrega_original || null,
       };
       if (values.id) {
+        const { data: currentProject, error: currentError } = await supabase
+          .from("projects")
+          .select("product_id")
+          .eq("id", values.id)
+          .single();
+        if (currentError) throw currentError;
+
         const { error } = await supabase.from("projects").update(payload).eq("id", values.id);
         if (error) throw error;
+
+        if (currentProject.product_id !== (values.product_id || null)) {
+          const { error: clearError } = await supabase.from("project_modules").delete().eq("project_id", values.id);
+          if (clearError) throw clearError;
+
+          if (values.product_id) {
+            const { data: catalogModules, error: catalogError } = await supabase
+              .from("modules")
+              .select("id")
+              .eq("product_id", values.product_id)
+              .eq("active", true);
+            if (catalogError) throw catalogError;
+
+            const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
+            if (uniqueModuleIds.length > 0) {
+              const { error: linksError } = await supabase.from("project_modules").insert(
+                uniqueModuleIds.map((moduleId) => ({ project_id: values.id!, module_id: moduleId })),
+              );
+              if (linksError) throw linksError;
+            }
+          }
+        }
         return;
       }
 
@@ -152,7 +194,24 @@ function ProjetosPage() {
         .filter((f) => values.fases.includes(f.fase))
         .flatMap((f) => f.itens.map((item) => item.nome));
 
-      if (!created || selectedItems.length === 0) return;
+      if (!created) return;
+
+      if (values.product_id) {
+        const { data: catalogModules, error: catalogError } = await supabase
+          .from("modules").select("id").eq("product_id", values.product_id).eq("active", true);
+        if (catalogError) throw catalogError;
+        const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
+        if (uniqueModuleIds.length > 0) {
+          const { error: linksError } = await supabase.from("project_modules").upsert(
+            uniqueModuleIds.map((moduleId) => ({ project_id: created.id, module_id: moduleId })),
+            { onConflict: "project_id,module_id", ignoreDuplicates: true },
+          );
+        if (linksError) throw linksError;
+        }
+        return;
+      }
+
+      if (selectedItems.length === 0) return;
 
       const { data: catalogModules, error: catalogError } = await supabase
         .from("modules")
@@ -299,6 +358,7 @@ function ProjetosPage() {
                         setForm({
                           id: project.id,
                           cliente: project.cliente,
+                          product_id: project.product_id ?? "",
                           descricao: project.descricao ?? "",
                           responsavel: project.responsavel ?? "",
                           analista: project.analista ?? "",
@@ -389,14 +449,14 @@ function ProjetosPage() {
       )}
 
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{form?.id ? "Editar projeto" : "Novo projeto"}</DialogTitle>
             <DialogDescription>Dados gerais da implantação do cliente.</DialogDescription>
           </DialogHeader>
           {form ? (
             <form
-              className="space-y-3"
+              className="space-y-5"
               onSubmit={(e) => {
                 e.preventDefault();
                 saveProject.mutate(form);
@@ -410,6 +470,19 @@ function ProjetosPage() {
                   onChange={(e) => setForm({ ...form, cliente: e.target.value })}
                   required
                 />
+              </div>
+              <div className="space-y-1.5 rounded-lg border p-4">
+                <div className="flex items-center gap-2">
+                  <Package className="size-4" />
+                  <Label>Produto / sistema vinculado ao projeto</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">Ao salvar, os módulos ativos do produto serão vinculados automaticamente. Se você trocar o produto, o vínculo de módulos será atualizado.</p>
+                <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} /></SelectTrigger>
+                  <SelectContent>
+                    {(productsQuery.data ?? []).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="descricao">Projeto / descrição</Label>
@@ -530,7 +603,7 @@ function ProjetosPage() {
                 </div>
               )}
 
-              <DialogFooter>
+              <DialogFooter className="border-t pt-4">
                 <Button type="button" variant="outline" onClick={() => setForm(null)}>
                   Cancelar
                 </Button>
