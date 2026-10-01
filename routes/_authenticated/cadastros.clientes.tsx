@@ -374,19 +374,19 @@ function ClientesPage() {
                   <div><Label>Razão social</Label><p className="text-sm">{clienteDetalhe.razao_social || "—"}</p></div>
                   <div><Label>Nome fantasia</Label><p className="text-sm">{clienteDetalhe.nome_fantasia || "—"}</p></div>
                   <div><Label>CNPJ</Label><p className="text-sm">{clienteDetalhe.cnpj || "—"}</p></div>
-                  <div><Label>Município/UF</Label><p className="text-sm">{clienteDetalhe.municipio ? clienteDetalhe.municipio + "/" + (clienteDetalhe.uf ?? "") : "—"}</p></div>
-                  <div><Label>Produto</Label><p className="text-sm">{(productsQuery.data ?? []).find((p) => p.id === clienteDetalhe.product_id)?.name ?? "Não definido"}</p></div>
+                  <div><Label>Município/UF</Label><p className="text-sm">{clienteDetalhe.city ? clienteDetalhe.city + "/" + (clienteDetalhe.state ?? "") : "—"}</p></div>
+                  <div><Label>Produtos</Label><p className="text-sm">{(productsQuery.data ?? []).filter((p) => (clientProductsQuery.data ?? []).includes(p.id)).map((p) => p.name).join(", ") || "Não definido"}</p></div>
                   <div><Label>Situação cadastral</Label><p className="text-sm">{clienteDetalhe.status || "—"}</p></div>
                 </div>
               </TabsContent>
               <TabsContent value="contato" className="mt-4 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div><Label>E-mail</Label><p className="text-sm">{clienteDetalhe.email || "—"}</p></div>
-                  <div><Label>Telefone</Label><p className="text-sm">{clienteDetalhe.telefone || "—"}</p></div>
+                  <div><Label>Telefone</Label><p className="text-sm">{clienteDetalhe.phone || "—"}</p></div>
                   <div><Label>Endereço</Label><p className="text-sm">{[clienteDetalhe.address, clienteDetalhe.number, clienteDetalhe.complement].filter(Boolean).join(", ") || "—"}</p></div>
                   <div><Label>Bairro / CEP</Label><p className="text-sm">{[clienteDetalhe.neighborhood, clienteDetalhe.cep].filter(Boolean).join(" · ") || "—"}</p></div>
                 </div>
-                {clienteDetalhe.observacoes ? <div><Label>Observações</Label><p className="text-sm whitespace-pre-wrap">{clienteDetalhe.observacoes}</p></div> : null}
+                {clienteDetalhe.notes ? <div><Label>Observações</Label><p className="text-sm whitespace-pre-wrap">{clienteDetalhe.notes}</p></div> : null}
               </TabsContent>
               <TabsContent value="documentos" className="mt-4 space-y-3">
                 <div className="rounded-lg border p-4">
@@ -432,7 +432,7 @@ function ClientesPage() {
                   <Button type="button" onClick={() => abrirNovoProjeto(clienteDetalhe.id)}><FolderPlus className="size-4" /> Novo projeto</Button>
                 </div>
                 {projetosDoCliente.length === 0 ? <div className="rounded-lg border border-dashed p-6 text-center"><p className="text-sm text-muted-foreground">Nenhum projeto vinculado a este cliente.</p><Button type="button" className="mt-3" variant="outline" onClick={() => abrirNovoProjeto(clienteDetalhe.id)}>Criar o primeiro projeto</Button></div> : (
-                  <div className="space-y-2">{projetosDoCliente.map((p) => <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border p-3"><div><Link to="/projeto/$projectId/cronograma" params={{ projectId: p.id }} className="font-medium hover:underline">{p.cliente}</Link><p className="text-xs text-muted-foreground">{formatDate(p.data_inicio)} → {formatDate(p.previsao_conclusao)}</p></div><Button asChild type="button" variant="outline" size="sm"><Link to="/projeto/$projectId/cronograma" params={{ projectId: p.id }}><ExternalLink className="size-4" /> Abrir projeto</Link></Button></div>)}</div>
+                  <div className="space-y-2">{projetosDoCliente.map((p) => { const projectProductId = projectProductsQuery.data?.find((link) => link.project_id === p.id)?.product_id ?? null; const productName = (productsQuery.data ?? []).find((product) => product.id === projectProductId)?.name; const projectName = p.cliente || clienteDetalhe.razao_social || clienteDetalhe.nome_fantasia || "Projeto"; return <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border p-3"><div><Link to="/projeto/$projectId/cronograma" params={{ projectId: p.id }} className="font-medium hover:underline">{projectName}</Link><p className="text-xs text-muted-foreground">{productName ? `Produto: ${productName} · ` : ""}{formatDate(p.data_inicio)} → {formatDate(p.previsao_conclusao)}</p></div><Button asChild type="button" variant="outline" size="sm"><Link to="/projeto/$projectId/cronograma" params={{ projectId: p.id }}><ExternalLink className="size-4" /> Abrir projeto</Link></Button></div>; })}</div>
                 )}
                 <section className="rounded-lg border p-4"><div className="flex items-center gap-2"><Mail className="size-4 text-muted-foreground" /><h3 className="text-sm font-semibold">Histórico de e-mails</h3></div>{(emailsQuery.data ?? []).length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Nenhum e-mail registrado.</p> : <ul className="mt-3 space-y-2 text-sm">{(emailsQuery.data ?? []).map((mail) => <li key={mail.id} className="rounded-md border p-2"><p className="font-medium">{mail.assunto ?? mail.tipo ?? "E-mail"}</p><p className="text-xs text-muted-foreground">{mail.destinatario} · {formatDate(mail.created_at)}</p></li>)}</ul>}</section>
               </TabsContent>
