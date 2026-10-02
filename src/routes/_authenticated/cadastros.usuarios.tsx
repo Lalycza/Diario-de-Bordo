@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Pencil, Plus, RotateCcw, ShieldCheck, UserCheck, UserX } from "lucide-react";
+import { Pencil, RotateCcw, ShieldCheck, UserCheck, UserX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { createManagedUser, listUsersWithRoles, resetManagedUserPassword, setUserRole, updateManagedUser, type ManagedRole } from "@/lib/admin.functions";
+import { listUsersWithRoles, resetManagedUserPassword, setUserRole, updateManagedUser, type ManagedRole } from "@/lib/admin.functions";
 import { useRole } from "@/lib/useRole";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -29,22 +29,14 @@ function UsuariosPage() {
   const { isAdmin, isSupervisor, isLoading } = useRole();
   const queryClient = useQueryClient();
   const carregar = useServerFn(listUsersWithRoles);
-  const criar = useServerFn(createManagedUser);
   const redefinir = useServerFn(resetManagedUserPassword);
   const alterar = useServerFn(setUserRole);
   const atualizar = useServerFn(updateManagedUser);
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [role, setRole] = useState<Exclude<ManagedRole, "admin">>("operador"); const [temporaryPassword, setTemporaryPassword] = useState("");
   const [resetId, setResetId] = useState<string | null>(null); const [resetPassword, setResetPassword] = useState("");
   const [editId, setEditId] = useState<string | null>(null); const [editName, setEditName] = useState(""); const [editEmail, setEditEmail] = useState(""); const [editRole, setEditRole] = useState<ManagedRole>("operador"); const [editActive, setEditActive] = useState(true);
 
   const usersQuery = useQuery({ queryKey: ["users-roles"], enabled: isAdmin || isSupervisor, queryFn: async () => carregar({ data: undefined }) });
   const invalidate = () => { queryClient.invalidateQueries({ queryKey: ["users-roles"] }); queryClient.invalidateQueries({ queryKey: ["my-roles"] }); };
-  const createMutation = useMutation({
-    mutationFn: () => criar({ data: { name, email, role, temporaryPassword } }),
-    onSuccess: () => { setOpen(false); setName(""); setEmail(""); setRole("operador"); setTemporaryPassword(""); invalidate(); toast.success("Usuário criado. Entregue a senha temporária ao usuário com segurança."); },
-    onError: (e: Error) => toast.error(e.message),
-  });
   const resetMutation = useMutation({
     mutationFn: () => redefinir({ data: { userId: resetId!, temporaryPassword: resetPassword } }),
     onSuccess: () => { setResetId(null); setResetPassword(""); toast.success("Senha temporária redefinida. O usuário deverá trocá-la no próximo acesso."); },
@@ -59,19 +51,11 @@ function UsuariosPage() {
 
   return <AppShell userLabel={user.email}>
     <div className="mb-6 flex items-center justify-between gap-4">
-      <div><h1 className="text-2xl font-semibold tracking-tight">Usuários e perfis</h1><p className="text-sm text-muted-foreground">Criação com senha temporária e troca obrigatória no primeiro acesso.</p></div>
-      {(isAdmin || isSupervisor) && <Button onClick={() => setOpen(true)}><Plus className="mr-2 size-4" />Novo usuário</Button>}
+      <div><h1 className="text-2xl font-semibold tracking-tight">Usuários e perfis</h1><p className="text-sm text-muted-foreground">Edite dados, perfil e acesso dos usuários existentes.</p></div>
     </div>
     {isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : !(isAdmin || isSupervisor) ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">Apenas administradores ou supervisores podem gerenciar acessos.</div> :
       <div className="overflow-x-auto rounded-lg border bg-card"><table className="w-full text-sm"><thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-2 text-left">Nome</th><th className="px-4 py-2 text-left">E-mail</th><th className="px-4 py-2 text-left">Acesso</th><th className="px-4 py-2 text-left">Perfil</th><th className="px-4 py-2 text-right">Ações</th></tr></thead><tbody>
       {(usersQuery.data ?? []).map(u => <tr key={u.id} className="border-t"><td className="px-4 py-3 font-medium">{u.nome || "—"}</td><td className="px-4 py-3">{u.email}</td><td className="px-4 py-3"><Badge variant={u.active ? "default" : "secondary"}>{u.active ? "Ativo" : "Inativo"}</Badge></td><td className="px-4 py-3"><Badge variant="outline">{ROLE_LABELS[u.role]}</Badge></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1">{u.protectedAdmin ? <Badge variant="outline"><ShieldCheck className="mr-1 size-4 inline" />Protegido</Badge> : <><Button variant="ghost" size="sm" onClick={() => { setEditId(u.id); setEditName(u.nome); setEditEmail(u.email); setEditRole(u.role); setEditActive(u.active); }}><Pencil className="mr-1 size-4" />Editar</Button><Button variant="ghost" size="sm" onClick={() => setResetId(u.id)}><RotateCcw className="mr-1 size-4" />Redefinir senha</Button></>}</div></td></tr>)}</tbody></table></div>}
-
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogHeader><DialogTitle>Novo usuário</DialogTitle></DialogHeader><div className="space-y-4">
-      <div className="space-y-2"><Label>Nome</Label><Input value={name} onChange={e=>setName(e.target.value)} /></div>
-      <div className="space-y-2"><Label>E-mail</Label><Input type="email" value={email} onChange={e=>setEmail(e.target.value)} /></div>
-      <div className="space-y-2"><Label>Perfil</Label><Select value={role} onValueChange={v=>setRole(v as Exclude<ManagedRole,"admin">)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(ROLE_LABELS).filter(([r])=>r!=="admin").map(([r,label])=><SelectItem key={r} value={r}>{label}</SelectItem>)}</SelectContent></Select></div>
-      <div className="space-y-2"><Label>Senha temporária</Label><Input type="password" value={temporaryPassword} onChange={e=>setTemporaryPassword(e.target.value)} placeholder="Mínimo 8 caracteres" /></div>
-    </div><DialogFooter><Button variant="outline" onClick={()=>setOpen(false)}>Cancelar</Button><Button disabled={createMutation.isPending || !name || !email || temporaryPassword.length<8} onClick={()=>createMutation.mutate()}>{createMutation.isPending?"Criando…":"Criar usuário"}</Button></DialogFooter></DialogContent></Dialog>
 
     <Dialog open={Boolean(editId)} onOpenChange={v=>!v&&setEditId(null)}><DialogContent><DialogHeader><DialogTitle>Editar usuário</DialogTitle></DialogHeader><div className="space-y-4">
       <div className="space-y-2"><Label>Nome</Label><Input value={editName} onChange={e=>setEditName(e.target.value)} /></div>
