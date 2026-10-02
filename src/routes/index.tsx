@@ -1,5 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -7,21 +6,13 @@ export const Route = createFileRoute("/")({
       { title: "IMPLANTA — Gestão de Projetos" },
       {
         name: "description",
-        content: "Painel gerencial, demandas, cronograma e diário de bordo dos projetos de implantação.",
+        content:
+          "Painel gerencial, demandas, cronograma e diário de bordo dos projetos de implantação.",
       },
     ],
   }),
-  component: Index,
+  beforeLoad: () => {
+    throw redirect({ to: "/auth", replace: true });
+  },
+  component: () => null,
 });
-
-function Index() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    navigate({ to: "/auth", replace: true });
-  }, [navigate]);
-
-  return (
-    <div className="min-h-screen w-full bg-background" aria-label="Abrindo IMPLANTA" />
-  );
-}
