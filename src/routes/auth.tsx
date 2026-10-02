@@ -40,6 +40,19 @@ function AuthPage() {
         password: senha,
       });
       if (error) throw error;
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("active")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      if (profile?.active === false) {
+        await supabase.auth.signOut({ scope: "local" });
+        throw new Error("Este usuário está inativo e não possui acesso ao portal.");
+      }
+
       await navigate({ to: "/projetos", replace: true });
     } catch (error) {
       console.error("[Login] Falha ao entrar:", error);
