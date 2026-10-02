@@ -35,7 +35,7 @@ function AuthPage() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: senha,
       });
@@ -44,7 +44,7 @@ function AuthPage() {
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("active")
-        .eq("id", data.user.id)
+        .eq("id", authData.user.id)
         .maybeSingle();
 
       if (profileError) throw profileError;
