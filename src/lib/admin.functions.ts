@@ -64,7 +64,7 @@ export const setUserRole = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: data.userId, role: data.role });
+      .insert({ user_id: userId, role: data.role });
     if (error) throw error;
 
     return { ok: true };
