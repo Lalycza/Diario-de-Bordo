@@ -5,6 +5,12 @@ export type ManagedRole = "admin" | "supervisor" | "analista" | "operador" | "co
 
 const PROTECTED_ADMIN_EMAIL = "larissazonetti@outlook.com";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function assertUserUuid(value: unknown): string {
+  if (typeof value !== "string" || !UUID_RE.test(value)) throw new Error("Usuário inválido. Atualize a lista de usuários e tente novamente.");
+  return value;
+}
+
 async function assertAdminOrSupervisor(context: { supabase: any; userId: string }) {
   const { data: authData, error: authError } = await context.supabase.auth.getUser();
   if (authError) throw authError;
@@ -41,7 +47,7 @@ export const setUserRole = createServerFn({ method: "POST" })
     const { data: target, error: targetError } = await supabaseAdmin
       .from("profiles")
       .select("id, email")
-      .eq("id", data.userId)
+      .eq("id", userId)
       .maybeSingle();
     if (targetError) throw targetError;
 
@@ -59,7 +65,7 @@ export const setUserRole = createServerFn({ method: "POST" })
     const { error: delError } = await supabaseAdmin
       .from("user_roles")
       .delete()
-      .eq("user_id", data.userId);
+      .eq("user_id", userId);
     if (delError) throw delError;
 
     const { error } = await supabaseAdmin
@@ -84,7 +90,7 @@ export const updateManagedUser = createServerFn({ method: "POST" })
     const { data: target, error: targetError } = await supabaseAdmin
       .from("profiles")
       .select("id, email")
-      .eq("id", data.userId)
+      .eq("id", userId)
       .maybeSingle();
     if (targetError) throw targetError;
     if (!target) throw new Error("Usuário não encontrado.");
@@ -100,7 +106,7 @@ export const updateManagedUser = createServerFn({ method: "POST" })
       throw new Error("Somente o Administrador principal pode definir outro Administrador.");
     }
 
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       email,
       user_metadata: { name },
       ban_duration: data.active ? "none" : "876000h",
@@ -110,18 +116,18 @@ export const updateManagedUser = createServerFn({ method: "POST" })
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .update({ name, email, active: data.active })
-      .eq("id", data.userId);
+      .eq("id", userId);
     if (profileError) throw profileError;
 
     const { error: roleDeleteError } = await supabaseAdmin
       .from("user_roles")
       .delete()
-      .eq("user_id", data.userId);
+      .eq("user_id", userId);
     if (roleDeleteError) throw roleDeleteError;
 
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: data.userId, role: data.role });
+      .insert({ user_id: userId, role: data.role });
     if (roleError) throw roleError;
 
     return { ok: true };
@@ -162,16 +168,16 @@ export const resetManagedUserPassword = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: target, error: targetError } = await supabaseAdmin
-      .from("profiles").select("id, email").eq("id", data.userId).maybeSingle();
+      .from("profiles").select("id, email").eq("id", userId).maybeSingle();
     if (targetError) throw targetError;
     if (!target) throw new Error("Usuário não encontrado.");
     if (target.email?.toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase()) {
       throw new Error("A senha do Administrador principal não pode ser redefinida por este fluxo.");
     }
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: data.temporaryPassword });
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: data.temporaryPassword });
     if (error) throw error;
     const { error: profileError } = await supabaseAdmin
-      .from("profiles").update({ must_change_password: true }).eq("id", data.userId);
+      .from("profiles").update({ must_change_password: true }).eq("id", userId);
     if (profileError) throw profileError;
     return { ok: true };
   });
