@@ -40,6 +40,7 @@ function AuthPage() {
         password: senha,
       });
       if (error) throw error;
+      if (!authData.user) throw new Error("Não foi possível identificar o usuário autenticado.");
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
