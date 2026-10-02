@@ -113,9 +113,15 @@ export const updateManagedUser = createServerFn({ method: "POST" })
       .eq("id", data.userId);
     if (profileError) throw profileError;
 
+    const { error: roleDeleteError } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.userId);
+    if (roleDeleteError) throw roleDeleteError;
+
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: data.userId, role: data.role }, { onConflict: "user_id" });
+      .insert({ user_id: data.userId, role: data.role });
     if (roleError) throw roleError;
 
     return { ok: true };
