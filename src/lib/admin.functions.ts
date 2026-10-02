@@ -70,6 +70,57 @@ export const setUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const updateManagedUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string; name: string; email: string; role: ManagedRole; active: boolean }) => input)
+  .handler(async ({ data, context }) => {
+    await assertAdminOrSupervisor(context as never);
+
+    const name = data.name.trim();
+    const email = data.email.trim().toLowerCase();
+    if (!name || !email) throw new Error("Nome e e-mail são obrigatórios.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: target, error: targetError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (targetError) throw targetError;
+    if (!target) throw new Error("Usuário não encontrado.");
+
+    const targetIsProtectedAdmin =
+      target.email?.toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase();
+
+    if (targetIsProtectedAdmin) {
+      throw new Error("O Administrador principal é protegido e não pode ser alterado por este cadastro.");
+    }
+
+    if (data.role === "admin") {
+      throw new Error("Somente o Administrador principal pode definir outro Administrador.");
+    }
+
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      email,
+      user_metadata: { name },
+      ban_duration: data.active ? "none" : "876000h",
+    });
+    if (authError) throw authError;
+
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .update({ name, email, active: data.active })
+      .eq("id", data.userId);
+    if (profileError) throw profileError;
+
+    const { error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: data.userId, role: data.role }, { onConflict: "user_id" });
+    if (roleError) throw roleError;
+
+    return { ok: true };
+  });
+
 export const listUsersWithRoles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -77,7 +128,7 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const [{ data: profiles, error: pError }, { data: roles, error: rError }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, name, email, created_at").order("name"),
+      supabaseAdmin.from("profiles").select("id, name, email, active, created_at").order("name"),
       supabaseAdmin.from("user_roles").select("user_id, role"),
     ]);
     if (pError) throw pError;
@@ -87,6 +138,7 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
       id: p.id as string,
       nome: (p.name as string) ?? "",
       email: (p.email as string) ?? "",
+      active: p.active !== false,
       role: ((roles ?? []).find((r) => r.user_id === p.id)?.role as ManagedRole) ?? "operador",
       protectedAdmin:
         (p.email ?? "").toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase(),
