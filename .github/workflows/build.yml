@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: ["fix/implanta-supabase-perfis"]
+    branches: ["main", "fix/implanta-supabase-perfis", "fix/usuarios-editar-inativar-2026-10-02"]
   pull_request:
     branches: ["fix/implanta-supabase-perfis"]
 
