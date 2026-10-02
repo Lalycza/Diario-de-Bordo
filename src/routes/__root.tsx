@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -23,10 +23,7 @@ function NotFoundComponent() {
           The page you're looking for doesn't exist or has been moved.
         </p>
         <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          <Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
             Go home
           </Link>
         </div>
@@ -39,12 +36,10 @@ const RELOAD_FLAG = "lovable:chunk-reload";
 
 function isStaleChunkError(error: Error) {
   const message = `${error?.name ?? ""} ${error?.message ?? ""}`.toLowerCase();
-  return (
-    message.includes("importing a module script failed") ||
+  return message.includes("importing a module script failed") ||
     message.includes("failed to fetch dynamically imported module") ||
     message.includes("error loading dynamically imported module") ||
-    message.includes("chunkloaderror")
-  );
+    message.includes("chunkloaderror");
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
@@ -52,8 +47,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-    // A stale/failed asset import means the page shipped against an older build.
-    // Reload once to pick up the current assets instead of showing a blank screen.
     if (typeof window !== "undefined" && isStaleChunkError(error)) {
       if (!window.sessionStorage.getItem(RELOAD_FLAG)) {
         window.sessionStorage.setItem(RELOAD_FLAG, "1");
@@ -64,32 +57,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     }
   }, [error]);
 
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">This page didn't load</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Something went wrong on our end. You can try refreshing or head back home.</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
+          <button onClick={() => { router.invalidate(); reset(); }} className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">Try again</button>
+          <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent">Go home</a>
         </div>
       </div>
     </div>
@@ -102,28 +77,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Gestão de Projetos de Implantação" },
-      {
-        name: "description",
-        content:
-          "Cronograma, módulos homologados e diário de bordo dos projetos de implantação.",
-      },
+      { name: "description", content: "Cronograma, módulos homologados e diário de bordo dos projetos de implantação." },
       { property: "og:title", content: "Gestão de Projetos de Implantação" },
-      {
-        property: "og:description",
-        content:
-          "Cronograma, módulos homologados e diário de bordo dos projetos de implantação.",
-      },
+      { property: "og:description", content: "Cronograma, módulos homologados e diário de bordo dos projetos de implantação." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
     ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-    ],
+    links: [{ rel: "stylesheet", href: appCss }, { rel: "icon", href: "/favicon.ico", type: "image/x-icon" }],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -134,13 +95,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
+      <head><HeadContent /></head>
+      <body>{children}<Scripts /></body>
     </html>
   );
 }
@@ -149,7 +105,6 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster />
     </QueryClientProvider>
