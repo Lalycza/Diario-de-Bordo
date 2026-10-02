@@ -152,41 +152,6 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
   });
 
 
-export const createManagedUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { name: string; email: string; role: Exclude<ManagedRole, "admin">; temporaryPassword: string }) => input)
-  .handler(async ({ data, context }) => {
-    await assertAdminOrSupervisor(context as never);
-    if (!data.name.trim() || !data.email.trim() || data.temporaryPassword.length < 8) {
-      throw new Error("Nome, e-mail e uma senha temporária de no mínimo 8 caracteres são obrigatórios.");
-    }
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email.trim().toLowerCase(),
-      password: data.temporaryPassword,
-      email_confirm: true,
-      user_metadata: { name: data.name.trim() },
-    });
-    if (error) throw error;
-    if (!created.user) throw new Error("Não foi possível criar o usuário.");
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .update({ name: data.name.trim(), email: data.email.trim().toLowerCase(), must_change_password: true })
-      .eq("id", created.user.id);
-    if (profileError) {
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
-      throw profileError;
-    }
-    const { error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: created.user.id, role: data.role });
-    if (roleError) {
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
-      throw roleError;
-    }
-    return { ok: true, userId: created.user.id };
-  });
-
 export const resetManagedUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { userId: string; temporaryPassword: string }) => input)
