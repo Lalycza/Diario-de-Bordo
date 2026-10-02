@@ -35,11 +35,25 @@ function AuthPage() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: senha,
       });
       if (error) throw error;
+      if (!authData.user) throw new Error("Não foi possível identificar o usuário autenticado.");
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("active")
+        .eq("id", authData.user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      if (profile?.active === false) {
+        await supabase.auth.signOut({ scope: "local" });
+        throw new Error("Este usuário está inativo e não possui acesso ao portal.");
+      }
+
       await navigate({ to: "/projetos", replace: true });
     } catch (error) {
       console.error("[Login] Falha ao entrar:", error);

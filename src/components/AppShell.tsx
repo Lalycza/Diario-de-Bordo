@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutList, LogOut } from "lucide-react";
+import { LayoutList, LogOut, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -27,17 +27,28 @@ export function AppShell({
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-          <Link to="/projetos" className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <LayoutList className="size-4" />
-            </span>
-            <span className="text-sm font-semibold tracking-tight">
-              Gestão de Implantações
-            </span>
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link to="/projetos" className="flex items-center gap-2">
+              <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <LayoutList className="size-4" />
+              </span>
+              <span className="text-sm font-semibold tracking-tight">
+                Gestão de Implantações
+              </span>
+            </Link>
+            <Link
+              to="/cadastros/usuarios"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <Users className="size-4" />
+              Usuários
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             {userLabel ? (
-              <span className="hidden text-xs text-muted-foreground sm:inline">{userLabel}</span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">
+                {userLabel}
+              </span>
             ) : null}
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               <LogOut className="size-4" />

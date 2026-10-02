@@ -58,6 +58,7 @@ type ProjectForm = {
   previsao_conclusao: string;
   data_entrega_original: string;
   fases: string[];
+  analista_id: string;
 };
 
 const emptyForm: ProjectForm = {
@@ -73,6 +74,7 @@ const emptyForm: ProjectForm = {
   previsao_conclusao: "",
   data_entrega_original: "",
   fases: TEMPLATE_FASES.map((f) => f.fase),
+  analista_id: "",
 };
 
 function ProjetosPage() {
@@ -82,6 +84,31 @@ function ProjetosPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<ProjectForm | null>(null);
 
+  const profilesQuery = useQuery({
+    queryKey: ["analysts-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, email, active")
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: isAdmin || isSupervisor,
+  });
+
+  const projectAnalystsQuery = useQuery({
+    queryKey: ["project-analysts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_analysts")
+        .select("project_id, profile_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: isAdmin || isSupervisor,
+  });
 
   const clientsQuery = useQuery({
     queryKey: ["clients-for-project"],
@@ -197,6 +224,18 @@ function ProjetosPage() {
         const { error } = await supabase.from("projects").update(payload).eq("id", values.id);
         if (error) throw error;
 
+        const analystId = values.analista_id || null;
+        if (analystId) {
+          const { error: analystError } = await supabase.from("project_analysts").upsert(
+            { project_id: values.id, profile_id: analystId },
+            { onConflict: "project_id,profile_id" },
+          );
+          if (analystError) throw analystError;
+        } else {
+          const { error: analystError } = await supabase.from("project_analysts").delete().eq("project_id", values.id);
+          if (analystError) throw analystError;
+        }
+
         if (currentProject.product_id !== effectiveProductId) {
           const { error: clearError } = await supabase.from("project_modules").delete().eq("project_id", values.id);
           if (clearError) throw clearError;
@@ -233,6 +272,14 @@ function ProjetosPage() {
         .flatMap((f) => f.itens.map((item) => item.nome));
 
       if (!created) return;
+
+      if (values.analista_id) {
+        const { error: analystError } = await supabase.from("project_analysts").upsert(
+          { project_id: created.id, profile_id: values.analista_id },
+          { onConflict: "project_id,profile_id" },
+        );
+        if (analystError) throw analystError;
+      }
 
       if (effectiveProductId) {
         const { data: catalogModules, error: catalogError } = await supabase
@@ -273,6 +320,7 @@ function ProjetosPage() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["all-project-modules"] });
       queryClient.invalidateQueries({ queryKey: ["all-trainings-for-projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project-analysts"] });
       setForm(null);
       toast.success("Projeto salvo.");
     },
@@ -407,6 +455,7 @@ function ProjetosPage() {
                           previsao_conclusao: project.previsao_conclusao ?? "",
                           data_entrega_original: project.data_entrega_original ?? "",
                           fases: [],
+                          analista_id: (projectAnalystsQuery.data ?? []).find((a) => a.project_id === project.id)?.profile_id ?? "",
                         })
                       }
                     >
@@ -555,11 +604,24 @@ function ProjetosPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="analista">Analista de implantação</Label>
-                  <Input
-                    id="analista"
-                    value={form.analista}
-                    onChange={(e) => setForm({ ...form, analista: e.target.value })}
-                  />
+                  {(isAdmin || isSupervisor) ? (
+                    <Select
+                      value={form.analista_id || undefined}
+                      onValueChange={(value) => {
+                        const profile = (profilesQuery.data ?? []).find((p) => p.id === value);
+                        setForm({ ...form, analista_id: value, analista: profile?.name ?? form.analista });
+                      }}
+                    >
+                      <SelectTrigger id="analista"><SelectValue placeholder={profilesQuery.isLoading ? "Carregando analistas..." : "Selecione o analista"} /></SelectTrigger>
+                      <SelectContent>
+                        {(profilesQuery.data ?? []).map((profile) => (
+                          <SelectItem key={profile.id} value={profile.id}>{profile.name || profile.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input id="analista" value={form.analista} readOnly />
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="coordenacao">Coordenação</Label>
