@@ -41,6 +41,7 @@ export const setUserRole = createServerFn({ method: "POST" })
   .inputValidator((input: { userId: string; role: ManagedRole }) => input)
   .handler(async ({ data, context }) => {
     await assertAdminOrSupervisor(context as never);
+    const userId = assertUserUuid(data.userId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -81,6 +82,7 @@ export const updateManagedUser = createServerFn({ method: "POST" })
   .inputValidator((input: { userId: string; name: string; email: string; role: ManagedRole; active: boolean }) => input)
   .handler(async ({ data, context }) => {
     await assertAdminOrSupervisor(context as never);
+    const userId = assertUserUuid(data.userId);
 
     const name = data.name.trim();
     const email = data.email.trim().toLowerCase();
@@ -163,6 +165,7 @@ export const resetManagedUserPassword = createServerFn({ method: "POST" })
   .inputValidator((input: { userId: string; temporaryPassword: string }) => input)
   .handler(async ({ data, context }) => {
     await assertAdminOrSupervisor(context as never);
+    const userId = assertUserUuid(data.userId);
     if (data.temporaryPassword.length < 8) {
       throw new Error("A senha temporária deve ter no mínimo 8 caracteres.");
     }
