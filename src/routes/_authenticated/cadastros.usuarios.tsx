@@ -20,11 +20,14 @@ export const Route = createFileRoute("/_authenticated/cadastros/usuarios")({
   component: UsuariosPage,
 });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const ROLE_LABELS: Record<ManagedRole, string> = {
   admin: "Administrador", supervisor: "Supervisor", analista: "Analista", operador: "Operador", comercial: "Comercial", cliente: "Cliente",
 };
 
 function UsuariosPage() {
+  const isValidUserId = (id: string) => UUID_RE.test(id);
   const { user } = Route.useRouteContext();
   const { isAdmin, isSupervisor, isLoading } = useRole();
   const queryClient = useQueryClient();
@@ -55,7 +58,7 @@ function UsuariosPage() {
     </div>
     {isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : !(isAdmin || isSupervisor) ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">Apenas administradores ou supervisores podem gerenciar acessos.</div> :
       <div className="overflow-x-auto rounded-lg border bg-card"><table className="w-full text-sm"><thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-2 text-left">Nome</th><th className="px-4 py-2 text-left">E-mail</th><th className="px-4 py-2 text-left">Acesso</th><th className="px-4 py-2 text-left">Perfil</th><th className="px-4 py-2 text-right">Ações</th></tr></thead><tbody>
-      {(usersQuery.data ?? []).map(u => <tr key={u.id} className="border-t"><td className="px-4 py-3 font-medium">{u.nome || "—"}</td><td className="px-4 py-3">{u.email}</td><td className="px-4 py-3"><Badge variant={u.active ? "default" : "secondary"}>{u.active ? "Ativo" : "Inativo"}</Badge></td><td className="px-4 py-3"><Badge variant="outline">{ROLE_LABELS[u.role]}</Badge></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1">{u.protectedAdmin ? <Badge variant="outline"><ShieldCheck className="mr-1 size-4 inline" />Protegido</Badge> : <><Button variant="ghost" size="sm" onClick={() => { setEditId(u.id); setEditName(u.nome); setEditEmail(u.email); setEditRole(u.role); setEditActive(u.active); }}><Pencil className="mr-1 size-4" />Editar</Button><Button variant="ghost" size="sm" onClick={() => setResetId(u.id)}><RotateCcw className="mr-1 size-4" />Redefinir senha</Button></>}</div></td></tr>)}</tbody></table></div>}
+      {(usersQuery.data ?? []).map(u => <tr key={u.id} className="border-t"><td className="px-4 py-3 font-medium">{u.nome || "—"}</td><td className="px-4 py-3">{u.email}</td><td className="px-4 py-3"><Badge variant={u.active ? "default" : "secondary"}>{u.active ? "Ativo" : "Inativo"}</Badge></td><td className="px-4 py-3"><Badge variant="outline">{ROLE_LABELS[u.role]}</Badge></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1">{u.protectedAdmin ? <Badge variant="outline"><ShieldCheck className="mr-1 size-4 inline" />Protegido</Badge> : <><Button variant="ghost" size="sm" onClick={() => { if (!isValidUserId(u.id)) { toast.error("Registro de usuário inválido. Atualize a lista e tente novamente."); return; } setEditId(u.id); setEditName(u.nome); setEditEmail(u.email); setEditRole(u.role); setEditActive(u.active); }}><Pencil className="mr-1 size-4" />Editar</Button><Button variant="ghost" size="sm" onClick={() => { if (!isValidUserId(u.id)) { toast.error("Registro de usuário inválido. Atualize a lista e tente novamente."); return; } setResetId(u.id); }}><RotateCcw className="mr-1 size-4" />Redefinir senha</Button></>}</div></td></tr>)}</tbody></table></div>}
 
     <Dialog open={Boolean(editId)} onOpenChange={v=>!v&&setEditId(null)}><DialogContent><DialogHeader><DialogTitle>Editar usuário</DialogTitle></DialogHeader><div className="space-y-4">
       <div className="space-y-2"><Label>Nome</Label><Input value={editName} onChange={e=>setEditName(e.target.value)} /></div>
