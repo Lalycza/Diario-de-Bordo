@@ -124,6 +124,14 @@ function ProjetosPage() {
     });
     window.history.replaceState({}, "", "/projetos");
   }, [clientsQuery.data, clientProductsQuery.data, form]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("novo") !== "1" || form) return;
+    setForm({ ...emptyForm });
+    window.history.replaceState({}, "", "/projetos");
+  }, [form]);
+
   const projectsQuery = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
