@@ -16,12 +16,12 @@ export type ModuleStatus =
 
 export const STAGE_STATUS: Record<StageStatus, { label: string; className: string }> = {
   nao_iniciada: { label: "Não iniciada", className: "bg-muted text-muted-foreground" },
-  em_andamento: { label: "Em andamento", className: "bg-warning/20 text-warning-foreground" },
-  concluida: { label: "Concluída", className: "bg-success/20 text-success" },
-  atrasada: { label: "Atrasada", className: "bg-danger/15 text-danger" },
-  em_risco: { label: "Em risco", className: "bg-danger/10 text-danger" },
-  replanejada: { label: "Replanejada", className: "bg-info/15 text-info" },
-  homologada: { label: "Homologada", className: "bg-success/25 text-success" },
+  em_andamento: { label: "Em andamento", className: "bg-warning/20 text-warning-foreground dark:bg-warning/40 dark:text-warning-foreground" },
+  concluida: { label: "Concluída", className: "bg-success/20 text-success dark:bg-success/35 dark:text-success-foreground" },
+  atrasada: { label: "Atrasada", className: "bg-danger/15 text-danger dark:bg-danger/35 dark:text-danger-foreground" },
+  em_risco: { label: "Em risco", className: "bg-danger/10 text-danger dark:bg-danger/30 dark:text-danger-foreground" },
+  replanejada: { label: "Replanejada", className: "bg-info/15 text-info dark:bg-info/35 dark:text-info-foreground" },
+  homologada: { label: "Homologada", className: "bg-success/25 text-success dark:bg-success/40 dark:text-success-foreground" },
 };
 
 /** Módulos padrão do cronograma de implantação. */
@@ -40,7 +40,7 @@ export const MODULOS = [
 
 export const MODULE_STATUS: Record<ModuleStatus, { label: string; className: string }> = {
   pendente: { label: "Pendente", className: "bg-muted text-muted-foreground" },
-  em_configuracao: { label: "Em configuração", className: "bg-info/15 text-info" },
+  em_configuracao: { label: "Em configuração", className: "bg-info/15 text-info dark:bg-info/35 dark:text-info-foreground" },
   em_teste: { label: "Em teste", className: "bg-warning/20 text-warning-foreground" },
   homologado: { label: "Homologado", className: "bg-success/20 text-success" },
   bloqueado: { label: "Bloqueado", className: "bg-danger/15 text-danger" },
