@@ -80,7 +80,6 @@ export function ManagementDashboard() {
           <Card className="border-destructive/20"><CardContent className="pt-4"><p className="text-2xl font-semibold text-destructive">{summary.overdue.length}</p><p className="text-xs text-muted-foreground">Projetos atrasados</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-2xl font-semibold">{summary.onTrack.length}</p><p className="text-xs text-muted-foreground">No prazo</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-2xl font-semibold">{summary.pendingDemands.length}</p><p className="text-xs text-muted-foreground">Demandas abertas · {summary.highPriority.length} de alta prioridade</p></CardContent></Card>
-          <Card><CardContent className="pt-4"><p className="text-2xl font-semibold">{summary.projects.length}</p><p className="text-xs text-muted-foreground">Projetos ativos</p></CardContent></Card>
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <Card><CardHeader><CardTitle className="text-base">🚀 Próximas entregas</CardTitle></CardHeader><CardContent>{summary.upcoming.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma entrega nos próximos 15 dias.</p> : summary.upcoming.slice(0, 6).map((p) => row(p, daysUntil(p.previsao_conclusao!) === 0 ? "hoje" : `em ${daysUntil(p.previsao_conclusao!)} dia(s)`))}</CardContent></Card>
