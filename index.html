@@ -97,7 +97,7 @@ async function hydrateFromSupabase(){
   if(window._dbHydrated||!supabaseSession)return;
   window._dbHydrated=true;
   try{
-    const [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ]=await Promise.all([
+    const [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ,cd]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
@@ -107,9 +107,10 @@ async function hydrateFromSupabase(){
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
       supabaseClient.from('project_analysts').select('project_id,profile_id'),
       supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date'),
-      supabaseClient.from('profiles').select('id,name,email,role,active').eq('active',true)
+      supabaseClient.from('profiles').select('id,name,email,role,active').eq('active',true),
+      supabaseClient.from('client_documents').select('id,client_id,name,storage_path,mime_type,size_bytes,description,uploaded_by,created_at').order('created_at',{ascending:false})
     ]);
-    for(const q of [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ])if(q.error)throw q.error;
+    for(const q of [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ,cd])if(q.error)throw q.error;
     const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
     const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
     const moduleByDb=new Map((mo.data||[]).map(x=>[x.id,lid(x.legacy_id,'module')]));
@@ -121,6 +122,8 @@ async function hydrateFromSupabase(){
     const oldModules=modulesData||[];
     const oldClients=clientsData||[];
     const oldProjects=ps||[];
+    const clientDocsByDb=new Map();
+    for(const d of (cd.data||[])){const arr=clientDocsByDb.get(d.client_id)||[];arr.push(d);clientDocsByDb.set(d.client_id,arr);}
 
     productsData=(pr.data||[]).map(x=>{
       const id=productByDb.get(x.id);
@@ -145,7 +148,7 @@ async function hydrateFromSupabase(){
     clientsData=(cl.data||[]).map(x=>{
       const id=clientByDb.get(x.id);
       const old=oldClients.find(c=>String(c.id)===String(id));
-      return {...(old||{}),id,dbId:x.id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo',productIds:Array.isArray(old?.productIds)?old.productIds:[]};
+      return {...(old||{}),id,dbId:x.id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo',productIds:Array.isArray(old?.productIds)?old.productIds:[],documents:(clientDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description}))};
     });
 
     const monthNames=cronMonths;
