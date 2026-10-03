@@ -37,7 +37,6 @@ export function ThemeToggle({ className }: { className?: string }) {
       className={className}
     >
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-      <span className="hidden sm:inline">{dark ? "Tema claro" : "Tema escuro"}</span>
     </Button>
   );
 }
