@@ -794,17 +794,23 @@ async function lookupCnpj(id){if(!canEditClient())return;let c=clientsData.find(
 function usuarios(){if(!hasAdminAccess())return;hideSections();document.getElementById('users').classList.remove('hidden');renderUsers()}
 function addUser(){if(!hasAdminAccess())return;let clientOpts=clientsData.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');openSimpleModal('Novo usuário','<div class="task-form"><label>Nome</label><input id="newUserName"><label>E-mail</label><input id="newUserEmail" type="email"><label>Senha inicial</label><input id="newUserPass" type="password"><label>Permissão</label><select id="newUserRole"><option value="analyst">Analista</option><option value="operator">Operador</option><option value="commercial">Comercial</option><option value="client">Cliente</option><option value="supervisor">Supervisor</option></select><label id="newUserClientWrap" class="hidden">Cliente vinculado</label><select id="newUserClient" class="hidden"><option value="">Selecione o cliente</option>'+clientOpts+'</select><div class="hint">Cliente: acesso somente para consulta ao projeto vinculado ao seu cadastro de cliente. Comercial: pode editar cadastros de clientes e consultar o restante.</div></div>',async()=>{let name=document.getElementById('newUserName').value.trim(),email=document.getElementById('newUserEmail').value.trim().toLowerCase(),password=document.getElementById('newUserPass').value,roleInput=document.getElementById('newUserRole').value,role=roleInput,clientId=document.getElementById('newUserClient').value;if(!name||!email||!password)return alert('Preencha nome, e-mail e senha.');if(role==='client'&&!clientId)return alert('Selecione o cliente vinculado.');try{let clientUuid=null;if(role==='client'){const selectedClient=clientsData.find(c=>String(c.id)===String(clientId));clientUuid=selectedClient?.dbId||null;if(!clientUuid)return alert('O cliente selecionado ainda não possui vínculo com o cadastro do Supabase. Salve o cadastro do cliente e tente novamente.');}let {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{name}}});if(error)throw error;if(data.user){let upd={name,email,role,client_id:role==='client'?clientUuid:null};let pr=await supabaseClient.from('profiles').update(upd).eq('id',data.user.id);if(pr.error)throw pr.error;usersData.push({id:data.user.id,name,email,role,clientId:clientId?Number(clientId):null});persistState();closeModal();renderUsers();alert(role==='client'?'Usuário cliente criado. Se a confirmação de e-mail estiver ativa no Supabase, ele precisará confirmar o e-mail antes do primeiro acesso.':'Usuário criado no Supabase.');}}catch(e){alert('Não foi possível criar o usuário: '+(e.message||e))}});setTimeout(()=>{let r=document.getElementById('newUserRole');r.onchange=()=>{let show=r.value==='client';document.getElementById('newUserClient').classList.toggle('hidden',!show);document.getElementById('newUserClientWrap').classList.toggle('hidden',!show)}} ,0)}
 function editUser(id){
- if(currentUser?.role!=='admin')return;
+ if(!hasAdminAccess())return;
  const u=usersData.find(x=>String(x.id)===String(id));
  if(!u)return;
  const protectedUser=String(u.email||'').trim().toLowerCase()===SUPERADMIN_EMAIL||String(u.id||'')==='883addca-422c-4266-955e-823df31ec404';
  const clientOpts=clientsData.map(c=>'<option value="'+escAttr(c.id)+'" '+(String(c.id)===String(u.clientId)?'selected':'')+'>'+esc(c.name)+'</option>').join('');
- const roleOptions='<option value="analyst" '+(u.role==='analyst'?'selected':'')+'>Analista</option><option value="operator" '+(u.role==='operator'?'selected':'')+'>Operador</option><option value="commercial" '+(u.role==='commercial'?'selected':'')+'>Comercial</option><option value="client" '+(u.role==='client'?'selected':'')+'>Cliente</option><option value="supervisor" '+(u.role==='supervisor'?'selected':'')+'>Supervisor</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>Administrador</option>';
- openSimpleModal('Editar usuário','<div class="task-form"><label>Nome</label><input id="editUserName" value="'+escAttr(u.name||'')+'"><label>E-mail</label><input id="editUserEmail" value="'+escAttr(u.email||'')+'" readonly><label>Permissão</label><select id="editUserRole" '+(protectedUser?'disabled':'')+'>'+roleOptions+'</select><label id="editUserClientWrap" class="'+(u.role==='client'?'':'hidden')+'">Cliente vinculado</label><select id="editUserClient" class="'+(u.role==='client'?'':'hidden')+'"><option value="">Selecione o cliente</option>'+clientOpts+'</select><div class="hint">O e-mail não é alterado por esta tela. Para evitar perda de acesso, a conta protegida não pode ter sua permissão modificada.</div></div>',async()=>{
+ const normalizedRole=(u.role==='analista'||u.role==='analyst')?'analyst':(u.role||'');
+ const editableRoleOptions='<option value="analyst" '+(normalizedRole==='analyst'?'selected':'')+'>Analista</option><option value="operator" '+(normalizedRole==='operator'?'selected':'')+'>Operador</option><option value="commercial" '+(normalizedRole==='commercial'?'selected':'')+'>Comercial</option><option value="client" '+(normalizedRole==='client'?'selected':'')+'>Cliente</option><option value="supervisor" '+(normalizedRole==='supervisor'?'selected':'')+'>Supervisor</option>';
+ const roleField=protectedUser
+   ?'<input value="Administrador" readonly>'
+   :'<select id="editUserRole">'+editableRoleOptions+'</select>';
+ openSimpleModal('Editar usuário','<div class="task-form"><label>Nome</label><input id="editUserName" value="'+escAttr(u.name||'')+'"><label>E-mail</label><input id="editUserEmail" value="'+escAttr(u.email||'')+'" readonly><label>Permissão</label>'+roleField+'<label id="editUserClientWrap" class="'+(normalizedRole==='client'?'':'hidden')+'">Cliente vinculado</label><select id="editUserClient" class="'+(normalizedRole==='client'?'':'hidden')+'"><option value="">Selecione o cliente</option>'+clientOpts+'</select><div class="hint">Administrador é exclusivo da conta principal. Novos usuários e demais usuários podem ter Analista, Supervisor, Operador, Comercial ou Cliente.</div></div>',async()=>{
    const name=document.getElementById('editUserName').value.trim();
-   const role=document.getElementById('editUserRole').value;
+   const roleEl=document.getElementById('editUserRole');
+   const role=protectedUser?'admin':(roleEl?.value||'');
    const clientId=document.getElementById('editUserClient').value;
    if(!name)return alert('Informe o nome.');
+   if(!['analyst','operator','commercial','client','supervisor','admin'].includes(role))return alert('Selecione uma permissão válida.');
    if(role==='client'&&!clientId)return alert('Selecione o cliente vinculado.');
    if(protectedUser&&role!=='admin')return alert('O Administrador principal é protegido.');
    try{
@@ -814,8 +820,9 @@ function editUser(id){
        clientUuid=selectedClient?.dbId||null;
        if(!clientUuid)return alert('O cliente selecionado ainda não possui vínculo com o Supabase.');
      }
-     const {error}=await supabaseClient.from('profiles').update({name,role,client_id:role==='client'?clientUuid:null}).eq('id',u.id);
+     const {data,error}=await supabaseClient.from('profiles').update({name,role,client_id:role==='client'?clientUuid:null}).eq('id',u.id).select('id,role,name,client_id').single();
      if(error)throw error;
+     if(!data||String(data.id)!==String(u.id))throw new Error('O cadastro não foi atualizado no Supabase.');
      u.name=name;u.role=role;u.clientId=role==='client'?Number(clientId):null;
      if(String(u.id)===String(currentUser.id)){currentUser.name=name;currentUser.role=role;}
      persistState();closeModal();renderUsers();alert('Usuário atualizado com sucesso.');
