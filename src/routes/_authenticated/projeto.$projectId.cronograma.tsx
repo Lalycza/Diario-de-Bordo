@@ -211,10 +211,10 @@ function CronogramaPage() {
 
       <div className="mb-6 grid gap-3 sm:grid-cols-5">
         <SummaryCard label="Etapas" value={String(stages.length)} />
-        <SummaryCard label="Homologadas" value={String(done)} />
-        <SummaryCard label="Replanejadas" value={String(replanejadas)} />
-        <SummaryCard label="Atrasadas" value={String(late)} tone={late > 0 ? "danger" : undefined} />
-        <div className="rounded-lg border bg-card p-4">
+        <SummaryCard label="Treinamentos Homologados" value={String(stages.filter((s) => effectiveStageStatus(s) === "homologada").length)} tone="homologada" />
+        <SummaryCard label="Replanejadas" value={String(replanejadas)} tone="replanejada" />
+        <SummaryCard label="Atrasadas" value={String(late)} tone="danger" />
+        <div className={`rounded-lg border p-4 ${tone === "danger" ? "border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10" : tone === "homologada" ? "border-purple-200 bg-purple-50 dark:border-purple-500/30 dark:bg-purple-500/10" : tone === "replanejada" ? "border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10" : "bg-card"}`}>
           <p className="text-xs text-muted-foreground">Progresso</p>
           <p className="mt-1 text-2xl font-semibold">{percent}%</p>
           <Progress value={percent} className="mt-2" />
@@ -586,14 +586,14 @@ function SummaryCard({
 }: {
   label: string;
   value: string;
-  tone?: "danger" | undefined;
+  tone?: "danger" | "homologada" | "replanejada";
 }) {
   return (
     <div className="rounded-lg border bg-card p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p
         className={
-          tone === "danger" ? "mt-1 text-2xl font-semibold text-danger" : "mt-1 text-2xl font-semibold"
+          tone === "danger" ? "mt-1 text-2xl font-semibold text-red-700 dark:text-red-300" : tone === "homologada" ? "mt-1 text-2xl font-semibold text-purple-700 dark:text-purple-300" : tone === "replanejada" ? "mt-1 text-2xl font-semibold text-blue-700 dark:text-blue-300" : "mt-1 text-2xl font-semibold"
         }
       >
         {value}
