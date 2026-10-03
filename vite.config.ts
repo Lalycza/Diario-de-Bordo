@@ -6,11 +6,17 @@ import viteReact from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [
-    tanstackStart(),
-    tailwindcss(),
-    nitro({
-      renderer: false,
+    tanstackStart({
+      spa: {
+        enabled: true,
+        prerender: {
+          outputPath: "/index.html",
+          crawlLinks: false,
+        },
+      },
     }),
+    tailwindcss(),
+    nitro(),
     viteReact(),
   ],
 });
