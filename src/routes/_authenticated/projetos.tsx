@@ -315,6 +315,7 @@ function ProjetosPage() {
   };
 
   return (
+    <>
       {isAdmin || isSupervisor ? <ManagementDashboard /> : null}
 
       {!showArchived && (isAdmin || isSupervisor) ? (() => {
@@ -681,5 +682,6 @@ function ProjetosPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+    </>
   );
 }
