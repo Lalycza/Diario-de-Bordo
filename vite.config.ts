@@ -5,21 +5,10 @@ import tailwindcss from "@tailwindcss/vite";
 import viteReact from "@vitejs/plugin-react";
 
 export default defineConfig({
-  build: {
-    rollupOptions: {
-      input: "tanstack-entry.html",
-    },
-  },
   plugins: [
+    tanstackStart(),
     tailwindcss(),
-    tanstackStart({
-      srcDirectory: "src",
-    }),
+    nitro(),
     viteReact(),
-    nitro({
-      renderer: {
-        template: "./tanstack-entry.html",
-      },
-    }),
   ],
 });
