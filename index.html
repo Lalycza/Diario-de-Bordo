@@ -766,12 +766,35 @@ async function persistCatalogProductToSupabase(productId){
      legacy_id:localLegacy('product',p.id),name:p.name||'Produto sem nome',custom:!!p.customized,active:true
    },{onConflict:'legacy_id'}).select('id').single();
    if(pe)throw pe;
+
    const mods=productModules(p);
+   const {data:dbMods,error:dmErr}=await supabaseClient.from('modules').select('id,legacy_id').eq('product_id',pd.id);
+   if(dmErr)throw dmErr;
+   const wantedMods=new Set(mods.map(m=>localLegacy('module',m.id)));
+   for(const dbm of (dbMods||[])){
+     if(!wantedMods.has(dbm.legacy_id)){
+       const {error:sdErr}=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id);
+       if(sdErr)throw sdErr;
+       const {error:mdErr}=await supabaseClient.from('modules').delete().eq('id',dbm.id);
+       if(mdErr)throw mdErr;
+     }
+   }
+
    for(const m of mods){
      const {data:md,error:me}=await supabaseClient.from('modules').upsert({
        legacy_id:localLegacy('module',m.id),product_id:pd.id,name:m.name||'Módulo sem nome',active:true
      },{onConflict:'legacy_id'}).select('id').single();
      if(me)throw me;
+
+     const {data:dbSubs,error:dsErr}=await supabaseClient.from('submodules').select('id,legacy_id').eq('module_id',md.id);
+     if(dsErr)throw dsErr;
+     const wantedSubs=new Set((m.subs||[]).map(sub=>localLegacy('submodule',m.id+'-'+sub)));
+     for(const dbs of (dbSubs||[])){
+       if(!wantedSubs.has(dbs.legacy_id)){
+         const {error:subDelErr}=await supabaseClient.from('submodules').delete().eq('id',dbs.id);
+         if(subDelErr)throw subDelErr;
+       }
+     }
      for(const sub of (m.subs||[])){
        const {error:se}=await supabaseClient.from('submodules').upsert({
          legacy_id:localLegacy('submodule',m.id+'-'+sub),module_id:md.id,name:sub,active:true
@@ -780,7 +803,7 @@ async function persistCatalogProductToSupabase(productId){
      }
    }
    return {ok:true};
- }catch(e){console.error('Erro ao salvar produto/catálogo no Supabase',e);return {ok:false,message:e.message||String(e)}}
+ }catch(e){console.error('Erro ao sincronizar produto/catálogo no Supabase',e);return {ok:false,message:e.message||String(e)}}
 }
 async function cloneModules(sourceProductId,targetProductId){
  let source=productsData.find(x=>String(x.id)===String(sourceProductId)),target=productsData.find(x=>String(x.id)===String(targetProductId));
@@ -812,8 +835,38 @@ function editProductUnified(id){let p=productsData.find(x=>x.id===id);if(!p||!ha
 function addModuleToProduct(pid){if(!hasAdminAccess())return;let p=productsData.find(x=>x.id===pid);if(!p)return;openSimpleModal('Novo módulo — '+p.name,'<div class="task-form"><label>Nome do módulo</label><input id="newModuleName" placeholder="Ex.: Cadastros"><label>Submódulos (um por linha)</label><textarea id="newModuleSubs" rows="7" placeholder="Ex.: Pessoas\nUsuários\nParâmetros"></textarea></div>',async()=>{let name=document.getElementById('newModuleName').value.trim();if(!name)return alert('Informe o nome do módulo.');let subs=document.getElementById('newModuleSubs').value.split(/\n/).map(x=>x.trim()).filter(Boolean);let m={id:Date.now(),name,subs,productIds:[pid]};modulesData.push(m);p.moduleIds=p.moduleIds||[];p.moduleIds.push(m.id);persistState();let r=await persistCatalogProductToSupabase(pid);if(!r.ok){alert('O módulo foi incluído localmente, mas não foi salvo no Supabase: '+r.message);return}closeModal();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog()})}
 function editModuleCatalog(id){if(!hasAdminAccess())return;let m=modulesData.find(x=>x.id===id);if(!m)return;let pids=m.productIds||[];let prodOpts=productsData.map(p=>'<label><input type="checkbox" class="edit-mod-prod" value="'+p.id+'" '+(pids.includes(p.id)?'checked':'')+'> '+esc(p.name)+'</label>').join('');openSimpleModal('Editar módulo','<div class="task-form"><label>Nome do módulo</label><input id="editModuleName" value="'+escAttr(m.name)+'"><label>Produtos vinculados</label><div class="select-list">'+prodOpts+'</div><label>Submódulos (um por linha)</label><textarea id="editModuleSubs" rows="8">'+esc((m.subs||[]).join('\n'))+'</textarea><div class="hint">Se este módulo estiver vinculado a mais de um produto, a alteração afetará todos os produtos selecionados. Para uma variação independente, use “Importar módulos”.</div></div>',()=>{let name=document.getElementById('editModuleName').value.trim();let ids=[...document.querySelectorAll('.edit-mod-prod:checked')].map(x=>Number(x.value));if(!name||!ids.length)return alert('Informe o nome e ao menos um produto.');m.name=name;m.subs=document.getElementById('editModuleSubs').value.split(/\n/).map(x=>x.trim()).filter(Boolean);m.productIds=ids;productsData.forEach(p=>{p.moduleIds=(p.moduleIds||[]).filter(mid=>mid!==id);if(ids.includes(p.id))p.moduleIds.push(id)});persistState();closeModal();renderProductMenu();refreshProductArea(currentProductDetailId)})}
 function editSubCatalog(mid,j){if(!hasAdminAccess())return;let m=modulesData.find(x=>x.id===mid);if(!m||!m.subs[j])return;openSimpleModal('Editar submódulo','<label>Módulo</label><input value="'+escAttr(m.name)+'" disabled><label>Nome do submódulo</label><input id="editSubName" value="'+escAttr(m.subs[j])+'">',()=>{let n=document.getElementById('editSubName').value.trim();if(!n)return alert('Informe o nome.');m.subs[j]=n;persistState();closeModal();renderProductMenu();refreshProductArea(currentProductDetailId)})}
-function deleteSubCatalog(mid,j){if(!hasAdminAccess())return;let m=modulesData.find(x=>x.id===mid);if(!m)return;if(confirm('Excluir este submódulo do catálogo?')){m.subs.splice(j,1);persistState();renderProductMenu();refreshProductArea(currentProductDetailId)}}
-function deleteModuleCatalog(id){if(!hasAdminAccess())return;let m=modulesData.find(x=>x.id===id);if(!m)return;if(confirm('Excluir o módulo “'+m.name+'” de todos os produtos vinculados?')){modulesData=modulesData.filter(x=>x.id!==id);productsData.forEach(p=>p.moduleIds=(p.moduleIds||[]).filter(x=>x!==id));ps.forEach(syncProjectMap);persistState();renderProductMenu();refreshProductArea(currentProductDetailId)}}
+async function deleteSubCatalog(mid,j){
+ if(!hasAdminAccess())return;
+ let m=modulesData.find(x=>String(x.id)===String(mid));
+ if(!m)return;
+ if(confirm('Excluir este submódulo do catálogo?')){
+   m.subs.splice(j,1);
+   persistState();
+   let pids=(m.productIds||[]).map(id=>productsData.find(p=>String(p.id)===String(id))).filter(Boolean);
+   for(const p of pids){
+     let r=await persistCatalogProductToSupabase(p.id);
+     if(!r.ok)return alert('O submódulo foi removido localmente, mas não foi excluído do Supabase: '+r.message);
+   }
+   renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog();
+ }
+}
+async function deleteModuleCatalog(id){
+ if(!hasAdminAccess())return;
+ let m=modulesData.find(x=>String(x.id)===String(id));
+ if(!m)return;
+ if(confirm('Excluir o módulo “'+m.name+'” de todos os produtos vinculados?')){
+   let pids=(m.productIds||[]).map(pid=>productsData.find(p=>String(p.id)===String(pid))).filter(Boolean);
+   modulesData=modulesData.filter(x=>String(x.id)!==String(id));
+   productsData.forEach(p=>p.moduleIds=(p.moduleIds||[]).filter(x=>String(x)!==String(id)));
+   ps.forEach(syncProjectMap);
+   persistState();
+   for(const p of pids){
+     let r=await persistCatalogProductToSupabase(p.id);
+     if(!r.ok)return alert('O módulo foi removido localmente, mas não foi excluído do Supabase: '+r.message);
+   }
+   renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog();
+ }
+}
 function importCatalogModules(){if(!hasAdminAccess())return;let opts=productsData.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');openSimpleModal('Importar módulos para um produto','<div class="task-form"><label>Produto de origem</label><select id="importSource">'+opts+'</select><label>Produto de destino</label><select id="importTarget">'+opts+'</select><div class="hint">Os módulos serão copiados como uma estrutura independente. Isso é o ideal para versões como PH2 Gestão Simples, PH2 com Produção, PH2 com DRE ou customizado.</div></div>',()=>{let s=Number(document.getElementById('importSource').value),t=Number(document.getElementById('importTarget').value);if(!s||!t||s===t)return alert('Selecione produtos de origem e destino diferentes.');cloneModules(s,t);closeModal();renderProductMenu();refreshProductArea(t)})}
 function importModulesToProduct(targetId){if(!hasAdminAccess())return;let target=productsData.find(p=>String(p.id)===String(targetId));if(!target)return;let opts=productsData.filter(p=>String(p.id)!==String(targetId)).map(p=>'<option value="'+escAttr(String(p.id))+'">'+esc(p.name)+'</option>').join('');if(!opts)return alert('Não há outro produto com módulos para importar.');openSimpleModal('Importar módulos para '+esc(target.name),'<label>Produto de origem</label><select id="singleImportSource">'+opts+'</select>',async()=>{let saveBtn=document.getElementById('simpleModalSave');if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Salvando...'}let sourceId=document.getElementById('singleImportSource')?.value;if(!sourceId){if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Salvar'}return alert('Selecione o produto de origem.')}try{let r=await cloneModules(sourceId,targetId);if(!r?.ok){alert('Não foi possível salvar os módulos: '+(r?.message||'erro desconhecido'));return}closeModal();renderProductMenu();refreshProductArea(targetId);renderUnifiedCatalog();alert('Módulos importados e salvos no Supabase.')}catch(e){console.error(e);alert('Não foi possível salvar os módulos: '+(e.message||e))}finally{if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Salvar'}}})}
 
