@@ -6,7 +6,21 @@ import viteReact from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [
-    tanstackStart(),
+    tanstackStart({
+      prerender: {
+        enabled: true,
+        autoStaticPathsDiscovery: false,
+      },
+      pages: [
+        {
+          path: "/",
+          prerender: {
+            enabled: true,
+            outputPath: "/index.html",
+          },
+        },
+      ],
+    }),
     tailwindcss(),
     nitro(),
     viteReact(),
