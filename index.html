@@ -165,13 +165,13 @@ async function hydrateFromSupabase(){
         if(profileId&&!p.operatorIds.some(v=>String(v)===profileId))p.operatorIds.push(profileId);
       }
     }
-    // O responsável do projeto também fica no projects.owner_id. Isso evita
-    // que um projeto fique sem responsável quando a relação project_analysts
-    // ainda não existir ou estiver sendo reidratada.
+    // O responsável é uma informação estrutural do projeto.
+    // Reidrata sempre a partir de projects.owner_id e mantém também
+    // project_analysts para que supervisores vejam o responsável e o
+    // controle de acesso do analista continue funcionando após recarregar.
     ps.forEach(p=>{
       const ownerProfile=profileById.get(String((pg.data||[]).find(x=>String(projectByDb.get(x.id))===String(p.id))?.owner_id||''));
-      const ownerRole=String(ownerProfile?.role||'').toLowerCase();
-      if(ownerProfile && (ownerRole==='analyst'||ownerRole==='analista'||ownerRole==='operator'||ownerRole==='operador')){
+      if(ownerProfile){
         p.owner=ownerProfile.email||p.owner||'';
         p.operatorIds=p.operatorIds||[];
         if(!p.operatorIds.some(v=>String(v)===String(ownerProfile.id)))p.operatorIds.unshift(ownerProfile.id);
@@ -460,6 +460,31 @@ async function syncProjectLifecycleStatusToSupabase(p){
  const {error}=await supabaseClient.from('projects').update({status}).eq('id',p.dbId);
  if(error)throw new Error('Status do projeto: '+error.message);
 }
+async function syncProjectAnalystToSupabase(p){
+ if(!p?.dbId)return;
+ const selectedId=(p.operatorIds||[])[0];
+ if(!selectedId)throw new Error('Nenhum analista responsável foi selecionado.');
+ const localUser=(usersData||[]).find(u=>String(u.id)===String(selectedId)||String(u.email||'').toLowerCase()===String(p.owner||'').toLowerCase());
+ let profileId=String(selectedId);
+ if(localUser?.id)profileId=String(localUser.id);
+ const byId=await supabaseClient.from('profiles').select('id,email,role,active').eq('id',profileId).maybeSingle();
+ if(byId.error)throw byId.error;
+ if(!byId.data){
+   const byEmail=await supabaseClient.from('profiles').select('id,email,role,active').eq('email',localUser?.email||p.owner||'').maybeSingle();
+   if(byEmail.error)throw byEmail.error;
+   if(!byEmail.data)throw new Error('Analista não encontrado no cadastro de usuários.');
+   profileId=String(byEmail.data.id);
+ }
+ const {error:pe}=await supabaseClient.from('projects').update({owner_id:profileId}).eq('id',p.dbId);
+ if(pe)throw new Error('Responsável do projeto: '+pe.message);
+ const {error:de}=await supabaseClient.from('project_analysts').delete().eq('project_id',p.dbId);
+ if(de)throw new Error('Analista do projeto: '+de.message);
+ const {error:ie}=await supabaseClient.from('project_analysts').insert({project_id:p.dbId,profile_id:profileId});
+ if(ie)throw new Error('Vínculo do analista: '+ie.message);
+ p.operatorIds=[profileId];
+ if(byId.data?.email)p.owner=byId.data.email;
+ return profileId;
+}
 async function saveProjetoEdicao(){
  if(!canEdit()||!cur)return;
  let p=cur,v=id=>document.getElementById(id)?.value||'';
@@ -467,19 +492,22 @@ async function saveProjetoEdicao(){
  if(!n||!c)return alert('Informe o nome do projeto e o cliente.');
  const selectedAnalyst=v('editProjOwner');
  const au=selectedAnalyst?usersData.find(u=>String(u.id)===String(selectedAnalyst)||String(u.email||'').toLowerCase()===String(selectedAnalyst).toLowerCase()):null;
+ if(!au)return alert('Selecione o analista responsável.');
  p.n=n;p.c=c;
- if(au){p.owner=au.email||p.owner||'';p.operatorIds=[au.id];}
+ p.owner=au.email||p.owner||'';
+ p.operatorIds=[au.id];
  p.baseDate=v('editProjBase');p.startDate=v('editProjStart');p.endDate=v('editProjEnd');p.projectStatus=v('editProjStatus')||'Ativo';
- audit('Projeto alterado','Dados cadastrais do projeto atualizados. Status: '+p.projectStatus+'.');
+ audit('Projeto alterado','Dados cadastrais do projeto atualizados. Analista responsável: '+(au.name||au.email)+'. Status: '+p.projectStatus+'.');
  if(typeof persistState==='function')persistState();
  closeModal();openP(p.id);render();
  try{
+   if(p.dbId)await syncProjectAnalystToSupabase(p);
    await syncProjectLifecycleStatusToSupabase(p);
    if(currentUser?.role==='admin' && typeof syncLocalToSupabase==='function'){
      try{await syncLocalToSupabase()}catch(e){console.warn('Sincronização geral não concluída:',e);}
    }
  }catch(e){
-   alert('O status do projeto foi salvo localmente, mas não foi possível sincronizá-lo no Supabase: '+(e.message||e));
+   alert('Os dados foram salvos localmente, mas não foi possível confirmar o analista no Supabase: '+(e.message||e));
  }
 }
 function usuarios(){if(currentUser.role!=='admin')return;hideSections();document.getElementById('users').classList.remove('hidden');renderUsers()}
