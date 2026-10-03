@@ -94,8 +94,9 @@ function restoreState(){try{
   setTimeout(persistState,50);
 }catch(e){console.warn('Não foi possível restaurar os dados locais',e)}}
 async function hydrateFromSupabase(){
-  if(window._dbHydrated||!supabaseSession)return;
-  window._dbHydrated=true;
+  if(!supabaseSession)return;
+  if(window._dbHydrationPromise)return window._dbHydrationPromise;
+  window._dbHydrationPromise=(async()=>{
   try{
     const [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ,cd,pd]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
@@ -205,9 +206,13 @@ async function hydrateFromSupabase(){
     persistState();
     render();
   }catch(e){
-    window._dbHydrated=false;
     console.warn('Não foi possível carregar os dados do Supabase',e);
+    throw e;
+  }finally{
+    window._dbHydrationPromise=null;
   }
+  })();
+  return window._dbHydrationPromise;
 }
 restoreState();
 setInterval(persistState,800);
