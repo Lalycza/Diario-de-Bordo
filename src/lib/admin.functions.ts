@@ -83,7 +83,7 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
     if (pError) throw pError;
     if (rError) throw rError;
 
-    return (profiles ?? []).map((p) => ({
+    return (profiles ?? []).filter((p) => (p.email ?? "").toLowerCase() !== PROTECTED_ADMIN_EMAIL.toLowerCase()).map((p) => ({
       id: p.id as string,
       nome: (p.name as string) ?? "",
       email: (p.email as string) ?? "",
