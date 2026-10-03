@@ -294,7 +294,28 @@ function ProjetosPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
 
-  const projects = (projectsQuery.data ?? []).filter((p) => p.arquivado === showArchived);
+  const myProfileQuery = useQuery({
+    queryKey: ["my-profile-for-projects", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("name, email")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const baseProjects = (projectsQuery.data ?? []).filter((p) => p.arquivado === showArchived);
+  const projects = isAdmin || isSupervisor
+    ? baseProjects
+    : baseProjects.filter((p) => {
+        const myName = myProfileQuery.data?.name?.trim().toLowerCase();
+        const myEmail = myProfileQuery.data?.email?.trim().toLowerCase();
+        const analyst = p.analista?.trim().toLowerCase();
+        return Boolean(analyst && ((myName && analyst === myName) || (myEmail && analyst === myEmail)));
+      });
 
   function progressFor(projectId: string) {
     const assigned = (projectModulesQuery.data ?? []).filter((m) => m.project_id === projectId);
@@ -325,7 +346,7 @@ function ProjetosPage() {
         return (
           <section className="mb-6 rounded-xl border bg-card p-4" aria-label="Resumo da carteira">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-base font-semibold">{visible.length} Projetos visíveis</h2>
+              <h2 className="text-base font-semibold">{emImplantacao} Projetos em implantação</h2>
               <span className="text-xs text-muted-foreground">Carteira atual</span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
