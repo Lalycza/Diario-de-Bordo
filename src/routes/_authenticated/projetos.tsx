@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { effectiveStageStatus, formatDate } from "@/lib/status";
 import { TEMPLATE_FASES } from "@/lib/template";
-import { AppShell } from "@/components/AppShell";
 import { ManagementDashboard } from "@/components/ManagementDashboard";
 import { useRole } from "@/lib/useRole";
 import { Button } from "@/components/ui/button";
@@ -316,7 +315,6 @@ function ProjetosPage() {
   };
 
   return (
-    <AppShell userLabel={user.email}>
       {isAdmin || isSupervisor ? <ManagementDashboard /> : null}
 
       {!showArchived && (isAdmin || isSupervisor) ? (() => {
@@ -683,6 +681,5 @@ function ProjetosPage() {
           ) : null}
         </DialogContent>
       </Dialog>
-    </AppShell>
   );
 }
