@@ -855,18 +855,27 @@ async function deleteModuleCatalog(id){
  if(!hasAdminAccess())return;
  let m=modulesData.find(x=>String(x.id)===String(id));
  if(!m)return;
- if(confirm('Excluir o módulo “'+m.name+'” de todos os produtos vinculados?')){
-   let pids=(m.productIds||[]).map(pid=>productsData.find(p=>String(p.id)===String(pid))).filter(Boolean);
+ if(!confirm('Excluir o módulo “'+m.name+'” de todos os produtos vinculados?'))return;
+ const affected=productsData.filter(p=>(p.moduleIds||[]).some(x=>String(x)===String(id)));
+ const pids=[...new Map([...((m.productIds||[]).map(pid=>productsData.find(p=>String(p.id)===String(pid))).filter(Boolean)),...affected].map(p=>[String(p.id),p])).values()];
+ const snapshot=JSON.stringify({modulesData,productsData,ps});
+ const buttons=[...document.querySelectorAll('button.danger')];
+ buttons.forEach(b=>{if((b.textContent||'').trim()==='Excluir')b.disabled=true;});
+ try{
    modulesData=modulesData.filter(x=>String(x.id)!==String(id));
    productsData.forEach(p=>p.moduleIds=(p.moduleIds||[]).filter(x=>String(x)!==String(id)));
    ps.forEach(syncProjectMap);
    persistState();
    for(const p of pids){
-     let r=await persistCatalogProductToSupabase(p.id);
-     if(!r.ok)return alert('O módulo foi removido localmente, mas não foi excluído do Supabase: '+r.message);
+     const r=await persistCatalogProductToSupabase(p.id);
+     if(!r.ok)throw new Error(r.message||'Não foi possível sincronizar o produto com o Supabase.');
    }
    renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog();
- }
+   alert('Módulo excluído com sucesso.');
+ }catch(e){
+   try{const restored=JSON.parse(snapshot);modulesData=restored.modulesData;productsData=restored.productsData;ps.splice(0,ps.length,...restored.ps);persistState();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog();}catch(_){}
+   alert('Não foi possível excluir o módulo: '+(e.message||e));
+ }finally{buttons.forEach(b=>b.disabled=false);}
 }
 function importCatalogModules(){if(!hasAdminAccess())return;let opts=productsData.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');openSimpleModal('Importar módulos para um produto','<div class="task-form"><label>Produto de origem</label><select id="importSource">'+opts+'</select><label>Produto de destino</label><select id="importTarget">'+opts+'</select><div class="hint">Os módulos serão copiados como uma estrutura independente. Isso é o ideal para versões como PH2 Gestão Simples, PH2 com Produção, PH2 com DRE ou customizado.</div></div>',()=>{let s=Number(document.getElementById('importSource').value),t=Number(document.getElementById('importTarget').value);if(!s||!t||s===t)return alert('Selecione produtos de origem e destino diferentes.');cloneModules(s,t);closeModal();renderProductMenu();refreshProductArea(t)})}
 function importModulesToProduct(targetId){if(!hasAdminAccess())return;let target=productsData.find(p=>String(p.id)===String(targetId));if(!target)return;let opts=productsData.filter(p=>String(p.id)!==String(targetId)).map(p=>'<option value="'+escAttr(String(p.id))+'">'+esc(p.name)+'</option>').join('');if(!opts)return alert('Não há outro produto com módulos para importar.');openSimpleModal('Importar módulos para '+esc(target.name),'<label>Produto de origem</label><select id="singleImportSource">'+opts+'</select>',async()=>{let saveBtn=document.getElementById('simpleModalSave');if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Salvando...'}let sourceId=document.getElementById('singleImportSource')?.value;if(!sourceId){if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Salvar'}return alert('Selecione o produto de origem.')}try{let r=await cloneModules(sourceId,targetId);if(!r?.ok){alert('Não foi possível salvar os módulos: '+(r?.message||'erro desconhecido'));return}closeModal();renderProductMenu();refreshProductArea(targetId);renderUnifiedCatalog();alert('Módulos importados e salvos no Supabase.')}catch(e){console.error(e);alert('Não foi possível salvar os módulos: '+(e.message||e))}finally{if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Salvar'}}})}
