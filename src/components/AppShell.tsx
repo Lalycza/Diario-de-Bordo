@@ -112,10 +112,10 @@ export function AppShell({
                     <FolderKanban className="size-4" />
                     Meus projetos
                   </Link>
-                  <Link to="/projetos" search={{ novo: "1" }} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted">
+                  <a href="/projetos?novo=1" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted">
                     <Plus className="size-4" />
                     Novo Projeto
-                  </Link>
+                  </a>
                 </div>
               ) : null}
             </section>
