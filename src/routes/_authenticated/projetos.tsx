@@ -349,7 +349,7 @@ function ProjetosPage() {
               <h2 className="text-base font-semibold">{emImplantacao} Projetos em implantação</h2>
               <span className="text-xs text-muted-foreground">Carteira atual</span>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-lg border bg-muted/20 p-3">
                 <div className="text-2xl font-semibold">{emImplantacao}</div>
                 <div className="text-xs text-muted-foreground">Em implantação</div>
