@@ -163,6 +163,16 @@ async function hydrateFromSupabase(){
       return {...(old||{}),id,dbId:x.id,n:x.name,c:client?.name||old?.c||'',clientId:client?.id||old?.clientId||null,progress:Number(x.progress||0),projectStatus:lifecycle,baseDate:x.base_date||old?.baseDate||'',startDate:x.start_date||old?.startDate||'',endDate:x.delivery_date||old?.endDate||'',productIds:[],m:[],t:Array.isArray(old?.t)?old.t:[],d:old?.d||[],docs:(projectDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description})).concat(old?.docs||[]),emails:old?.emails||[],kickoff:old?.kickoff||{status:'Pendente',notes:''},handoff:old?.handoff||{status:'Pendente',notes:''},pesquisa:old?.pesquisa||{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:old?.homologacao||{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''}};
     });
     const profileById=new Map((profilesQ.data||[]).map(u=>[String(u.id),u]));
+    // O Supabase é a fonte oficial da permissão dos usuários. Reidrata a lista
+    // sempre com o role atual para não exibir um papel antigo salvo no navegador.
+    usersData=(profilesQ.data||[]).map(u=>({
+      id:u.id,
+      name:u.name||u.email||'Usuário',
+      email:u.email||'',
+      role:u.role||'',
+      active:u.active!==false,
+      clientId:u.client_id||null
+    }));
     for(const x of (pa.data||[])){
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
       if(p){
