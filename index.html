@@ -97,7 +97,7 @@ async function hydrateFromSupabase(){
   if(window._dbHydrated||!supabaseSession)return;
   window._dbHydrated=true;
   try{
-    const [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ]=await Promise.all([
+    const [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ,cd]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
@@ -107,9 +107,10 @@ async function hydrateFromSupabase(){
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
       supabaseClient.from('project_analysts').select('project_id,profile_id'),
       supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,realization_date,status,responsible,planned_date'),
-      supabaseClient.from('profiles').select('id,name,email,role,active').eq('active',true)
+      supabaseClient.from('profiles').select('id,name,email,role,active').eq('active',true),
+      supabaseClient.from('client_documents').select('id,client_id,name,storage_path,mime_type,size_bytes,description,uploaded_by,created_at').order('created_at',{ascending:false})
     ]);
-    for(const q of [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ])if(q.error)throw q.error;
+    for(const q of [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ,cd])if(q.error)throw q.error;
     const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
     const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
     const moduleByDb=new Map((mo.data||[]).map(x=>[x.id,lid(x.legacy_id,'module')]));
@@ -121,6 +122,8 @@ async function hydrateFromSupabase(){
     const oldModules=modulesData||[];
     const oldClients=clientsData||[];
     const oldProjects=ps||[];
+    const clientDocsByDb=new Map();
+    for(const d of (cd.data||[])){const arr=clientDocsByDb.get(d.client_id)||[];arr.push(d);clientDocsByDb.set(d.client_id,arr);}
 
     productsData=(pr.data||[]).map(x=>{
       const id=productByDb.get(x.id);
@@ -145,7 +148,7 @@ async function hydrateFromSupabase(){
     clientsData=(cl.data||[]).map(x=>{
       const id=clientByDb.get(x.id);
       const old=oldClients.find(c=>String(c.id)===String(id));
-      return {...(old||{}),id,dbId:x.id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo',productIds:Array.isArray(old?.productIds)?old.productIds:[]};
+      return {...(old||{}),id,dbId:x.id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo',productIds:Array.isArray(old?.productIds)?old.productIds:[],documents:(clientDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description}))};
     });
 
     const monthNames=cronMonths;
@@ -729,9 +732,30 @@ function saveClientForm(id){if(!canEditClient())return;let c=id?clientsData.find
 function addClientContact(cid){if(!canEditClient())return;openSimpleModal('Novo contato','<div class="task-form"><label>Nome</label><input id="ctName"><label>E-mail</label><input id="ctEmail" type="email"><label>Telefone</label><input id="ctPhone"><label><input type="checkbox" id="ctResponsible"> Responsável pelo projeto</label></div>',()=>{let c=clientsData.find(x=>x.id===cid),name=document.getElementById('ctName').value.trim();if(!c||!name)return alert('Informe o nome.');normalizeClient(c);let ct={id:Date.now(),name,email:document.getElementById('ctEmail').value.trim(),phone:document.getElementById('ctPhone').value.trim(),projectResponsible:document.getElementById('ctResponsible').checked};if(ct.projectResponsible)c.contacts.forEach(x=>x.projectResponsible=false);c.contacts.push(ct);persistState();closeModal();editClient(cid);clientModalTab('contacts')})}
 function editClientContact(cid,i){let c=clientsData.find(x=>x.id===cid);if(!c||!canEditClient())return;let ct=c.contacts[i];openSimpleModal('Editar contato','<div class="task-form"><label>Nome</label><input id="ctName" value="'+escAttr(ct.name)+'"><label>E-mail</label><input id="ctEmail" value="'+escAttr(ct.email||'')+'"><label>Telefone</label><input id="ctPhone" value="'+escAttr(ct.phone||'')+'"><label><input type="checkbox" id="ctResponsible" '+(ct.projectResponsible?'checked':'')+'> Responsável pelo projeto</label></div>',()=>{ct.name=document.getElementById('ctName').value.trim();ct.email=document.getElementById('ctEmail').value.trim();ct.phone=document.getElementById('ctPhone').value.trim();ct.projectResponsible=document.getElementById('ctResponsible').checked;if(ct.projectResponsible)c.contacts.forEach((x,j)=>{if(j!==i)x.projectResponsible=false});let r=clientResponsible(c);c.email=r.email||'';c.phone=r.phone||'';c.contact=r.name||'';persistState();closeModal();editClient(cid);clientModalTab('contacts')})}
 function deleteClientContact(cid,i){if(!canEditClient())return;let c=clientsData.find(x=>x.id===cid);if(!c)return;if(confirm('Excluir este contato?')){c.contacts.splice(i,1);if(c.contacts.length&&!c.contacts.some(x=>x.projectResponsible))c.contacts[0].projectResponsible=true;let r=clientResponsible(c);c.email=r.email||'';c.phone=r.phone||'';c.contact=r.name||'';persistState();editClient(cid);clientModalTab('contacts')}}
-function addClientDocument(cid){if(!canEditClient())return;openSimpleModal('Inserir documento do cliente','<div class="task-form"><label>Nome do documento</label><input id="clDocName"><label>Tipo</label><input id="clDocType" value="PDF / Ficha cadastral"><label>Conteúdo / observação</label><textarea id="clDocContent" rows="6"></textarea></div>',()=>{let c=clientsData.find(x=>x.id===cid),name=document.getElementById('clDocName').value.trim();if(!c||!name)return alert('Informe o nome.');normalizeClient(c);c.documents.unshift({id:Date.now(),name,type:document.getElementById('clDocType').value,date:new Date().toLocaleDateString('pt-BR'),content:document.getElementById('clDocContent').value});persistState();closeModal();editClient(cid);clientModalTab('docs')})}
-function deleteClientDoc(cid,i){if(!canEditClient())return;let c=clientsData.find(x=>x.id===cid);if(!c)return;if(confirm('Excluir documento?')){c.documents.splice(i,1);persistState();editClient(cid);clientModalTab('docs')}}
-function downloadClientDoc(cid,i){let c=clientsData.find(x=>x.id===cid);let d=c?.documents?.[i];if(!d)return;let blob=new Blob([d.content||'Documento do cliente'],{type:'text/plain;charset=utf-8'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=d.name.replace(/\s+/g,'_')+'.txt';a.click();URL.revokeObjectURL(a.href)}
+async function addClientDocument(cid){
+ if(!canEditClient())return;
+ const c=clientsData.find(x=>x.id===cid);if(!c)return;
+ let clientDbId=c.dbId;
+ if(!clientDbId){const {data,error}=await supabaseClient.from('clients').select('id').eq('legacy_id',localLegacy('client',cid)).maybeSingle();if(error)throw error;clientDbId=data?.id||null;}
+ if(!clientDbId)return alert('Este cliente ainda não está vinculado ao cadastro remoto. Salve o cliente no Supabase antes de anexar o arquivo.');
+ openSimpleModal('Inserir documento do cliente','<div class="task-form"><label>Arquivo do computador</label><input id="clDocFile" type="file"><label>Descrição (opcional)</label><input id="clDocDescription" placeholder="Descrição do documento"></div>',async()=>{
+   const file=document.getElementById('clDocFile')?.files?.[0];if(!file)return alert('Selecione um arquivo.');
+   const safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');const path='clients/'+clientDbId+'/'+Date.now()+'_'+safeName;
+   const {error:up}=await supabaseClient.storage.from('client-documents').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});
+   if(up)return alert('Não foi possível enviar o arquivo: '+up.message);
+   const {data:doc,error:de}=await supabaseClient.from('client_documents').insert({client_id:clientDbId,name:file.name,storage_path:path,mime_type:file.type||null,size_bytes:file.size,description:document.getElementById('clDocDescription')?.value?.trim()||null,uploaded_by:currentUser?.id||null}).select('*').single();
+   if(de){await supabaseClient.storage.from('client-documents').remove([path]);return alert('Arquivo enviado, mas não foi possível registrar o documento: '+de.message);}
+   normalizeClient(c);c.documents=c.documents||[];c.documents.unshift({id:doc.id,name:doc.name,type:doc.mime_type||'Arquivo',date:new Date(doc.created_at).toLocaleDateString('pt-BR'),storagePath:doc.storage_path,mimeType:doc.mime_type,size:doc.size_bytes,description:doc.description});
+   persistState();closeModal();editClient(cid);clientModalTab('docs');
+ });
+}
+function deleteClientDoc(cid,i){if(!canEditClient())return;let c=clientsData.find(x=>x.id===cid),d=c?.documents?.[i];if(!c||!d)return;if(confirm('Excluir documento?')){c.documents.splice(i,1);persistState();editClient(cid);clientModalTab('docs')}}
+async function downloadClientDoc(cid,i){
+ let c=clientsData.find(x=>x.id===cid),d=c?.documents?.[i];if(!d)return;
+ if(d.storagePath){const {data,error}=await supabaseClient.storage.from('client-documents').download(d.storagePath);if(error)return alert('Não foi possível baixar o documento: '+error.message);const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download=d.name||'documento';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);return;}
+ const blob=new Blob([d.content||'Documento do cliente'],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(d.name||'documento').replace(/\s+/g,'_')+'.txt';a.click();URL.revokeObjectURL(a.href);
+}
+
 function renderClients(){let q=(document.getElementById('clientSearch')?.value||'').toLowerCase();let base=currentUser?.role==='client'?clientsData.filter(c=>String(c.id)===String(currentUser.clientId)):clientsData;let arr=base.filter(c=>(c.name+' '+c.cnpj+' '+c.email+' '+(c.fantasy||'')+' '+(c.city||'')).toLowerCase().includes(q));document.getElementById('clientsBody').innerHTML=arr.map(c=>{normalizeClient(c);let count=ps.filter(p=>p.clientId===c.id).length,r=clientResponsible(c);return '<div class="card"><div class="top"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.fantasy||'')+'</div></div><span class="badge">'+count+' projeto(s)</span></div><p class="muted">CNPJ: '+esc(c.cnpj||'não informado')+'<br>Responsável: '+esc(r.name||'não informado')+'<br>E-mail: '+esc(r.email||'não informado')+'<br>Telefone: '+esc(r.phone||'não informado')+'</p><button class="secondary" onclick="editClient('+c.id+')">Abrir cadastro</button> <button class="secondary" onclick="lookupCnpj('+c.id+')">Consultar CNPJ</button></div>'}).join('')||'<div class="card muted">Nenhum cliente encontrado.</div>'}
 function fillClientFromCnpj(cnpj,formMode){return fillClientFromCnpjAsync(cnpj,formMode)}
 async function fillClientFromCnpjAsync(cnpj,formMode){let clean=(cnpj||'').replace(/\D/g,'');if(clean.length!==14)return false;let status=document.getElementById('cnpjStatus');if(status)status.textContent='Consultando dados cadastrais...';try{let r=await fetch('https://brasilapi.com.br/api/cnpj/v1/'+clean);if(!r.ok)throw new Error();let d=await r.json();if(formMode){let map={clientName:d.razao_social||d.nome_fantasia,clientFantasy:d.nome_fantasia,clientZip:d.cep,clientState:d.uf,clientAddress:d.logradouro,clientNumber:d.numero,clientComplement:d.complemento,clientNeighborhood:d.bairro,clientCity:d.municipio};Object.entries(map).forEach(([id,v])=>{let el=document.getElementById(id);if(el&&v)el.value=v});let ie=document.getElementById('clientIe');if(ie&&d.inscricao_estadual)ie.value=d.inscricao_estadual}else{let c=clientsData.find(x=>x.cnpj.replace(/\D/g,'')===clean);if(c){Object.assign(c,{name:d.razao_social||d.nome_fantasia||c.name,fantasy:d.nome_fantasia||c.fantasy,zip:d.cep||c.zip,state:d.uf||c.state,address:d.logradouro||c.address,number:d.numero||c.number,complement:d.complemento||c.complement,neighborhood:d.bairro||c.neighborhood,city:d.municipio||c.city});persistState();renderClients()}}if(status)status.textContent='Dados preenchidos pela consulta pública do CNPJ.';return true}catch(e){if(status)status.textContent='Não foi possível consultar o CNPJ agora.';return false}}
