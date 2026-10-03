@@ -460,6 +460,18 @@ async function syncProjectLifecycleStatusToSupabase(p){
  const {error}=await supabaseClient.from('projects').update({status}).eq('id',p.dbId);
  if(error)throw new Error('Status do projeto: '+error.message);
 }
+async function syncProjectBasicDataToSupabase(p){
+ if(!p?.dbId)return;
+ const payload={
+   name:p.n||'Projeto sem nome',
+   start_date:p.startDate||null,
+   delivery_date:p.endDate||null,
+   original_delivery_date:p.originalEndDate||p.endDate||null,
+   base_date:p.baseDate||null
+ };
+ const {error}=await supabaseClient.from('projects').update(payload).eq('id',p.dbId);
+ if(error)throw new Error('Dados básicos do projeto: '+error.message);
+}
 async function syncProjectAnalystToSupabase(p){
  if(!p?.dbId)return;
  const selectedId=(p.operatorIds||[])[0];
@@ -501,10 +513,10 @@ async function saveProjetoEdicao(){
  if(typeof persistState==='function')persistState();
  closeModal();openP(p.id);render();
  try{
-   if(p.dbId)await syncProjectAnalystToSupabase(p);
-   await syncProjectLifecycleStatusToSupabase(p);
-   if(currentUser?.role==='admin' && typeof syncLocalToSupabase==='function'){
-     try{await syncLocalToSupabase()}catch(e){console.warn('Sincronização geral não concluída:',e);}
+   if(p.dbId){
+     await syncProjectBasicDataToSupabase(p);
+     await syncProjectAnalystToSupabase(p);
+     await syncProjectLifecycleStatusToSupabase(p);
    }
  }catch(e){
    alert('Os dados foram salvos localmente, mas não foi possível confirmar o analista no Supabase: '+(e.message||e));
