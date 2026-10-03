@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     tanstackStart(),
     tailwindcss(),
-    nitro({ renderer: false }),
+    nitro(),
     viteReact(),
   ],
 });
