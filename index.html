@@ -783,17 +783,17 @@ async function persistCatalogProductToSupabase(productId){
  }catch(e){console.error('Erro ao salvar produto/catálogo no Supabase',e);return {ok:false,message:e.message||String(e)}}
 }
 async function cloneModules(sourceProductId,targetProductId){
- let source=productsData.find(x=>x.id===sourceProductId),target=productsData.find(x=>x.id===targetProductId);
+ let source=productsData.find(x=>String(x.id)===String(sourceProductId)),target=productsData.find(x=>String(x.id)===String(targetProductId));
  if(!source||!target)return {ok:false,message:'Produto de origem ou destino não encontrado.'};
  target.moduleIds=target.moduleIds||[];
  const existingNames=new Set(productModules(target).map(m=>String(m.name||'').trim().toLowerCase()));
  productModules(source).forEach(sm=>{
    if(existingNames.has(String(sm.name||'').trim().toLowerCase()))return;
-   let clone={id:Date.now()+Math.floor(Math.random()*100000),name:sm.name,subs:[...(sm.subs||[])],productIds:[targetProductId]};
+   let clone={id:Date.now()+Math.floor(Math.random()*100000),name:sm.name,subs:[...(sm.subs||[])],productIds:[target.id]};
    modulesData.push(clone);target.moduleIds.push(clone.id);existingNames.add(String(sm.name||'').trim().toLowerCase());
  });
  persistState();
- return await persistCatalogProductToSupabase(targetProductId);
+ return await persistCatalogProductToSupabase(target.id);
 }
 const catalogOpenProducts=new Set();
 function toggleCatalogProduct(id){if(catalogOpenProducts.has(id))catalogOpenProducts.delete(id);else catalogOpenProducts.add(id);renderUnifiedCatalog()}
