@@ -819,7 +819,7 @@ async function cloneModules(sourceProductId,targetProductId){
  return await persistCatalogProductToSupabase(target.id);
 }
 const catalogOpenProducts=new Set();
-function toggleCatalogProduct(id){if(catalogOpenProducts.has(id))catalogOpenProducts.delete(id);else catalogOpenProducts.add(id);renderUnifiedCatalog()}
+function toggleCatalogProduct(id){let key=String(id);let current=[...catalogOpenProducts].find(x=>String(x)===key);if(current!==undefined)catalogOpenProducts.delete(current);else catalogOpenProducts.add(id);renderUnifiedCatalog()}
 function catalogJsArg(id){return escAttr(JSON.stringify(String(id)));}
 function renderUnifiedCatalog(){
  let q=(document.getElementById('catalogSearch')?.value||'').toLowerCase();
