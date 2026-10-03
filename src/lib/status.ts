@@ -15,13 +15,13 @@ export type ModuleStatus =
   | "bloqueado";
 
 export const STAGE_STATUS: Record<StageStatus, { label: string; className: string }> = {
-  nao_iniciada: { label: "Não iniciada", className: "bg-muted text-muted-foreground" },
-  em_andamento: { label: "Em andamento", className: "bg-warning/20 text-warning-foreground dark:bg-warning/40 dark:text-warning-foreground" },
-  concluida: { label: "Concluída", className: "bg-success/20 text-success dark:bg-success/35 dark:text-success-foreground" },
+  nao_iniciada: { label: "Pendente", className: "bg-red-100 text-red-700 dark:bg-red-500/25 dark:text-red-200" },
+  em_andamento: { label: "Em andamento", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/25 dark:text-yellow-200" },
+  concluida: { label: "Concluída", className: "bg-green-100 text-green-700 dark:bg-green-500/25 dark:text-green-200" },
   atrasada: { label: "Atrasada", className: "bg-danger/15 text-danger dark:bg-danger/35 dark:text-danger-foreground" },
   em_risco: { label: "Em risco", className: "bg-danger/10 text-danger dark:bg-danger/30 dark:text-danger-foreground" },
   replanejada: { label: "Replanejada", className: "bg-info/15 text-info dark:bg-info/35 dark:text-info-foreground" },
-  homologada: { label: "Homologada", className: "bg-success/25 text-success dark:bg-success/40 dark:text-success-foreground" },
+  homologada: { label: "Homologada", className: "bg-purple-100 text-purple-700 dark:bg-purple-500/25 dark:text-purple-200" },
 };
 
 /** Módulos padrão do cronograma de implantação. */
