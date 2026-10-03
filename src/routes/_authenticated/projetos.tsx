@@ -351,10 +351,6 @@ function ProjetosPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-2xl font-semibold">{emImplantacao}</div>
-                <div className="text-xs text-muted-foreground">Em implantação</div>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3">
                 <div className="text-2xl font-semibold">{homologados}</div>
                 <div className="text-xs text-muted-foreground">Homologados</div>
               </div>
