@@ -76,7 +76,7 @@ const emptyForm: ProjectForm = {
 
 function ProjetosPage() {
   const { user } = Route.useRouteContext();
-  const { isAdmin, isSupervisor } = useRole();
+  const { isAdmin, isSupervisor, isAnalista } = useRole();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<ProjectForm | null>(null);
@@ -308,14 +308,14 @@ function ProjetosPage() {
   });
 
   const baseProjects = (projectsQuery.data ?? []).filter((p) => p.arquivado === showArchived);
-  const projects = isAdmin || isSupervisor
-    ? baseProjects
-    : baseProjects.filter((p) => {
+  const projects = isAnalista
+    ? baseProjects.filter((p) => {
         const myName = myProfileQuery.data?.name?.trim().toLowerCase();
         const myEmail = myProfileQuery.data?.email?.trim().toLowerCase();
         const analyst = p.analista?.trim().toLowerCase();
         return Boolean(analyst && ((myName && analyst === myName) || (myEmail && analyst === myEmail)));
-      });
+      })
+    : baseProjects;
 
   function progressFor(projectId: string) {
     const assigned = (projectModulesQuery.data ?? []).filter((m) => m.project_id === projectId);
