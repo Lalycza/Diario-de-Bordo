@@ -37,6 +37,10 @@ export function MapaTreinamentosPage(){
      const{data:x,error:e2}=await supabase.from("trainings").select("id").eq("project_id",projectId).eq("module_id",f.moduleId).is("submodule_id",null).limit(1).maybeSingle();if(e2)throw e2;
      const p={planned_date:f.plannedDate,planned_month:new Date(f.plannedDate+"T12:00:00").getMonth()+1,planned_week:Number(f.week),responsible:"HPRO",status:f.status};
      if(x){const{error}=await supabase.from("trainings").update(p).eq("id",x.id);if(error)throw error}else{const{error}=await supabase.from("trainings").insert({...p,project_id:projectId,module_id:f.moduleId,submodule_id:null,created_by:user.id});if(error)throw error}
+     // A data prevista do módulo principal é a fonte do cronograma dos submódulos.
+     // Se ela mudar, os registros já existentes também precisam acompanhar a nova data.
+     const{error:eCascade}=await supabase.from("trainings").update({planned_date:f.plannedDate,planned_month:p.planned_month,planned_week:p.planned_week}).eq("project_id",projectId).eq("module_id",f.moduleId).not("submodule_id","is",null);
+     if(eCascade)throw eCascade;
      const ss=f.status==="Homologado"?"homologada":f.status==="Concluído"?"concluida":f.status==="Em andamento"?"em_andamento":"nao_iniciada";
      const{data:s,error:e3}=await supabase.from("project_stages").select("id").eq("project_id",projectId).eq("modulo",f.moduleName).limit(1).maybeSingle();if(e3)throw e3;
      const p2={nome:f.moduleName,modulo:f.moduleName,responsavel:"HPRO",data_prevista:f.plannedDate,status:ss};
