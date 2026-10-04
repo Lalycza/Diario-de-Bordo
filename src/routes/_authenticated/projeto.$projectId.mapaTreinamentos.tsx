@@ -1,5 +1,4 @@
 
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,9 +23,7 @@ const mw=(v:string)=>{if(!v)return{month:"",week:""};const d=new Date(v+"T12:00:
 const st=(a:string,b:string,c:string,d:string)=>c&&d?"Homologado":b?"Concluído":a?"Em andamento":"Pendente";
 const fd=(v?:string|null)=>v?new Date(v+"T12:00:00").toLocaleDateString("pt-BR"):"—";
 
-export const Route=createFileRoute("/_authenticated/projeto/$projectId/modulos")({component:MapaPage});
-
-function MapaPage(){
+export function MapaTreinamentosPage(){
  const {projectId}=Route.useParams(); const {user}=Route.useRouteContext(); const project=useProject(projectId); const qc=useQueryClient(); const [form,setForm]=useState<F|null>(null);
  const mods=useQuery({queryKey:["mapa-mods",projectId],queryFn:async()=>{const{data,error}=await supabase.from("project_modules").select("project_id,module_id,planned_training_date,module:modules!project_modules_module_id_fkey(id,name)").eq("project_id",projectId).order("module_id");if(error)throw error;return(data??[]) as unknown as PM[]}});
  const subs=useQuery({queryKey:["mapa-subs",projectId],enabled:!mods.isLoading,queryFn:async()=>{const ids=(mods.data??[]).map(x=>x.module_id);if(!ids.length)return[] as SM[];const{data,error}=await supabase.from("submodules").select("id,module_id,name").in("module_id",ids).eq("active",true).order("name");if(error)throw error;return(data??[]) as SM[]}});
