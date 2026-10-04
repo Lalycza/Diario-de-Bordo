@@ -26,13 +26,14 @@ const MESES = [
   "Dezembro",
 ];
 
-const SEMANAS = ["S1", "S2", "S3", "S4"];
+const SEMANAS = ["S1", "S2", "S3", "S4", "S5"];
 
 function semanaDoMes(dia: number) {
   if (dia <= 7) return 0;
   if (dia <= 14) return 1;
   if (dia <= 21) return 2;
-  return 3;
+  if (dia <= 28) return 3;
+  return 4;
 }
 
 export function GradeSemanas({ stages }: { stages: GradeStage[] }) {
