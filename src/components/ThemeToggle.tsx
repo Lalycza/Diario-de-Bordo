@@ -13,7 +13,8 @@ export function ThemeToggle({ className }: { className?: string }) {
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
-    const isDark = true;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const isDark = saved !== "claro";
     setDark(isDark);
     applyTheme(isDark);
   }, []);
