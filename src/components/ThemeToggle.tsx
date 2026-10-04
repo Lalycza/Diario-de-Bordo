@@ -3,7 +3,7 @@ import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-const STORAGE_KEY = "tema";
+const STORAGE_KEY = "tema-v2";
 
 function applyTheme(dark: boolean) {
   document.documentElement.classList.toggle("dark", dark);
@@ -14,7 +14,9 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    const isDark = saved !== "claro";
+    // O padrão do sistema é sempre escuro. A chave v2 evita que uma
+    // preferência "claro" antiga force o portal a abrir em tema claro.
+    const isDark = saved === "claro" ? false : true;
     setDark(isDark);
     applyTheme(isDark);
   }, []);
