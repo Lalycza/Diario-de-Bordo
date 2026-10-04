@@ -196,7 +196,9 @@ function CronogramaPage() {
       ? stages
       : stages.filter((s) => (s.modulo ?? SEM_MODULO) === moduloFiltro);
 
-  const grupos = [...MODULOS, SEM_MODULO].map((modulo) => ({
+  const nomesDosStages = Array.from(new Set(stages.map((s) => s.modulo).filter(Boolean))) as string[];
+  const ordemModulos = Array.from(new Set([...MODULOS, ...nomesDosStages]));
+  const grupos = [...ordemModulos, SEM_MODULO].map((modulo) => ({
     modulo,
     label: modulo === SEM_MODULO ? "Sem módulo" : modulo,
     itens: visiveis.filter((s) => (s.modulo ?? SEM_MODULO) === modulo),
