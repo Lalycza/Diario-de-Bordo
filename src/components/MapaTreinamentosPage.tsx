@@ -20,7 +20,7 @@ type SM={id:string;module_id:string;name:string};
 type TR={id:string;module_id:string|null;submodule_id:string|null;planned_date:string|null;responsible:string|null;status:string;realization_date:string|null;homologation_date:string|null;homologation_responsible:string|null;training_start_date:string|null;training_completion_date:string|null};
 type F={kind:"module"|"submodule";moduleId:string;moduleName:string;submoduleId?:string;submoduleName?:string;plannedDate:string;month:string;week:string;start:string;completion:string;homDate:string;homBy:string;status:string;id?:string};
 const STAT=["Pendente","Em andamento","Concluído","Homologado"];
-const mw=(v:string)=>{if(!v)return{month:"",week:""};const d=new Date(v+"T12:00:00"),m=d.toLocaleDateString("pt-BR",{month:"long"});return{month:m.charAt(0).toUpperCase()+m.slice(1),week:String(Math.min(5,Math.ceil(d.getDate()/7)))}};
+const mw=(v:string)=>{if(!v)return{month:"",week:""};const d=new Date(v+"T12:00:00"),m=d.toLocaleDateString("pt-BR",{month:"long"});const day=d.getDate();const week=day<=7?1:day<=14?2:day<=21?3:day<=28?4:5;return{month:m.charAt(0).toUpperCase()+m.slice(1),week:String(week)}};
 const st=(a:string,b:string,c:string,d:string)=>c&&d?"Homologado":b?"Concluído":a?"Em andamento":"Pendente";
 const fd=(v?:string|null)=>v?new Date(v+"T12:00:00").toLocaleDateString("pt-BR"):"—";
 
