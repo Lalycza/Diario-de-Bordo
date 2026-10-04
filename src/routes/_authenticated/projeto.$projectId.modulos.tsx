@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useProject } from "@/lib/useProject";
-import { MapaTreinamentosPage } from "./projeto.$projectId.mapaTreinamentos";
+import { MapaTreinamentosPage } from "@/components/MapaTreinamentosPage";
 
 export const Route = createFileRoute("/_authenticated/projeto/$projectId/modulos")({
   head: () => ({
