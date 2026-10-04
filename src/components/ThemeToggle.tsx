@@ -10,13 +10,11 @@ function applyTheme(dark: boolean) {
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    const isDark = saved
-      ? saved === "escuro"
-      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = saved === "claro" ? false : true;
     setDark(isDark);
     applyTheme(isDark);
   }, []);
