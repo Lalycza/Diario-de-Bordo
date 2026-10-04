@@ -121,14 +121,61 @@ function ModulosPage() {
         homologado_por: values.homologado_por || null,
         observacoes: values.observacoes || null,
       };
+      let savedModuleId = values.id;
+
       if (values.id) {
         const { error } = await supabase.from("modules").update(payload).eq("id", values.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("modules")
-          .insert({ ...payload, project_id: projectId, created_by: user.id });
+          .insert({ ...payload, project_id: projectId, created_by: user.id })
+          .select("id")
+          .single();
         if (error) throw error;
+        savedModuleId = data.id;
+      }
+
+      // Módulo principal + previsão de treinamento alimenta automaticamente o Cronograma.
+      // Submódulos continuam usando a data de treinamento para acompanhamento/homologação.
+      if (payload.parent_id === null && payload.data_treinamento && savedModuleId) {
+        const { data: existingStage, error: stageLookupError } = await supabase
+          .from("project_stages")
+          .select("id")
+          .eq("project_id", projectId)
+          .eq("modulo", payload.nome)
+          .eq("nome", payload.nome)
+          .maybeSingle();
+        if (stageLookupError) throw stageLookupError;
+
+        const stagePayload = {
+          nome: payload.nome,
+          modulo: payload.nome,
+          responsavel: payload.responsavel_hpro,
+          data_prevista: payload.data_treinamento,
+          status: "nao_iniciada",
+        };
+
+        if (existingStage) {
+          const { error } = await supabase
+            .from("project_stages")
+            .update({
+              modulo: stagePayload.modulo,
+              responsavel: stagePayload.responsavel,
+              data_prevista: stagePayload.data_prevista,
+            })
+            .eq("id", existingStage.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("project_stages")
+            .insert({
+              ...stagePayload,
+              project_id: projectId,
+              created_by: user.id,
+            });
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
