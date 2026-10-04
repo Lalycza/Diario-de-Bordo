@@ -3,7 +3,7 @@ import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-const STORAGE_KEY = "tema-v2";
+const STORAGE_KEY = "tema-v3";
 
 function applyTheme(dark: boolean) {
   document.documentElement.classList.toggle("dark", dark);
