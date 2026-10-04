@@ -118,7 +118,7 @@ export function GradeSemanas({ stages }: { stages: GradeStage[] }) {
               <th className="px-3 py-2 text-left">Atividade crítica</th>
               <th className="px-3 py-2 text-left">Responsável</th>
               {meses.map((m) => (
-                <th key={m} className="border-l px-3 py-2 text-center" colSpan={4}>
+                <th key={m} className="border-l px-3 py-2 text-center" colSpan={5}>
                   {MESES[m]}
                 </th>
               ))}
