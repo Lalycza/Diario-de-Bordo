@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useProject } from "@/lib/useProject";
+import { MapaTreinamentosPage } from "./projeto.$projectId.mapaTreinamentos";
 
 export const Route = createFileRoute("/_authenticated/projeto/$projectId/modulos")({
   head: () => ({
@@ -46,7 +47,7 @@ export const Route = createFileRoute("/_authenticated/projeto/$projectId/modulos
       },
     ],
   }),
-  component: ModulosPage,
+  component: MapaTreinamentosPage,
 });
 
 type ModuleForm = {
