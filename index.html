@@ -817,10 +817,10 @@ function updateProjectProductOptions(){let clientName=document.getElementById('n
 function saveNewProject(){if(!canEdit())return;let n=document.getElementById('newProjectName').value.trim(),client=document.getElementById('newProjectClient').value;if(!n)return alert('Informe o nome do projeto.');if(!client)return alert('Selecione o cliente.');let clientObj=clientsData.find(x=>x.name===client);let selectedProduct=document.getElementById('newProjectProduct')?.value||'';let productIds=selectedProduct?[Number(selectedProduct)]:[];if(!productIds.length)return alert('Selecione o produto do projeto.');let status=clientObj?.productStatus?.[String(productIds[0])]||'implantacao';if(status==='suporte')return alert('Este produto está em suporte e não pode abrir um novo projeto.');let projectType=status==='consultoria'?'consultoria':'implantacao';let documentationScope=projectType==='consultoria'?(document.getElementById('newProjectScope')?.value||'all'):'all';let analystId=document.getElementById('newProjectAnalyst')?.value||'';let operatorIds=analystId?[analystId]:[];let p={id:Date.now(),n,c:client,clientId:clientObj?.id||null,productIds,operatorIds,owner:(usersData.find(x=>x.id===operatorIds[0])||currentUser).email,t:[],m:[],modulesInitialized:false,projectType,documentationScope,d:[],docs:[],emails:[],kickoff:{status:'Pendente',notes:''},handoff:{status:'Pendente',notes:''},pesquisa:{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'larissa@implanta.com',delivered:false,trained:false,accepted:false,observations:''},goLive:{},audit:[]};syncProjectMap(p);p.modulesInitialized=true;p.projectStatus='Ativo';p.lifecycleHistory=[{date:new Date().toISOString(),from:'',to:'Ativo',reason:'Projeto criado'}];ps.push(p);persistState();closeModal();render();openP(p.id)}
 function editarProjeto(){
  if(!canEdit()||!cur)return;
- let p=cur;
- let analystOpts=usersData.filter(u=>u.role==='analyst').map(u=>'<option value=\"'+escAttr(u.id)+'\" '+(String(p.operatorIds?.[0])===String(u.id)||p.owner===u.email?'selected':'')+'>'+esc(u.name)+'</option>').join('');
- let lifecycle=p.projectStatus||'Ativo';
- openSimpleModal('Editar projeto','<div class=\"task-form\"><label>Nome do projeto</label><input id=\"editProjName\" value=\"'+escAttr(p.n||'')+'\"><label>Cliente</label><input id=\"editProjClient\" value=\"'+escAttr(p.c||'')+'\"><label>Analista responsável</label><select id=\"editProjOwner\"><option value=\"\">Selecione</option>'+analystOpts+'</select><label>Status do projeto</label><select id=\"editProjStatus\"><option value=\"Ativo\" '+(lifecycle==='Ativo'?'selected':'')+'>Ativo</option><option value=\"Finalizado\" '+(lifecycle==='Finalizado'?'selected':'')+'>Finalizado</option><option value=\"Congelado\" '+(lifecycle==='Congelado'?'selected':'')+'>Congelado</option></select><label>Data base</label><input id=\"editProjBase\" type=\"date\" value=\"'+escAttr(p.baseDate||'')+'\"><label>Data início</label><input id=\"editProjStart\" type=\"date\" value=\"'+escAttr(p.startDate||'')+'\"><label>Data entrega</label><input id=\"editProjEnd\" type=\"date\" value=\"'+escAttr(p.endDate||'')+'\"><div style=\"text-align:right;margin-top:8px\"><button class=\"secondary\" onclick=\"closeModal()\">Cancelar</button> <button class=\"primary\" onclick=\"saveProjetoEdicao()\">Salvar alterações</button></div></div>');
+ let p=cur,analystOpts=usersData.filter(u=>u.role==='analyst').map(u=>'<option value="'+escAttr(u.id)+'" '+(String(p.operatorIds?.[0])===String(u.id)||p.owner===u.email?'selected':'')+'>'+esc(u.name)+'</option>').join('');
+ let lifecycle=p.projectStatus||'Ativo',ptype=p.projectType||'implantacao',scope=p.documentationScope||'all';
+ openSimpleModal('Editar projeto','<div class="task-form"><label>Nome do projeto</label><input id="editProjName" value="'+escAttr(p.n||'')+'"><label>Cliente</label><input id="editProjClient" value="'+escAttr(p.c||'')+'"><label>Tipo do projeto</label><select id="editProjType"><option value="implantacao" '+(ptype==='implantacao'?'selected':'')+'>Implantação</option><option value="consultoria" '+(ptype==='consultoria'?'selected':'')+'>Consultoria</option></select><div id="editProjScopeWrap" style="'+(ptype==='consultoria'?'':'display:none')+'"><label>Documentação da consultoria</label><select id="editProjScope"><option value="all" '+(scope==='all'?'selected':'')+'>Mapa + Cronograma + Diário</option><option value="diario" '+(scope==='diario'?'selected':'')+'>Somente Diário</option></select></div><label>Analista responsável</label><select id="editProjOwner"><option value="">Sem responsável definido</option>'+analystOpts+'</select><label>Status do projeto</label><select id="editProjStatus"><option value="Ativo" '+(lifecycle==='Ativo'?'selected':'')+'>Ativo</option><option value="Finalizado" '+(lifecycle==='Finalizado'?'selected':'')+'>Finalizado</option><option value="Congelado" '+(lifecycle==='Congelado'?'selected':'')+'>Congelado</option></select><label>Data base</label><input id="editProjBase" type="date" value="'+escAttr(p.baseDate||'')+'"><label>Data início</label><input id="editProjStart" type="date" value="'+escAttr(p.startDate||'')+'"><label>Data entrega</label><input id="editProjEnd" type="date" value="'+escAttr(p.endDate||'')+'"><div style="text-align:right;margin-top:8px"><button class="secondary" onclick="closeModal()">Cancelar</button> <button class="primary" onclick="saveProjetoEdicao()">Salvar alterações</button></div></div>');
+ setTimeout(()=>document.getElementById('editProjType')?.addEventListener('change',e=>document.getElementById('editProjScopeWrap').style.display=e.target.value==='consultoria'?'block':'none'),0);
 }
 function excluirProjetoAtual(){if(!canEdit()||!cur)return;let hasInfo=(cur.d?.length||cur.docs?.length||cur.emails?.length||cur.t?.length||cur.handoff?.context||cur.pesquisa?.status&&cur.pesquisa.status!=='Pendente'||cur.homologacao?.status&&cur.homologacao.status!=='Pendente');if(hasInfo)return alert('Este projeto já possui informações de implantação. A exclusão não é permitida. Finalize o projeto ou mantenha-o para consulta.');if(!confirm('Excluir este projeto definitivamente?'))return;let id=cur.id;ps=ps.filter(p=>p.id!==id);cur=null;persistState();closeModal();home()}
 async function syncProjectLifecycleStatusToSupabase(p){
@@ -837,7 +837,9 @@ async function syncProjectBasicDataToSupabase(p){
    start_date:p.startDate||null,
    delivery_date:p.endDate||null,
    original_delivery_date:p.originalEndDate||p.endDate||null,
-   base_date:p.baseDate||null
+   base_date:p.baseDate||null,
+   project_type:p.projectType==='consultoria'?'consultoria':'implantacao',
+   documentation_scope:p.projectType==='consultoria'?(p.documentationScope==='diario'?'diario':'all'):'all'
  };
  const {error}=await supabaseClient.from('projects').update(payload).eq('id',p.dbId);
  if(error)throw new Error('Dados básicos do projeto: '+error.message);
@@ -874,18 +876,17 @@ async function saveProjetoEdicao(){
  if(!n||!c)return alert('Informe o nome do projeto e o cliente.');
  const selectedAnalyst=v('editProjOwner');
  const au=selectedAnalyst?usersData.find(u=>String(u.id)===String(selectedAnalyst)||String(u.email||'').toLowerCase()===String(selectedAnalyst).toLowerCase()):null;
- if(!au)return alert('Selecione o analista responsável.');
  p.n=n;p.c=c;
- p.owner=au.email||p.owner||'';
- p.operatorIds=[au.id];
- p.baseDate=v('editProjBase');p.startDate=v('editProjStart');p.endDate=v('editProjEnd');p.projectStatus=v('editProjStatus')||'Ativo';
+ p.owner=au?.email||'';
+ p.operatorIds=au?[au.id]:[];
+ p.baseDate=v('editProjBase');p.startDate=v('editProjStart');p.endDate=v('editProjEnd');p.projectStatus=v('editProjStatus')||'Ativo';p.projectType=v('editProjType')||p.projectType||'implantacao';p.documentationScope=p.projectType==='consultoria'?(v('editProjScope')||'all'):'all';
  audit('Projeto alterado','Dados cadastrais do projeto atualizados. Analista responsável: '+(au.name||au.email)+'. Status: '+p.projectStatus+'.');
  if(typeof persistState==='function')persistState();
  closeModal();openP(p.id);render();
  try{
    if(p.dbId){
      await syncProjectBasicDataToSupabase(p);
-     await syncProjectAnalystToSupabase(p);
+     if((p.operatorIds||[]).length)await syncProjectAnalystToSupabase(p);
      await syncProjectLifecycleStatusToSupabase(p);
    }
  }catch(e){
