@@ -11,30 +11,35 @@ export type ProfileHomeRole =
 
 const PROTECTED_ADMIN_EMAIL = "larissazonetti@outlook.com";
 
+async function hasRole(userId: string, role: ProfileHomeRole): Promise<boolean> {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: role,
+  });
+
+  if (error) throw error;
+  return data === true;
+}
+
 export async function resolveProfileHomeRoute(): Promise<string> {
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
 
   if (!user) return "/auth";
 
-  const email = user.email?.toLowerCase() ?? null;
+  const email = user.email?.toLowerCase() ?? "";
 
-  const { data: roleRows, error: roleError } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id);
+  // Use the same authoritative role check used by the user-management
+  // server functions. Reading user_roles directly from the browser can be
+  // affected by RLS and was causing valid profiles to fall back to /projetos.
+  const [isSupervisor, isCS, isComercial, isCliente] = await Promise.all([
+    hasRole(user.id, "supervisor"),
+    hasRole(user.id, "cs"),
+    hasRole(user.id, "comercial"),
+    hasRole(user.id, "cliente"),
+  ]);
 
-  if (roleError) throw roleError;
-
-  const roles = new Set(
-    (roleRows ?? []).map((row) => row.role as ProfileHomeRole),
-  );
-
-  const isAdmin = roles.has("admin") || email === PROTECTED_ADMIN_EMAIL;
-  const isSupervisor = roles.has("supervisor");
-  const isCS = roles.has("cs");
-  const isComercial = roles.has("comercial");
-  const isCliente = roles.has("cliente");
+  const isAdmin = email === PROTECTED_ADMIN_EMAIL || await hasRole(user.id, "admin");
 
   if (isAdmin || isSupervisor || isCS) return "/dashboard";
   if (isComercial) return "/cadastros/clientes";
