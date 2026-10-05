@@ -167,7 +167,7 @@ export function AppShell({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, isSupervisor, isCS, isComercial, isCliente, isLoading: roleLoading } = useRole();
+  const { isAdmin, isSupervisor, isCS, isLoading: roleLoading } = useRole();
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
