@@ -5,23 +5,35 @@ export type AppRole = "admin" | "supervisor" | "analista" | "operador" | "cs" | 
 
 const PROTECTED_ADMIN_EMAIL = "larissazonetti@outlook.com";
 
+async function loadMyRoles() {
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
+  const email = user?.email?.toLowerCase() ?? null;
+
+  if (!user) return { roles: [] as AppRole[], email };
+
+  const roleNames: AppRole[] = ["admin", "supervisor", "analista", "operador", "cs", "comercial", "cliente"];
+  const checks = await Promise.all(
+    roleNames.map(async (role) => {
+      const { data, error } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: role,
+      });
+      if (error) throw error;
+      return data === true ? role : null;
+    }),
+  );
+
+  return {
+    roles: checks.filter((role): role is AppRole => role !== null),
+    email,
+  };
+}
+
 export function useRole() {
   const query = useQuery({
     queryKey: ["my-roles"],
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
-      const email = userData.user?.email?.toLowerCase() ?? null;
-      if (!uid) return { roles: [] as AppRole[], email };
-
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", uid);
-
-      if (error) throw error;
-      return { roles: (data ?? []).map((r) => r.role as AppRole), email };
-    },
+    queryFn: loadMyRoles,
   });
 
   const roles = query.data?.roles ?? [];
