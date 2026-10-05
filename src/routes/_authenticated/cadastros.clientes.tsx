@@ -47,6 +47,7 @@ type ClientForm = {
   id?: string;
   product_id: string;
   product_ids: string[];
+  product_statuses: Record<string, "implantacao" | "suporte" | "consultoria">;
   cnpj: string;
   razao_social: string;
   nome_fantasia: string;
@@ -67,6 +68,7 @@ type ClientForm = {
 const emptyClient: ClientForm = {
   product_id: "",
   product_ids: [],
+  product_statuses: {},
   cnpj: "",
   razao_social: "",
   nome_fantasia: "",
@@ -108,9 +110,9 @@ function ClientesPage() {
     queryKey: ["client-products", detalhe],
     enabled: !!detalhe,
     queryFn: async () => {
-      const { data, error } = await supabase.from("client_products").select("product_id").eq("client_id", detalhe!);
+      const { data, error } = await supabase.from("client_products").select("product_id, status").eq("client_id", detalhe!);
       if (error) throw error;
-      return (data ?? []).map((row) => row.product_id);
+      return (data ?? []).map((row) => ({ product_id: row.product_id, status: row.status as "implantacao" | "suporte" | "consultoria" }));
     },
   });
 
@@ -118,7 +120,7 @@ function ClientesPage() {
     queryKey: ["client-products-edit", form?.id],
     enabled: !!form?.id,
     queryFn: async () => {
-      const { data, error } = await supabase.from("client_products").select("product_id").eq("client_id", form!.id!);
+      const { data, error } = await supabase.from("client_products").select("product_id, status").eq("client_id", form!.id!);
       if (error) throw error;
       return (data ?? []).map((row) => row.product_id);
     },
@@ -188,7 +190,7 @@ function ClientesPage() {
         const preserved = Object.fromEntries(
           Object.entries(dados).filter(([, value]) => value !== null && value !== undefined && value !== ""),
         );
-        return { ...current, ...preserved, product_ids: current.product_ids };
+        return { ...current, ...preserved, product_ids: current.product_ids, product_statuses: current.product_statuses };
       });
       toast.success("Dados da Receita carregados.");
     },
@@ -223,7 +225,7 @@ function ClientesPage() {
         if (clearProductsError) throw clearProductsError;
         if (values.product_ids.length > 0) {
           const { error: productLinksError } = await supabase.from("client_products").insert(
-            values.product_ids.map((product_id) => ({ client_id: values.id!, product_id })),
+            values.product_ids.map((product_id) => ({ client_id: values.id!, product_id, status: values.product_statuses[product_id] ?? "implantacao" })),
           );
           if (productLinksError) throw productLinksError;
         }
@@ -235,7 +237,7 @@ function ClientesPage() {
       if (error) throw error;
       if (values.product_ids.length > 0 && createdClient) {
         const { error: productLinksError } = await supabase.from("client_products").insert(
-          values.product_ids.map((product_id) => ({ client_id: createdClient.id, product_id })),
+          values.product_ids.map((product_id) => ({ client_id: createdClient.id, product_id, status: values.product_statuses[product_id] ?? "implantacao" })),
         );
         if (productLinksError) throw productLinksError;
       }
@@ -250,8 +252,10 @@ function ClientesPage() {
 
   useEffect(() => {
     if (!form?.id || !clientProductsEditQuery.data) return;
-    if (JSON.stringify(form.product_ids) !== JSON.stringify(clientProductsEditQuery.data)) {
-      setForm({ ...form, product_ids: clientProductsEditQuery.data });
+    const ids = clientProductsEditQuery.data.map((row) => row.product_id);
+    const statuses = Object.fromEntries(clientProductsEditQuery.data.map((row) => [row.product_id, row.status]));
+    if (JSON.stringify(form.product_ids) !== JSON.stringify(ids) || JSON.stringify(form.product_statuses) !== JSON.stringify(statuses)) {
+      setForm({ ...form, product_ids: ids, product_statuses: statuses });
     }
   }, [clientProductsEditQuery.data, form]);
 
@@ -336,6 +340,7 @@ function ClientesPage() {
                           id: client.id,
                           product_id: client.product_id ?? "",
                           product_ids: client.product_id ? [client.product_id] : [],
+                          product_statuses: {},
                           cnpj: client.cnpj ?? "",
                           razao_social: client.razao_social,
                           nome_fantasia: client.nome_fantasia ?? "",
@@ -414,19 +419,20 @@ function ClientesPage() {
                   <p className="mt-1 text-xs text-muted-foreground">Um cliente pode ter vários produtos simultaneamente. Estes produtos ficam disponíveis como origem dos novos projetos.</p>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     {(productsQuery.data ?? []).map((product) => {
-                      const checked = clientProductsQuery.data?.includes(product.id) ?? false;
+                      const currentProduct = clientProductsQuery.data?.find((row) => row.product_id === product.id);
+                      const checked = !!currentProduct;
                       return (
                         <label key={product.id} className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm">
                           <input type="checkbox" checked={checked} onChange={async (e) => {
                             if (!detalhe) return;
                             const next = e.target.checked
-                              ? [...new Set([...(clientProductsQuery.data ?? []), product.id])]
-                              : (clientProductsQuery.data ?? []).filter((id) => id !== product.id);
+                              ? [...new Set([...(clientProductsQuery.data ?? []).map((row) => row.product_id), product.id])]
+                              : (clientProductsQuery.data ?? []).map((row) => row.product_id).filter((id) => id !== product.id);
                             const { error } = e.target.checked
-                              ? await supabase.from("client_products").upsert({ client_id: detalhe, product_id: product.id })
+                              ? await supabase.from("client_products").upsert({ client_id: detalhe, product_id: product.id, status: currentProduct?.status ?? "implantacao" }, { onConflict: "client_id,product_id" })
                               : await supabase.from("client_products").delete().eq("client_id", detalhe).eq("product_id", product.id);
                             if (error) { toast.error("Não foi possível atualizar os produtos."); return; }
-                            queryClient.setQueryData(["client-products", detalhe], next);
+                            queryClient.setQueryData(["client-products", detalhe], next.map((product_id) => ({ product_id, status: product_id === product.id ? (currentProduct?.status ?? "implantacao") : (clientProductsQuery.data?.find((row) => row.product_id === product_id)?.status ?? "implantacao") })));
                             queryClient.invalidateQueries({ queryKey: ["clients"] });
                           }} />
                           {product.name}
@@ -624,7 +630,8 @@ function ClientesPage() {
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {(productsQuery.data ?? []).map((product) => {
                         const checked = form.product_ids.includes(product.id);
-                        return <label key={product.id} className="flex items-center gap-2 rounded-md border p-3 text-sm"><input type="checkbox" checked={checked} onChange={(e) => setForm({ ...form, product_ids: e.target.checked ? [...new Set([...form.product_ids, product.id])] : form.product_ids.filter((id) => id !== product.id) })} />{product.name}</label>;
+                        const status = form.product_statuses[product.id] ?? "implantacao";
+                        return <div key={product.id} className="flex items-center gap-2 rounded-md border p-3 text-sm"><input type="checkbox" checked={checked} onChange={(e) => setForm({ ...form, product_ids: e.target.checked ? [...new Set([...form.product_ids, product.id])] : form.product_ids.filter((id) => id !== product.id) })} />{product.name}{checked ? <Select value={currentProduct?.status ?? "implantacao"} onValueChange={async (value: "implantacao" | "suporte" | "consultoria") => { if (!detalhe) return; const { error } = await supabase.from("client_products").update({ status: value }).eq("client_id", detalhe).eq("product_id", product.id); if (error) { toast.error("Não foi possível atualizar a situação do produto."); return; } queryClient.setQueryData(["client-products", detalhe], (rows = []) => rows.map((row: { product_id: string; status: "implantacao" | "suporte" | "consultoria" }) => row.product_id === product.id ? { ...row, status: value } : row)); }}><SelectTrigger className="ml-auto w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="implantacao">Em Implantação</SelectItem><SelectItem value="suporte">Em Suporte</SelectItem><SelectItem value="consultoria">Consultoria</SelectItem></SelectContent></Select> : null}</label>;
                       })}
                     </div>
                   </div>
