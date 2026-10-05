@@ -633,7 +633,7 @@ function ProjetosPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Tipo do projeto</Label>
-                  <Select value={form.project_type} onValueChange={(value: ProjectForm["project_type"]) => setForm({ ...form, project_type: value, documentation_scope: value === "consultoria" ? "diario" : form.documentation_scope })}>
+                  <Select value={form.project_type} onValueChange={(value: ProjectForm["project_type"]) => setForm({ ...form, project_type: value })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="implantacao">Implantação</SelectItem>
