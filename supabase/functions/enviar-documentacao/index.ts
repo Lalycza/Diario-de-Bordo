@@ -73,7 +73,7 @@ Deno.serve(async(req)=>{
   try{
     const body=await req.json(),projectId=clean(body.projectId);
     const documentTypes=(Array.isArray(body.documentTypes)?body.documentTypes:[]).filter((x:string):x is DocType=>["mapa","cronograma","diario"].includes(x));
-    const contactIds=Array.isArray(body.contactIds)?body.contactIds.map(clean).filter(Boolean):[];
+    const contactIds=[...new Set(Array.isArray(body.contactIds)?body.contactIds.map(clean).filter(Boolean):[])];
     if(!projectId||!documentTypes.length||!contactIds.length)return json({ok:false,message:"Projeto, documentos e contatos são obrigatórios."},400);
     const authHeader=req.headers.get("Authorization")||"";
     const userClient=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:authHeader}}});
@@ -81,7 +81,7 @@ Deno.serve(async(req)=>{
     const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const {data:project,error:projectError}=await admin.from("projects").select("*").eq("id",projectId).single();if(projectError||!project)return json({ok:false,message:"Projeto não encontrado."},404);
     const {data:contacts,error:contactsError}=await admin.from("client_contacts").select("id,name,email,is_project_responsible,client_id").in("id",contactIds).eq("client_id",project.client_id).not("email","is",null);if(contactsError||!contacts?.length)return json({ok:false,message:"Nenhum contato válido foi encontrado para o cliente."},400);
-    const recipients=contacts.map(c=>c.email).filter(Boolean);
+    if(contacts.length!==contactIds.length)return json({ok:false,message:"Um ou mais contatos selecionados não pertencem ao cliente deste projeto."},400);\n    const recipients=contacts.map(c=>c.email).filter(Boolean);
     const {data:trainings}=await admin.from("trainings").select("*,module:modules!trainings_module_id_fkey(name),submodule:submodules!trainings_submodule_id_fkey(name)").eq("project_id",projectId).order("planned_date",{ascending:true});
     const {data:stages}=await admin.from("project_stages").select("*").eq("project_id",projectId).order("data_prevista",{ascending:true});
     const {data:logs}=await admin.from("log_entries").select("*").eq("project_id",projectId).order("data_reuniao",{ascending:false});
@@ -94,11 +94,11 @@ Deno.serve(async(req)=>{
     const emailBody=String(body.body??"").trim()||"Olá!\n\nSegue a documentação atualizada da implantação para acompanhamento.\n\nAtenciosamente,\nEquipe HPro";
     const apiKey=Deno.env.get("RESEND_API_KEY"),from=Deno.env.get("RESEND_FROM_EMAIL");if(!apiKey||!from)return json({ok:false,message:"Configuração de e-mail incompleta: RESEND_API_KEY/RESEND_FROM_EMAIL."},500);
     const now=new Date().toISOString();
-    const {data:emailRow,error:emailInsertError}=await admin.from("project_emails").insert({project_id:projectId,client_id:project.client_id,sent_at:now,recipients:recipients.join(", "),subject,body:emailBody,attachment_names:attachments.map(a=>a.filename).join(", "),sent_by:user.id,status:"sending",document_types:documentTypes,attachment_metadata:attachments.map(a=>({filename:a.filename}))}).select("id").single();if(emailInsertError)throw emailInsertError;
+    const {data:emailRow,error:emailInsertError}=await admin.from("project_emails").insert({project_id:projectId,client_id:project.client_id,sent_at:now,recipients:recipients.join(", "),subject,body:emailBody,attachment_names:attachments.map(a=>a.filename).join(", "),sent_by:user.id,status:"enviando",document_types:documentTypes,attachment_metadata:attachments.map(a=>({filename:a.filename}))}).select("id").single();if(emailInsertError)throw emailInsertError;
     const resend=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},body:JSON.stringify({from,to:recipients,subject,text:emailBody,attachments})});
     const resendJson=await resend.json().catch(()=>({}));
-    if(!resend.ok){await admin.from("project_emails").update({status:"error",error_message:JSON.stringify(resendJson),sent_at:new Date().toISOString()}).eq("id",emailRow.id);return json({ok:false,message:"O provedor de e-mail recusou o envio.",error:resendJson},502)}
-    await admin.from("project_emails").update({status:"sent",provider_message_id:resendJson?.id??null}).eq("id",emailRow.id);
+    if(!resend.ok){await admin.from("project_emails").update({status:"falhou",error_message:JSON.stringify(resendJson),sent_at:new Date().toISOString()}).eq("id",emailRow.id);return json({ok:false,message:"O provedor de e-mail recusou o envio.",error:resendJson},502)}
+    await admin.from("project_emails").update({status:"enviado",provider_message_id:resendJson?.id??null}).eq("id",emailRow.id);
     for(const type of documentTypes)await admin.from("project_documentation_status").update({sent_at:now,sent_email_id:emailRow.id}).eq("project_id",projectId).eq("document_type",type);
     return json({ok:true,emailId:emailRow.id,attachments:attachments.map(a=>a.filename)});
   }catch(e){return json({ok:false,message:e instanceof Error?e.message:"Falha ao gerar/enviar a documentação."},500)}
