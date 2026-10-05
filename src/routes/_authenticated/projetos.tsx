@@ -132,7 +132,9 @@ function ProjetosPage() {
       email_cliente: client.email ?? "",
       product_id: selectedProductId,
       project_type: linkedType,
-      documentation_scope: linkedType === "consultoria" ? "diario" : "all",
+      // Consultoria define o tipo do projeto, mas não força o escopo documental.
+      // O padrão continua sendo Mapa + Cronograma + Diário; o usuário decide se
+      // quer trabalhar somente com o Diário.
     });
     window.history.replaceState({}, "", "/projetos");
   }, [clientsQuery.data, clientProductsQuery.data, form]);
@@ -221,9 +223,7 @@ function ProjetosPage() {
 
         if (productLink?.status) {
           authoritativeProjectType = productLink.status as ProjectForm["project_type"];
-          if (authoritativeProjectType === "consultoria") {
-            authoritativeDocumentationScope = "diario";
-          }
+          // Não alteramos o escopo documental automaticamente.
         }
       }
 
@@ -593,7 +593,7 @@ function ProjetosPage() {
                         const productId = (client?.product_id && links.some((link) => link.product_id === client.product_id))
                           ? client.product_id
                           : links[0]?.product_id ?? client?.product_id ?? current.product_id;
-                        return links.find((link) => link.product_id === productId)?.status === "consultoria" ? "diario" : "all";
+                        return current?.documentation_scope ?? "all";
                       })(),
                     } : current);
                   }}
@@ -651,7 +651,7 @@ function ProjetosPage() {
                       <SelectItem value="diario">Somente Diário</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Consultorias podem trabalhar somente com o Diário de Bordo.</p>
+                  <p className="text-xs text-muted-foreground">A consultoria não obriga o uso somente do Diário. Escolha aqui o escopo documental desejado para este projeto.</p>
                 </div>
               </div>
               <div className="space-y-1.5">
