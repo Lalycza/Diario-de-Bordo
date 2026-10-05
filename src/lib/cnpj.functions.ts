@@ -25,17 +25,39 @@ export const lookupCnpj = createServerFn({ method: "POST" })
     const cnpj = data.cnpj.replace(/\D/g, "");
     if (cnpj.length !== 14) throw new Error("Informe um CNPJ com 14 dígitos.");
 
-    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-    if (!response.ok) {
-      const body = await response.text();
-      console.error(`Consulta de CNPJ falhou [${response.status}]: ${body}`);
+    const endpoints = [
+      `https://brasilapi.com.br/cnpj/v1/${cnpj}`,
+      `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`,
+    ];
+
+    let response: Response | null = null;
+    let lastStatus = 0;
+
+    for (const url of endpoints) {
+      try {
+        const candidate = await fetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(10000),
+          cache: "no-store",
+        });
+        if (candidate.ok) {
+          response = candidate;
+          break;
+        }
+        lastStatus = candidate.status;
+      } catch {
+        // tenta o próximo endpoint
+      }
+    }
+
+    if (!response) {
       throw new Error(
-        response.status === 404
-          ? "CNPJ não encontrado na base da Receita."
+        lastStatus === 404
+          ? "CNPJ não encontrado na base de consulta."
           : "Não foi possível consultar o CNPJ agora. Tente novamente.",
       );
     }
-
     const j = (await response.json()) as Record<string, unknown>;
     const str = (key: string) => {
       const v = j[key];
