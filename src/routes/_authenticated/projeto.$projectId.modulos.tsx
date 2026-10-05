@@ -392,7 +392,7 @@ function ModulosPage() {
       )}
 
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-6xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {form?.id
