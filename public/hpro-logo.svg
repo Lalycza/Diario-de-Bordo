@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" role="img" aria-labelledby="title">
+<title id="title">HPro</title>
+<path d="M22 18h14v23h25V18h14v60H61V55H36v23H22z" fill="#111827"/>
+<path d="M94 18h31c18 0 29 9 29 24s-11 24-29 24h-17v12H94zm30 36c10 0 15-4 15-12s-5-12-15-12h-16v24z" fill="#111827"/>
+<text x="168" y="64" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="700" letter-spacing="1" fill="#111827">Pro</text>
+</svg>
