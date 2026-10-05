@@ -14,6 +14,14 @@ const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
 
+function closeOpenDialog() {
+  const content = document.querySelector<HTMLElement>('[data-radix-dialog-content]');
+  if (!content) return false;
+  const close = content.querySelector<HTMLButtonElement>('[data-dialog-close="true"]');
+  close?.click();
+  return Boolean(close);
+}
+
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -59,6 +67,13 @@ const DialogContent = React.forwardRef<
   </DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+    closeOpenDialog();
+  });
+}
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
