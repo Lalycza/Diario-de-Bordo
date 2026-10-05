@@ -1484,18 +1484,8 @@ async function syncClientToSupabase(c){
   for(const row of (existingClientProducts||[])) if(!selectedDbIds.has(String(row.product_id))){const {error:de}=await supabaseClient.from('client_products').delete().eq('client_id',data.id).eq('product_id',row.product_id);if(de)throw new Error('Remoção de produto do cliente: '+de.message);}
   for(const row of productRows){const {error:ue}=await supabaseClient.from('client_products').upsert({client_id:data.id,product_id:row.product_id,status:row.status,analyst_id:row.analyst_id||null},{onConflict:'client_id,product_id'});if(ue)throw new Error('Vínculo de produto do cliente: '+ue.message);}
   c.productIds=selectedLocalProductIds.map(v=>Number(v));
-  for(const ct of clientContacts(c)){
-    const cp={
-      legacy_id:localLegacy('contact',c.id+'-'+ct.id),
-      client_id:data.id,
-      name:ct.name||'',
-      email:ct.email||null,
-      phone:ct.phone||null,
-      is_project_responsible:!!ct.projectResponsible
-    };
-    const {error:ce}=await supabaseClient.from('client_contacts').upsert(cp,{onConflict:'legacy_id'});
-    if(ce) throw new Error('Contato do cliente '+c.name+': '+ce.message);
-  }
+  c.dbId=data.id;
+  await syncClientContactsToSupabase(c);
   return data.id;
 }
 async function saveClientForm(id){
@@ -1542,11 +1532,28 @@ async function saveClientForm(id){
 }
 async function syncClientContactsToSupabase(c){
  if(!c?.dbId)throw new Error('Cliente ainda não possui vínculo no Supabase.');
+ normalizeClient(c);
+ const contacts=clientContacts(c);
+ // A constraint do Supabase permite apenas um responsável por cliente.
+ // Primeiro gravamos todos como não responsáveis; só depois marcamos o escolhido.
+ // Isso evita conflito quando o responsável é trocado e a ordem do array local
+ // coloca o novo responsável antes do antigo.
+ let responsible=null;
+ for(const ct of contacts){
+   if(ct.projectResponsible&&!responsible) responsible=ct;
+   else ct.projectResponsible=false;
+ }
  const wanted=new Set();
- for(const ct of clientContacts(c)){
+ for(const ct of contacts){
   const legacyId=localLegacy('contact',c.id+'-'+ct.id);wanted.add(legacyId);
-  const {error}=await supabaseClient.from('client_contacts').upsert({legacy_id:legacyId,client_id:c.dbId,name:ct.name||'',email:ct.email||null,phone:ct.phone||null,is_project_responsible:!!ct.projectResponsible},{onConflict:'legacy_id'});
+  const payload={legacy_id:legacyId,client_id:c.dbId,name:ct.name||'',email:ct.email||null,phone:ct.phone||null,is_project_responsible:false};
+  const {error}=await supabaseClient.from('client_contacts').upsert(payload,{onConflict:'legacy_id'});
   if(error)throw error;
+ }
+ if(responsible){
+   const legacyId=localLegacy('contact',c.id+'-'+responsible.id);
+   const {error}=await supabaseClient.from('client_contacts').upsert({legacy_id:legacyId,client_id:c.dbId,name:responsible.name||'',email:responsible.email||null,phone:responsible.phone||null,is_project_responsible:true},{onConflict:'legacy_id'});
+   if(error)throw error;
  }
  const {data:rows,error}=await supabaseClient.from('client_contacts').select('id,legacy_id').eq('client_id',c.dbId);
  if(error)throw error;
