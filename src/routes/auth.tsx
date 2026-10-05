@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveProfileHomeRoute } from "@/lib/profile-home";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,10 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/projetos", replace: true });
+      if (data.user) {
+        const homeRoute = await resolveProfileHomeRoute();
+        window.location.replace(homeRoute);
+      }
     });
   }, [navigate]);
 
@@ -40,7 +44,8 @@ function AuthPage() {
         password: senha,
       });
       if (error) throw error;
-      await navigate({ to: "/projetos", replace: true });
+      const homeRoute = await resolveProfileHomeRoute();
+      window.location.replace(homeRoute);
     } catch (error) {
       console.error("[Login] Falha ao entrar:", error);
       toast.error(error instanceof Error ? error.message : "Não foi possível entrar.");
