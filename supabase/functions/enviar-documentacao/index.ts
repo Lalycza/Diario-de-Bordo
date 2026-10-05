@@ -20,7 +20,8 @@ const STATUS_STYLE: Record<string, { fill: ReturnType<typeof rgb>; text: ReturnT
   Homologado:{fill:rgb(0.92,0.87,0.98),text:rgb(0.45,0.20,0.65)},
   Atrasada:{fill:rgb(0.96,0.82,0.82),text:rgb(0.72,0.08,0.08)}
 };
-const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};\nconst json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json",...CORS}});
+const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json",...CORS}});
 const clean=(v:unknown)=>String(v??"").replace(/\s+/g," ").trim();
 const dateBR=(v:unknown)=>{if(!v)return "—";const p=String(v).slice(0,10).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:String(v)};
 const statusLabel=(v:unknown)=>{const s=clean(v);const m:Record<string,string>={nao_iniciada:"Pendente",em_andamento:"Em andamento",concluida:"Concluída",homologada:"Homologada",replanejada:"Replanejada",atrasada:"Atrasada",em_risco:"Atrasada",pendente:"Pendente"};return m[s]??s??"Pendente"};
@@ -81,7 +82,8 @@ Deno.serve(async(req)=>{
     const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const {data:project,error:projectError}=await admin.from("projects").select("*").eq("id",projectId).single();if(projectError||!project)return json({ok:false,message:"Projeto não encontrado."},404);
     const {data:contacts,error:contactsError}=await admin.from("client_contacts").select("id,name,email,is_project_responsible,client_id").in("id",contactIds).eq("client_id",project.client_id).not("email","is",null);if(contactsError||!contacts?.length)return json({ok:false,message:"Nenhum contato válido foi encontrado para o cliente."},400);
-    if(contacts.length!==contactIds.length)return json({ok:false,message:"Um ou mais contatos selecionados não pertencem ao cliente deste projeto."},400);\n    const recipients=contacts.map(c=>c.email).filter(Boolean);
+    if(contacts.length!==contactIds.length)return json({ok:false,message:"Um ou mais contatos selecionados não pertencem ao cliente deste projeto."},400);
+    const recipients=contacts.map(c=>c.email).filter(Boolean);
     const {data:trainings}=await admin.from("trainings").select("*,module:modules!trainings_module_id_fkey(name),submodule:submodules!trainings_submodule_id_fkey(name)").eq("project_id",projectId).order("planned_date",{ascending:true});
     const {data:stages}=await admin.from("project_stages").select("*").eq("project_id",projectId).order("data_prevista",{ascending:true});
     const {data:logs}=await admin.from("log_entries").select("*").eq("project_id",projectId).order("data_reuniao",{ascending:false});
