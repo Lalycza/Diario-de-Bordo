@@ -418,6 +418,12 @@ function ProjetosPage() {
                     {project.descricao ? (
                       <p className="mt-0.5 text-sm text-muted-foreground">{project.descricao}</p>
                     ) : null}
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium">
+                        {project.project_type === "consultoria" ? "Consultoria" : project.project_type === "suporte" ? "Suporte" : "Implantação"}
+                      </span>
+                      {project.documentation_scope === "diario" ? <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">Somente Diário</span> : null}
+                    </div>
                   </div>
                   <div className="flex gap-1">
                     <Button
