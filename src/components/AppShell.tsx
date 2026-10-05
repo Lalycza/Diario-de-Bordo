@@ -165,6 +165,10 @@ export function AppShell({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAdmin, isSupervisor } = useRole();
+
+  function goHome() {
+    navigate({ to: "/projetos", replace: true });
+  }
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [open, setOpen] = useState<Record<MenuSection, boolean>>({
@@ -207,14 +211,10 @@ export function AppShell({
     <div className="min-h-screen bg-background">
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
-          <div className="flex h-16 items-center gap-2 border-b px-4">
-            <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <LayoutList className="size-5" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight">Gestão de Implantações</p>
-              <p className="truncate text-xs text-muted-foreground">HPro</p>
-            </div>
+          <div className="flex h-16 items-center border-b px-4">
+            <button type="button" onClick={goHome} className="flex w-full items-center rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial">
+              <img src="/favicon.ico" alt="HPro" className="h-10 w-auto object-contain" />
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3">
@@ -265,12 +265,9 @@ export function AppShell({
                 >
                   <Menu className="size-5" />
                 </Button>
-                <Link to="/projetos" className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                    <LayoutList className="size-4" />
-                  </span>
-                  <span className="text-sm font-semibold tracking-tight">Gestão de Implantações</span>
-                </Link>
+                <button type="button" onClick={goHome} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial">
+                  <img src="/favicon.ico" alt="HPro" className="h-9 w-auto object-contain" />
+                </button>
               </div>
 
               <div className="flex items-center gap-2">
@@ -292,15 +289,9 @@ export function AppShell({
               />
               <aside className="relative flex h-full w-[min(86vw,20rem)] flex-col border-r bg-card shadow-xl">
                 <div className="flex h-16 items-center justify-between border-b px-4">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                      <LayoutList className="size-5" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold">Gestão de Implantações</p>
-                      <p className="text-xs text-muted-foreground">HPro</p>
-                    </div>
-                  </div>
+                  <button type="button" onClick={goHome} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial">
+                    <img src="/favicon.ico" alt="HPro" className="h-10 w-auto object-contain" />
+                  </button>
                   <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
                     <X className="size-5" />
                   </Button>
