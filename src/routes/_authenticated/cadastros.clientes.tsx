@@ -468,10 +468,21 @@ function ClientesPage() {
             >
               <Tabs defaultValue="dados" className="w-full">
                 <TabsList>
-                <TabsTrigger value="emails">E-mails</TabsTrigger>
                   <TabsTrigger value="dados">Dados do cliente</TabsTrigger>
                   <TabsTrigger value="produto">Produto</TabsTrigger>
+                  <TabsTrigger value="emails">E-mails</TabsTrigger>
+                  <TabsTrigger value="produto">Produto</TabsTrigger>
                 </TabsList>
+                <TabsContent value="emails" className="space-y-3">
+                  {clientEmailsQuery.data?.length ? clientEmailsQuery.data.map((email) => (
+                    <article key={email.id} className="rounded-lg border p-3">
+                      <p className="text-sm font-medium">{email.subject ?? "Sem assunto"}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(email.sent_at)} · Para: {email.recipients ?? "—"}</p>
+                      {email.body ? <p className="mt-2 whitespace-pre-wrap text-xs">{email.body}</p> : null}
+                      {email.attachment_names ? <p className="mt-2 text-xs text-muted-foreground">Anexos: {email.attachment_names}</p> : null}
+                    </article>
+                  )) : <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Nenhum e-mail enviado para este cliente.</div>}
+                </TabsContent>
                 <TabsContent value="dados" className="space-y-3">
               <div className="flex items-end gap-2">
                 <div className="flex-1 space-y-1.5">
