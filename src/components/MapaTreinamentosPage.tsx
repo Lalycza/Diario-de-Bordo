@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProject } from "@/lib/useProject";
+import { registerDocumentationUpdate } from "@/lib/documentation";
 
 type PM={project_id:string;module_id:string;planned_training_date:string|null;module:{id:string;name:string}|null};
 type SM={id:string;module_id:string;name:string};
@@ -55,7 +56,7 @@ export function MapaTreinamentosPage(){
    const p={planned_date:planned||null,planned_month:planned?new Date(planned+"T12:00:00").getMonth()+1:null,planned_week:planned?Number(m.week):null,responsible:f.start||f.completion?"CLIENTE":"HPRO",status,realization_date:f.start||null,training_start_date:f.start||null,training_completion_date:f.completion||null,homologation_date:status==="Homologado"?f.homDate:null,homologation_responsible:status==="Homologado"?f.homBy:null};
    const{data:x,error:e}=await supabase.from("trainings").select("id").eq("project_id",projectId).eq("module_id",f.moduleId).eq("submodule_id",f.submoduleId).limit(1).maybeSingle();if(e)throw e;
    if(x){const{error}=await supabase.from("trainings").update(p).eq("id",x.id);if(error)throw error}else{const{error}=await supabase.from("trainings").insert({...p,project_id:projectId,module_id:f.moduleId,submodule_id:f.submoduleId,created_by:user.id});if(error)throw error}
- },onSuccess:()=>{inv();setForm(null);toast.success("Treinamento salvo.")},onError:e=>toast.error(e instanceof Error?e.message:"Não foi possível salvar.")});
+ },onSuccess:async()=>{inv();setForm(null);await Promise.all([registerDocumentationUpdate(projectId,"mapa"),registerDocumentationUpdate(projectId,"cronograma")]);toast.success("Treinamento salvo. Documentação marcada para envio.")},onError:e=>toast.error(e instanceof Error?e.message:"Não foi possível salvar.")});
  const del=useMutation({mutationFn:async(id:string)=>{const{error}=await supabase.from("trainings").delete().eq("id",id);if(error)throw error},onSuccess:inv});
  const openModule=(m:PM)=>{const t=(trs.data??[]).find(x=>x.module_id===m.module_id&&!x.submodule_id);const d=t?.planned_date||m.planned_training_date||"";const x=mw(d);setForm({kind:"module",moduleId:m.module_id,moduleName:m.module?.name||"Módulo",plannedDate:d,month:x.month,week:x.week,start:"",completion:"",homDate:"",homBy:"",status:t?.status||"Pendente",id:t?.id})};
  const openSub=(m:PM,s:SM)=>{const t=(trs.data??[]).find(x=>x.submodule_id===s.id);const main=(trs.data??[]).find(x=>x.module_id===m.module_id&&!x.submodule_id);const d=main?.planned_date||m.planned_training_date||"";setForm({kind:"submodule",moduleId:m.module_id,moduleName:m.module?.name||"Módulo",submoduleId:s.id,submoduleName:s.name,plannedDate:d,month:mw(d).month,week:mw(d).week,start:t?.training_start_date||t?.realization_date||"",completion:t?.training_completion_date||"",homDate:t?.homologation_date||"",homBy:t?.homologation_responsible||"",status:t?deriveStatus(t.training_start_date||t.realization_date||"",t.training_completion_date||"",t.homologation_date||"",t.homologation_responsible||""):"Pendente",id:t?.id})};
