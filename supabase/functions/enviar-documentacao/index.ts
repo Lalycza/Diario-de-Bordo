@@ -70,6 +70,7 @@ async function makePdf(type:DocType,project:any,rows:any[]){
 }
 
 Deno.serve(async(req)=>{
+  if(req.method==="OPTIONS")return new Response("ok",{status:200,headers:CORS});
   if(req.method!=="POST")return json({ok:false,message:"Método não permitido."},405);
   try{
     const body=await req.json(),projectId=clean(body.projectId);
@@ -79,6 +80,12 @@ Deno.serve(async(req)=>{
     const authHeader=req.headers.get("Authorization")||"";
     const userClient=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:authHeader}}});
     const {data:{user},error:userError}=await userClient.auth.getUser();if(userError||!user)return json({ok:false,message:"Sessão inválida."},401);
+    const {data:profile,error:profileError}=await userClient.from("profiles").select("role,active").eq("id",user.id).maybeSingle();
+    if(profileError||profile?.active===false)return json({ok:false,message:"Usuário sem acesso ativo."},403);
+    if(!["admin","supervisor"].includes(String(profile?.role||""))){
+      const {data:allowedProject,error:accessError}=await userClient.from("projects").select("id").eq("id",projectId).maybeSingle();
+      if(accessError||!allowedProject)return json({ok:false,message:"Você não possui acesso a este projeto."},403);
+    }
     const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const {data:project,error:projectError}=await admin.from("projects").select("*").eq("id",projectId).single();if(projectError||!project)return json({ok:false,message:"Projeto não encontrado."},404);
     const {data:contacts,error:contactsError}=await admin.from("client_contacts").select("id,name,email,is_project_responsible,client_id").in("id",contactIds).eq("client_id",project.client_id).not("email","is",null);if(contactsError||!contacts?.length)return json({ok:false,message:"Nenhum contato válido foi encontrado para o cliente."},400);
