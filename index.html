@@ -413,14 +413,15 @@ function moduleCronStatus(name,records){
  const started=relevant.filter(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(norm(t.status)));
  const ended=relevant.filter(t=>t.trainingEndDate||norm(t.status)==='CONCLUIDO'||norm(t.status)==='HOMOLOGADO');
  const homologated=relevant.filter(t=>t.homologationDate&&t.homologationResponsible||norm(t.status)==='HOMOLOGADO');
- const replanned=relevant.some(t=>t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate);
+ const explicitlyReplanned=relevant.some(t=>norm(t.status)==='REPLANEJADO');
+ const replanned=explicitlyReplanned||relevant.some(t=>t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate);
  const expected=moduleSubs.length||keys(relevant).size||relevant.length;
  const homCount=keys(homologated).size;
  const endCount=keys(ended).size;
  if(expected>0&&homCount>=expected)return 'HOMOLOGADO';
  if(expected>0&&endCount>=expected)return 'CONCLUÍDO';
- if(started.length)return 'EM ANDAMENTO';
  if(replanned)return 'REPLANEJADO';
+ if(started.length)return 'EM ANDAMENTO';
  return 'PENDENTE';
 }
 function moduleCronCell(name,records,month,week){
