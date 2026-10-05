@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useProject } from "@/lib/useProject";
+import { registerDocumentationUpdate } from "@/lib/documentation";
 
 export const Route = createFileRoute("/_authenticated/projeto/$projectId/diario")({
   head: () => ({
@@ -89,7 +90,7 @@ function DiarioPage() {
     },
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["logs", projectId] });
+  const invalidate = async () => { queryClient.invalidateQueries({ queryKey: ["logs", projectId] }); await registerDocumentationUpdate(projectId, "diario"); };
 
   const saveLog = useMutation({
     mutationFn: async (values: LogForm) => {
