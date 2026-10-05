@@ -474,11 +474,12 @@ async function syncTrainingToSupabase(obj,old){
  if(existingQ.error)throw existingQ.error;
  const changed=!!(old&&old.plannedDate&&obj.plannedDate&&old.plannedDate!==obj.plannedDate);
  const original=old?.plannedDateOriginal||existingQ.data?.original_planned_date||old?.plannedDate||obj.plannedDate||null;
+ const dbStatus={PENDENTE:'Pendente','EM ANDAMENTO':'Em andamento',REPLANEJADO:'Replanejado','CONCLUÍDO':'Concluído','HOMOLOGADO':'Homologado'}[(obj.status||'PENDENTE').toUpperCase()]||'Pendente';
  const payload={
    project_id:refs.projectId,module_id:refs.moduleId,submodule_id:refs.submoduleId||null,
    subject:null,planned_date:obj.plannedDate||null,planned_month:obj.month?cronMonths.indexOf(obj.month)+1:null,planned_week:obj.week||null,
    realization_date:obj.trainingStartDate||obj.trainingDate||null,training_start_date:obj.trainingStartDate||obj.trainingDate||null,
-   training_completion_date:obj.trainingEndDate||null,status:obj.status||'PENDENTE',responsible:obj.responsible||'HPRO',
+   training_completion_date:obj.trainingEndDate||null,status:dbStatus,responsible:obj.responsible||'HPRO',
    homologation_date:obj.homologationDate||null,homologation_responsible:obj.homologationResponsible||null,
    original_planned_date:original,
    rescheduled_date:changed?obj.plannedDate:(obj.plannedDate===old?.plannedDate?(old?.rescheduledDate||null):null),
@@ -490,6 +491,7 @@ async function syncTrainingToSupabase(obj,old){
    const {error}=await supabaseClient.from('trainings').update(payload).eq('id',existingQ.data.id);
    if(error)throw error;
  }else{
+   if(!refs.submoduleId)throw new Error('O treinamento original do módulo não foi encontrado. A atualização foi bloqueada para evitar criar um novo registro.');
    const {error}=await supabaseClient.from('trainings').insert({...payload,created_by:currentUser?.id||null});
    if(error)throw error;
  }
