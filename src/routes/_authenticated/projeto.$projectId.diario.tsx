@@ -282,7 +282,7 @@ function DiarioPage() {
       )}
 
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{form?.id ? "Editar registro" : "Novo registro"}</DialogTitle>
           </DialogHeader>
