@@ -56,6 +56,8 @@ type ProjectForm = {
   data_inicio: string;
   previsao_conclusao: string;
   data_entrega_original: string;
+  project_type: "implantacao" | "suporte" | "consultoria";
+  documentation_scope: "all" | "diario";
   fases: string[];
 };
 
@@ -71,6 +73,8 @@ const emptyForm: ProjectForm = {
   data_inicio: "",
   previsao_conclusao: "",
   data_entrega_original: "",
+  project_type: "implantacao",
+  documentation_scope: "all",
   fases: TEMPLATE_FASES.map((f) => f.fase),
 };
 
@@ -103,7 +107,7 @@ function ProjetosPage() {
   const clientProductsQuery = useQuery({
     queryKey: ["all-client-products-for-project"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("client_products").select("client_id, product_id");
+      const { data, error } = await supabase.from("client_products").select("client_id, product_id, status");
       if (error) throw error;
       return data ?? [];
     },
@@ -120,6 +124,8 @@ function ProjetosPage() {
       cliente: client.razao_social ?? client.nome_fantasia ?? "",
       email_cliente: client.email ?? "",
       product_id: (clientProductsQuery.data ?? []).find((link) => link.client_id === client.id)?.product_id ?? client.product_id ?? "",
+      project_type: ((clientProductsQuery.data ?? []).find((link) => link.client_id === client.id)?.status ?? "implantacao") as ProjectForm["project_type"],
+      documentation_scope: ((clientProductsQuery.data ?? []).find((link) => link.client_id === client.id)?.status === "consultoria" ? "diario" : "all") as ProjectForm["documentation_scope"],
     });
     window.history.replaceState({}, "", "/projetos");
   }, [clientsQuery.data, clientProductsQuery.data, form]);
@@ -189,6 +195,8 @@ function ProjetosPage() {
         coordenacao: values.coordenacao || null,
         email_cliente: values.email_cliente || null,
         product_id: effectiveProductId,
+        project_type: values.project_type,
+        documentation_scope: values.documentation_scope,
         data_inicio: values.data_inicio || null,
         previsao_conclusao: values.previsao_conclusao || null,
         data_entrega_original: values.data_entrega_original || null,
@@ -430,6 +438,8 @@ function ProjetosPage() {
                           data_inicio: project.data_inicio ?? "",
                           previsao_conclusao: project.previsao_conclusao ?? "",
                           data_entrega_original: project.data_entrega_original ?? "",
+                          project_type: (project.project_type ?? "implantacao") as ProjectForm["project_type"],
+                          documentation_scope: (project.documentation_scope ?? "all") as ProjectForm["documentation_scope"],
                           fases: [],
                         })
                       }
@@ -537,6 +547,8 @@ function ProjetosPage() {
                       cliente: client?.razao_social ?? client?.nome_fantasia ?? current.cliente,
                       email_cliente: client?.email ?? current.email_cliente,
                       product_id: client?.product_id ?? current.product_id,
+                      project_type: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.status ?? "implantacao") as ProjectForm["project_type"],
+                      documentation_scope: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.status === "consultoria" ? "diario" : "all") as ProjectForm["documentation_scope"],
                     } : current);
                   }}
                 >
@@ -551,7 +563,7 @@ function ProjetosPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">O produto cadastrado no cliente será levado automaticamente para o projeto.</p>
+                <p className="text-xs text-muted-foreground">O produto e o tipo de vínculo cadastrado no cliente são levados automaticamente para o projeto.</p>
               </div>
               <div className="space-y-1.5 rounded-lg border p-4">
                 <div className="flex items-center gap-2">
@@ -559,7 +571,11 @@ function ProjetosPage() {
                   <Label>Produto / sistema vinculado ao projeto (paliativo)</Label>
                 </div>
                 <p className="text-xs text-muted-foreground">Selecione o produto deste projeto entre os produtos vinculados ao cliente. O campo continua disponível como paliativo quando o cliente ainda não tiver produto cadastrado.</p>
-                <Select value={form.product_id || undefined} onValueChange={(value) => setForm((current) => current ? { ...current, product_id: value } : current)}>
+                <Select value={form.product_id || undefined} onValueChange={(value) => {
+                  const link = (clientProductsQuery.data ?? []).find((item) => item.client_id === form.client_id && item.product_id === value);
+                  const projectType = (link?.status ?? "implantacao") as ProjectForm["project_type"];
+                  setForm((current) => current ? { ...current, product_id: value, project_type: projectType, documentation_scope: projectType === "consultoria" ? "diario" : current.documentation_scope } : current);
+                }}>
                   <SelectTrigger className="w-full"><SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} /></SelectTrigger>
                   <SelectContent>
                     {((clientProductsQuery.data ?? []).some((link) => link.client_id === form.client_id)
@@ -567,6 +583,30 @@ function ProjetosPage() {
                       : (productsQuery.data ?? [])).map((product) => <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Tipo do projeto</Label>
+                  <Select value={form.project_type} onValueChange={(value: ProjectForm["project_type"]) => setForm({ ...form, project_type: value, documentation_scope: value === "consultoria" ? "diario" : form.documentation_scope })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="implantacao">Implantação</SelectItem>
+                      <SelectItem value="consultoria">Consultoria</SelectItem>
+                      <SelectItem value="suporte">Suporte</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Documentação do projeto</Label>
+                  <Select value={form.documentation_scope} onValueChange={(value: ProjectForm["documentation_scope"]) => setForm({ ...form, documentation_scope: value })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Mapa + Cronograma + Diário</SelectItem>
+                      <SelectItem value="diario">Somente Diário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Consultorias podem trabalhar somente com o Diário de Bordo.</p>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="descricao">Projeto / descrição</Label>
