@@ -106,6 +106,22 @@ export function GradeSemanas({ stages }: { stages: GradeStage[] }) {
     <section className="mb-6 overflow-hidden rounded-lg border bg-card">
       <header className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-4 py-3">
         <h2 className="text-sm font-semibold">Próximos passos · {trimestre + 1}° trimestre</h2>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {(["concluida", "em_andamento", "homologada", "nao_iniciada"] as StageStatus[]).map((key) => (
+            <span key={key} className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+              <span className={`h-2.5 w-5 rounded-sm ${
+                key === "concluida"
+                  ? "bg-green-100"
+                  : key === "em_andamento"
+                    ? "bg-yellow-100"
+                    : key === "homologada"
+                      ? "bg-purple-100"
+                      : "bg-red-100"
+              }`} />
+              {STAGE_STATUS[key].label}
+            </span>
+          ))}
+        </div>
         <div className="ml-auto flex items-center gap-1">
           {anos.length > 1
             ? anos.map((a) => (
@@ -168,13 +184,13 @@ export function GradeSemanas({ stages }: { stages: GradeStage[] }) {
                     const status = linha.marcas.get(`${m}-${i}`);
                     const statusStyle = status
                       ? {
-                          nao_iniciada: "bg-red-100 dark:bg-red-600",
-                          em_andamento: "bg-yellow-100 dark:bg-yellow-500",
-                          concluida: "bg-green-100 dark:bg-green-600",
+                          nao_iniciada: "bg-red-100 text-red-800",
+                          em_andamento: "bg-yellow-100 text-yellow-900",
+                          concluida: "bg-green-100 text-green-800",
                           atrasada: "bg-red-200 dark:bg-red-700",
                           em_risco: "bg-orange-200 dark:bg-orange-600",
                           replanejada: "bg-blue-100 dark:bg-blue-600",
-                          homologada: "bg-purple-100 dark:bg-purple-600",
+                          homologada: "bg-purple-100 text-purple-800",
                         }[status]
                       : "bg-muted dark:bg-muted/60";
                     return (
