@@ -365,7 +365,7 @@ function ClientesPage() {
       )}
 
       <Dialog open={detalhe !== null} onOpenChange={(open) => !open && setDetalhe(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[94vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[94vh] overflow-y-auto" onEscapeKeyDown={() => setDetalhe(null)}>
           <DialogHeader>
             <DialogTitle>{clienteDetalhe?.razao_social ?? "Cliente"}</DialogTitle>
             <DialogDescription>Cadastro, contatos, documentos e histórico de projetos deste cliente.</DialogDescription>
@@ -451,7 +451,7 @@ function ClientesPage() {
         </DialogContent>
       </Dialog>
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onEscapeKeyDown={() => setForm(null)}>
           <DialogHeader>
             <DialogTitle>{form?.id ? "Editar cliente" : "Novo cliente"}</DialogTitle>
             <DialogDescription>
