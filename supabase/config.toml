@@ -1,1 +1,3 @@
 project_id = "zdiuuiqtztommsjrihzs"
+[functions.enviar-documentacao]
+verify_jwt = true
