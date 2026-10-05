@@ -585,6 +585,33 @@ function planModuleDate(i){
   });
  setTimeout(()=>{let d=document.getElementById('modulePlannedDate'),month=document.getElementById('moduleMonth'),week=document.getElementById('moduleWeek');if(d)d.onchange=()=>{let x=monthWeekFromDate(d.value);if(month)month.value=x?.month||'';if(week)week.value=x?.week||''}},0);
 }
+async function removeModuleDate(i){
+ if(!canEdit())return;
+ const m=cur?.m?.[i];if(!m)return;
+ const meta=m[2]||{};
+ const plannedDate=getModulePlannedDate(i);
+ if(!plannedDate)return;
+ if(!confirm('Remover a previsão de treinamento de '+m[0]+'?\n\nApenas a data de planejamento do módulo será removida. O módulo e os submódulos continuarão cadastrados.'))return;
+ const moduleName=m[0];
+ try{
+   if(supabaseSession&&cur?.dbId){
+     const refs=await resolveTrainingRefs(moduleName,'');
+     if(refs){
+       const {error:te}=await supabaseClient.from('trainings').delete().eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
+       if(te)throw te;
+       const {error:pm}=await supabaseClient.from('project_modules').update({planned_training_date:null}).eq('project_id',refs.projectId).eq('module_id',refs.moduleId);
+       if(pm)throw pm;
+       const {error:st}=await supabaseClient.from('project_stages').update({data_prevista:null,data_prevista_original:null}).eq('project_id',refs.projectId).eq('modulo',moduleName);
+       if(st)throw st;
+     }
+   }
+   m[2]={...(m[2]||{})};
+   delete m[2].plannedDate;delete m[2].plannedDateOriginal;delete m[2].month;delete m[2].week;
+   cur.t=(cur.t||[]).filter(t=>!(t.module===moduleName&&!t.submodule));
+   audit('Previsão removida','Data planejada do módulo '+moduleName+' removida.');
+   persistState();mapView();
+ }catch(e){console.error(e);alert('Não foi possível remover a previsão do módulo: '+(e?.message||e))}
+}
 function addTrainingForModule(i){planModuleDate(i)}
 function addTrainingForSub(i,j){if(!canEdit())return;openTaskModal();setTimeout(()=>{document.getElementById('taskModule').value=cur.m[i][0];document.getElementById('taskModule').onchange();document.getElementById('taskSubmodule').value=cur.m[i][1][j];let meta=cur.m[i][2]||{};document.getElementById('taskPlannedDate').value=meta.plannedDate||''},0)}
 function editTraining(i){if(!canEdit())return;openTaskModal(i)}
