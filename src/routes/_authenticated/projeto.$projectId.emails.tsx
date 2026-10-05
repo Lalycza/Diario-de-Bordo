@@ -4,6 +4,7 @@ import { Mail, Paperclip } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { ProjectHeader } from "@/components/ProjectTabs";
+import { DocumentationSendCard } from "@/components/DocumentationSendCard";
 import { useProject } from "@/lib/useProject";
 import { formatDate } from "@/lib/status";
 
@@ -27,6 +28,7 @@ function ProjectEmailsPage() {
   const rows = query.data ?? [];
   return <AppShell userLabel={user.email}>
     <ProjectHeader projectId={projectId} cliente={project.data?.cliente ?? "Projeto"} subtitle={project.data?.descricao} />
+    <DocumentationSendCard projectId={projectId} />
     <div className="mb-4 rounded-lg border bg-card p-4">
       <h2 className="flex items-center gap-2 text-sm font-semibold"><Mail className="size-4 text-primary" /> Histórico de e-mails</h2>
       <p className="mt-1 text-xs text-muted-foreground">Todos os envios feitos pela central de documentação ficam registrados aqui.</p>
