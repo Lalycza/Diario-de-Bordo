@@ -1,11 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, BookOpen, CalendarRange, LayoutGrid, ClipboardList } from "lucide-react";
+import { DocumentationSendCard } from "@/components/DocumentationSendCard";
+import { ArrowLeft, BookOpen, CalendarRange, LayoutGrid, ClipboardList, Mail, FileText } from "lucide-react";
 
 const tabs = [
   { to: "/projeto/$projectId/cronograma", label: "Cronograma", icon: CalendarRange },
   { to: "/projeto/$projectId/modulos", label: "Módulos", icon: LayoutGrid },
   { to: "/projeto/$projectId/diario", label: "Diário de bordo", icon: BookOpen },
   { to: "/projeto/$projectId/demandas", label: "Demandas", icon: ClipboardList },
+  { to: "/projeto/$projectId/documentos", label: "Documentos", icon: FileText },
+  { to: "/projeto/$projectId/emails", label: "E-mails", icon: Mail },
 ] as const;
 
 export function ProjectHeader({
@@ -46,6 +49,7 @@ export function ProjectHeader({
           </Link>
         ))}
       </nav>
+      <DocumentationSendCard projectId={projectId} compact />
     </div>
   );
 }
