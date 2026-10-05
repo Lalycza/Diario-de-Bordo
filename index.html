@@ -714,7 +714,7 @@ function emailsView(){
  const client=clientsData.find(c=>sameLegacyId(c.id,cur.clientId)||sameLegacyId(c.dbId,cur.clientId))||{};
  const contacts=clientContacts(client).filter(c=>c.email);
  const canSend=canEdit()&&cur?.dbId;
- const contactHtml=contacts.length?contacts.map((c,i)=>'<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #263247;border-radius:8px;margin:6px 0"><input type="checkbox" class="email-contact" value="'+escAttr(c.dbId||c.id)+'" '+(c.projectResponsible||i===0?'checked':'')+'><span><b>'+esc(c.name||'Contato')+'</b><br><span class="muted">'+esc(c.email)+'</span></span></label>').join(''):'<div class="empty">Nenhum contato com e-mail cadastrado para este cliente.</div>';
+ const contactHtml=contacts.length?contacts.map((c,i)=>'<label style="display:flex;align-items:flex-start;gap:8px;padding:10px;box-sizing:border-box;width:100%;max-width:100%;min-width:0;border:1px solid #263247;border-radius:8px;margin:6px 0;overflow:hidden"><input type="checkbox" class="email-contact" value="'+escAttr(c.dbId||c.id)+'" '+(c.projectResponsible||i===0?'checked':'')+'><span style="min-width:0;flex:1;overflow-wrap:anywhere;word-break:break-word"><b>'+esc(c.name||'Contato')+'</b><br><span class="muted" style="overflow-wrap:anywhere;word-break:break-word">'+esc(c.email)+'</span></span></label>').join(''):'<div class="empty">Nenhum contato com e-mail cadastrado para este cliente.</div>';
  const history=arr.length?arr.map(e=>'<div class="doc-card"><div class="row"><b>'+esc(e.subject||'')+'</b><span class="badge">'+esc(e.status||'Registrado')+'</span></div><div class="doc-meta">Para: '+esc(e.to||'')+' · '+esc(e.date||'')+'</div><p style="white-space:pre-wrap">'+esc(e.body||'')+'</p></div>').join(''):'<div class="empty">Nenhum e-mail enviado/registrado neste projeto.</div>';
  document.getElementById('emails').innerHTML=
  '<div class="top"><div><b>E-mails</b><p class="muted">Envie a documentação do projeto diretamente para os contatos do cliente e mantenha o histórico dos envios.</p></div><div><button class="secondary" onclick="pdfEmails()">📄 Ver / gerar PDF</button></div></div>'+
@@ -739,6 +739,9 @@ async function sendProjectDocumentation(){
  if(!docs.length)return alert('Selecione pelo menos um documento.');
  const contacts=[...document.querySelectorAll('.email-contact:checked')].map(x=>x.value).filter(Boolean);
  if(!contacts.length)return alert('Selecione pelo menos um contato.');
+ const selectedClient=clientsData.find(c=>sameLegacyId(c.id,cur.clientId)||sameLegacyId(c.dbId,cur.clientId))||{};
+ const unresolved=clientContacts(selectedClient).filter(c=>contacts.includes(String(c.id))&&!c.dbId);
+ if(unresolved.length)return alert('Um ou mais contatos ainda não foram sincronizados. Salve o cadastro do cliente antes de enviar o e-mail.');
  const subject=document.getElementById('sendEmailSubject')?.value.trim()||'Atualização da implantação — '+(cur.c||cur.n||'Projeto');
  const body=document.getElementById('sendEmailBody')?.value.trim()||'Olá!\\n\\nSegue a documentação atualizada da implantação para acompanhamento.\\n\\nAtenciosamente,\\nEquipe HPro';
  const btn=document.getElementById('sendDocumentationBtn');if(btn){btn.disabled=true;btn.textContent='Enviando...'}
@@ -1555,8 +1558,16 @@ async function syncClientContactsToSupabase(c){
    const {error}=await supabaseClient.from('client_contacts').upsert({legacy_id:legacyId,client_id:c.dbId,name:responsible.name||'',email:responsible.email||null,phone:responsible.phone||null,is_project_responsible:true},{onConflict:'legacy_id'});
    if(error)throw error;
  }
- const {data:rows,error}=await supabaseClient.from('client_contacts').select('id,legacy_id').eq('client_id',c.dbId);
+ const {data:rows,error}=await supabaseClient.from('client_contacts').select('id,legacy_id,name,email,phone,is_project_responsible').eq('client_id',c.dbId);
  if(error)throw error;
+ const byLegacy=new Map((rows||[]).map(row=>[String(row.legacy_id),row]));
+ for(const ct of contacts){
+   const row=byLegacy.get(localLegacy('contact',c.id+'-'+ct.id));
+   if(row){
+     ct.dbId=row.id;
+     ct.projectResponsible=!!row.is_project_responsible;
+   }
+ }
  for(const row of (rows||[]))if(row.legacy_id&&!wanted.has(row.legacy_id)){const {error:de}=await supabaseClient.from('client_contacts').delete().eq('id',row.id);if(de)throw de;}
 }
 function addClientContact(cid){if(!canEditClient(cid))return;openSimpleModal('Novo contato','<div class="task-form"><label>Nome</label><input id="ctName"><label>E-mail</label><input id="ctEmail" type="email"><label>Telefone</label><input id="ctPhone"><label><input type="checkbox" id="ctResponsible"> Responsável pelo projeto</label></div>',async()=>{let c=clientsData.find(x=>x.id===cid),name=document.getElementById('ctName').value.trim();if(!c||!name)return alert('Informe o nome.');normalizeClient(c);let ct={id:Date.now(),name,email:document.getElementById('ctEmail').value.trim(),phone:document.getElementById('ctPhone').value.trim(),projectResponsible:document.getElementById('ctResponsible').checked};if(ct.projectResponsible)c.contacts.forEach(x=>x.projectResponsible=false);c.contacts.push(ct);persistState();try{await syncClientContactsToSupabase(c)}catch(e){alert('Contato salvo localmente, mas não foi sincronizado no Supabase: '+(e.message||e))}closeModal();editClient(cid);clientModalTab('contacts')})}
