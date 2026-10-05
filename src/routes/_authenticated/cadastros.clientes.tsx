@@ -370,7 +370,7 @@ function ClientesPage() {
       )}
 
       <Dialog open={detalhe !== null} onOpenChange={(open) => !open && setDetalhe(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[94vh] overflow-y-auto" onEscapeKeyDown={() => setDetalhe(null)}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[94vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{clienteDetalhe?.razao_social ?? "Cliente"}</DialogTitle>
             <DialogDescription>Cadastro, contatos, documentos e histórico de projetos deste cliente.</DialogDescription>
@@ -460,7 +460,7 @@ function ClientesPage() {
                                 queryClient.invalidateQueries({ queryKey: ["clients"] });
                               }}
                             >
-                              <SelectTrigger className="w-40">
+                              <SelectTrigger className="w-44">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
