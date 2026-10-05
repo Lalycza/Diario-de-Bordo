@@ -31,6 +31,7 @@ type ProductMenuItem = {
 
 function MenuItems({
   canManage,
+  canViewDashboard,
   open,
   toggle,
   products,
@@ -38,6 +39,7 @@ function MenuItems({
   onNavigate,
 }: {
   canManage: boolean;
+  canViewDashboard: boolean;
   open: Record<MenuSection, boolean>;
   toggle: (section: MenuSection) => void;
   products: ProductMenuItem[];
@@ -164,7 +166,7 @@ export function AppShell({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, isSupervisor } = useRole();
+  const { isAdmin, isSupervisor, isCS } = useRole();
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -202,7 +204,7 @@ export function AppShell({
     setOpen((current) => ({ ...current, [section]: !current[section] }));
   }
 
-  const canManage = isAdmin || isSupervisor;
+  const canManage = isAdmin || isSupervisor;\n  const canViewDashboard = canManage || isCS;
 
   return (
     <div className="min-h-screen bg-background">
