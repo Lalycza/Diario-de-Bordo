@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/cadastros/usuarios")({
 });
 
 const ROLE_LABELS: Record<ManagedRole, string> = {
-  admin: "Administrador", supervisor: "Supervisor", analista: "Analista", operador: "Operador", comercial: "Comercial", cliente: "Cliente",
+  admin: "Administrador", supervisor: "Supervisor", analista: "Analista", operador: "Operador", cs: "CS", comercial: "Comercial", cliente: "Cliente",
 };
 
 function UsuariosPage() {
