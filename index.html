@@ -1358,10 +1358,19 @@ async function syncClientToSupabase(c){
   const selectedLocalProductIds=Array.from(new Set((c.productIds||[]).map(v=>String(v))));
   const productRows=[];
   if(selectedLocalProductIds.length){
-    const {data:productRowsDb,error:pe}=await supabaseClient.from('products').select('id,legacy_id').in('legacy_id',selectedLocalProductIds.map(v=>localLegacy('product',v)));
-    if(pe)throw new Error('Produtos do cliente: '+pe.message);
-    const productDbByLocal=new Map((productRowsDb||[]).map(v=>[String(localLegacy('product',v.legacy_id)),v.id]));
-    for(const localPid of selectedLocalProductIds){const dbPid=productDbByLocal.get(String(localPid));if(!dbPid)throw new Error('Produto não encontrado no Supabase: '+localPid);productRows.push({product_id:dbPid,status:c.productStatus?.[String(localPid)]||'implantacao'});}
+    for(const localPid of selectedLocalProductIds){
+      const localProduct=(productsData||[]).find(p=>String(p.id)===String(localPid));
+      let pq=supabaseClient.from('products').select('id,legacy_id,name').eq('legacy_id',localLegacy('product',localPid)).maybeSingle();
+      let {data:productDb,error:pe}=await pq;
+      if(pe)throw new Error('Produtos do cliente: '+pe.message);
+      if(!productDb&&localProduct?.name){
+        const fallback=await supabaseClient.from('products').select('id,legacy_id,name').eq('name',localProduct.name).eq('active',true).limit(1).maybeSingle();
+        if(fallback.error)throw new Error('Produtos do cliente: '+fallback.error.message);
+        productDb=fallback.data;
+      }
+      if(!productDb)throw new Error('Produto não encontrado no Supabase: '+localPid+(localProduct?.name?' ('+localProduct.name+')':''));
+      productRows.push({product_id:productDb.id,status:c.productStatus?.[String(localPid)]||'implantacao'});
+    }
   }
   const {data:existingClientProducts,error:existingCpError}=await supabaseClient.from('client_products').select('client_id,product_id').eq('client_id',data.id);
   if(existingCpError)throw new Error('Produtos vinculados ao cliente: '+existingCpError.message);
