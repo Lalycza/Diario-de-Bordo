@@ -41,10 +41,15 @@ async function makePdf(type:DocType,project:any,rows:any[]){
   let page=output.getPage(0);const {width,height}=page.getSize();const left=38,right=width-38;let y=Math.min(height-155,690);
   const drawText=(txt:string,x:number,yy:number,size=8,isBold=false,color=rgb(0.12,0.16,0.22))=>page.drawText(clean(txt),{x,y:yy,size,font:isBold?bold:font,color});
   const drawStatus=(txt:string,x:number,yy:number)=>{const st=STATUS_STYLE[txt]||{fill:rgb(0.93,0.93,0.93),text:rgb(0.2,0.2,0.2)};const w=Math.min(82,Math.max(48,txt.length*4.3+14));page.drawRectangle({x,y:yy-4,width:w,height:16,color:st.fill,borderColor:st.text,borderWidth:.5});drawText(txt,x+5,yy,6.5,true,st.text)};
+  const addTemplatePage = async () => {
+    const pages = await output.copyPages(template, [0]);
+    page = pages[0];
+    output.addPage(page);
+    y = height - 155;
+  };
   if(type==="diario"){
     const labels=["DATA DA REUNIÃO","HORÁRIO","ANALISTA IMPLANTADOR","PARTICIPANTES","PAUTA DO DIA","TAREFA CLIENTE","TAREFA HPRO","PRÓXIMO TREINAMENTO","OBSERVAÇÕES / OCORRÊNCIAS"];
-    for(const r of rows){if(y<95){page=output.addPage([width,height]);y=height-155}
-      page.drawRectangle({x:left,y:y-62,width:right-left,height:70,color:rgb(1,1,1),opacity:.90,borderColor:rgb(.75,.78,.82),borderWidth:.6});
+    for(const r of rows){if(y<95)await addTemplatePage();
       drawText(labels[0],left+8,y-6,6.5,true);drawText(dateBR(r.data_reuniao),left+8,y-17,8);
       drawText(labels[1],left+88,y-6,6.5,true);drawText(clean(r.hora_reuniao||"—"),left+88,y-17,8);
       drawText(labels[2],left+155,y-6,6.5,true);drawText(clean(r.analista||project.analista||"—"),left+155,y-17,8);
@@ -55,7 +60,7 @@ async function makePdf(type:DocType,project:any,rows:any[]){
     drawText(project.cliente||project.name||"Projeto",left,y+24,10,true);drawText(project.name||"",left,y+10,8);y-=4;
     const headers=type==="mapa"?["MÓDULO / SUBMÓDULO","PREVISÃO","INÍCIO","CONCLUSÃO","HOMOLOGAÇÃO","STATUS"]:["ETAPA / MÓDULO","INÍCIO","PREVISTO","CONCLUSÃO","STATUS"];
     drawText(headers.join("    "),left,y,6.5,true);y-=17;
-    for(const r of rows){if(y<60){page=output.addPage([width,height]);y=height-155}
+    for(const r of rows){if(y<60)await addTemplatePage();
       const cols=type==="mapa"?[clean(r.name),dateBR(r.planned_date),dateBR(r.start),dateBR(r.completion),dateBR(r.homologation)]:[clean(r.name),dateBR(r.start),dateBR(r.planned_date),dateBR(r.completion)];
       drawText(wrap(cols[0],34)[0],left,y,7);let x=type==="mapa"?left+190:left+265;for(let i=1;i<cols.length;i++){drawText(cols[i],x,y,6.5);x+=type==="mapa"?65:72}drawStatus(statusLabel(r.status),type==="mapa"?right-80:right-82,y-1);y-=23;
     }
