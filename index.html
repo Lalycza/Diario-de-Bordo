@@ -846,34 +846,27 @@ async function persistNewProjectToSupabase(p){
      analystProfileId=byEmail.data.id;ownerId=byEmail.data.id;
    }else{analystProfileId=profile.id;ownerId=profile.id;}
  }
- const payload={legacy_id:localLegacy('project',p.id),name:p.n||'Projeto sem nome',client_id:client.dbId,owner_id:ownerId,status:p.projectStatus||'Ativo',progress:0,start_date:p.startDate||null,delivery_date:p.endDate||null,original_delivery_date:p.originalEndDate||p.endDate||null,base_date:p.baseDate||null,finalized:false,project_type:p.projectType==='consultoria'?'consultoria':'implantacao',documentation_scope:p.projectType==='consultoria'?(p.documentationScope==='diario'?'diario':'all'):'all',created_by:currentUser.id};
- const {data:created,error}=await supabaseClient.from('projects').insert(payload).select('id').single();
- if(error)throw new Error('Projeto: '+error.message);
- p.dbId=created.id;
- const {error:ppe}=await supabaseClient.from('project_products').upsert({project_id:created.id,product_id:prod.id},{onConflict:'project_id,product_id'});
- if(ppe)throw new Error('Produto do projeto: '+ppe.message);
- if(analystProfileId){
-   const {error:ae}=await supabaseClient.from('project_analysts').upsert({project_id:created.id,profile_id:analystProfileId},{onConflict:'project_id,profile_id'});
-   if(ae)throw new Error('Responsável do projeto: '+ae.message);
- }
+ const moduleIds=[];
  for(const m of (p.m||[])){
    const localModule=modulesData.find(x=>x.name===m[0]);
    if(!localModule)continue;
    const moduleLegacy=localLegacy('module',localModule.id);
    const {data:dbModule,error:me}=await supabaseClient.from('modules').select('id').eq('legacy_id',moduleLegacy).maybeSingle();
    if(me)throw new Error('Módulo do projeto: '+me.message);
-   if(!dbModule?.id)continue;
-   const {error:pmError}=await supabaseClient.from('project_modules').upsert({project_id:created.id,module_id:dbModule.id,planned_training_date:null},{onConflict:'project_id,module_id'});
-   if(pmError)throw new Error('Módulos do projeto: '+pmError.message);
+   if(dbModule?.id)moduleIds.push(dbModule.id);
  }
- return created.id;
+ const payload={legacy_id:localLegacy('project',p.id),name:p.n||'Projeto sem nome',client_id:client.dbId,owner_id:ownerId,status:p.projectStatus||'Ativo',progress:0,start_date:p.startDate||null,delivery_date:p.endDate||null,original_delivery_date:p.originalEndDate||p.endDate||null,base_date:p.baseDate||null,finalized:false,project_type:p.projectType==='consultoria'?'consultoria':'implantacao',documentation_scope:p.projectType==='consultoria'?(p.documentationScope==='diario'?'diario':'all'):'all',created_by:currentUser.id};
+ const {data:createdId,error}=await supabaseClient.rpc('create_project_atomic',{p_payload:payload,p_product_id:prod.id,p_profile_id:analystProfileId,p_module_ids:moduleIds});
+ if(error)throw new Error('Criação do projeto: '+error.message);
+ if(!createdId)throw new Error('O Supabase não retornou o identificador do projeto criado.');
+ p.dbId=createdId;
+ return createdId;
 }
-async function saveNewProject(){if(!canEdit())return;let n=document.getElementById('newProjectName').value.trim(),client=document.getElementById('newProjectClient').value;if(!n)return alert('Informe o nome do projeto.');if(!client)return alert('Selecione o cliente.');let clientObj=clientsData.find(x=>x.name===client);let selectedProduct=document.getElementById('newProjectProduct')?.value||'';let productIds=selectedProduct?[Number(selectedProduct)]:[];if(!productIds.length)return alert('Selecione o produto do projeto.');let status=clientObj?.productStatus?.[String(productIds[0])]||'implantacao';if(status==='suporte')return alert('Este produto está em suporte e não pode abrir um novo projeto.');let projectType=status==='consultoria'?'consultoria':'implantacao';let documentationScope=projectType==='consultoria'?(document.getElementById('newProjectScope')?.value||'diario'):'all';let analystId=document.getElementById('newProjectAnalyst')?.value||'';let operatorIds=analystId?[analystId]:[];let p={id:Date.now(),n,c:client,clientId:clientObj?.id||null,productIds,operatorIds,owner:(usersData.find(x=>x.id===operatorIds[0])||currentUser).email,t:[],m:[],modulesInitialized:false,projectType,documentationScope,d:[],docs:[],emails:[],kickoff:{status:'Pendente',notes:''},handoff:{status:'Pendente',notes:''},pesquisa:{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'larissa@implanta.com',delivered:false,trained:false,accepted:false,observations:''},goLive:{},audit:[]};if(documentationScope==='all'){syncProjectMap(p);p.modulesInitialized=true;}else{p.m=[];p.modulesInitialized=true;}p.projectStatus='Ativo';p.lifecycleHistory=[{date:new Date().toISOString(),from:'',to:'Ativo',reason:'Projeto criado'}];
+async function saveNewProject(){if(!canEdit())return;let n=document.getElementById('newProjectName').value.trim(),client=document.getElementById('newProjectClient').value;if(!n)return alert('Informe o nome do projeto.');if(!client)return alert('Selecione o cliente.');let clientObj=clientsData.find(x=>x.name===client);let selectedProduct=document.getElementById('newProjectProduct')?.value||'';let productIds=selectedProduct?[Number(selectedProduct)]:[];if(!productIds.length)return alert('Selecione o produto do projeto.');let status=clientObj?.productStatus?.[String(productIds[0])]||'implantacao';if(status==='suporte')return alert('Este produto está em suporte e não pode abrir um novo projeto.');let projectType=status==='consultoria'?'consultoria':'implantacao';let documentationScope=projectType==='consultoria'?(document.getElementById('newProjectScope')?.value||'diario'):'all';let analystId=document.getElementById('newProjectAnalyst')?.value||'';let operatorIds=analystId?[analystId]:[];let p={id:Date.now(),n,c:client,clientId:clientObj?.id||null,productIds,operatorIds,owner:(usersData.find(x=>x.id===operatorIds[0])||currentUser).email,t:[],m:[],modulesInitialized:false,projectType,documentationScope,d:[],docs:[],emails:[],kickoff:{status:'Pendente',notes:''},handoff:{status:'Pendente',notes:''},pesquisa:{status:'Pendente',sentAt:'',returnedAt:'',goLiveConfirmation:{},comment:''},homologacao:{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'larissa@implanta.com',delivered:false,trained:false,accepted:false,observations:''},goLive:{},audit:[]};if(documentationScope==='all'){syncProjectMap(p);p.modulesInitialized=true;}else{p.m=[];p.modulesInitialized=true;}p.projectStatus='Ativo';p.lifecycleHistory=[{date:new Date().toISOString(),from:'',to:'Ativo',reason:'Projeto criado'}];
  document.getElementById('modalbox')?.querySelector('button.primary')?.setAttribute('disabled','disabled');
  try{await persistNewProjectToSupabase(p);ps.push(p);persistState();closeModal();render();openP(p.id);alert('Projeto criado e salvo no Supabase.');}
- catch(e){console.error(e);document.getElementById('modalbox')?.querySelector('button.primary')?.removeAttribute('disabled');alert('Não foi possível salvar o projeto no Supabase. A inclusão não foi finalizada.\\n\\nErro: '+(e.message||e));}
-}
-function editarProjeto(){
+ catch(e){console.error(e);document.getElementById('modalbox')?.querySelector('button.primary')?.removeAttribute('disabled');alert('Não foi possível salvar o projeto no Supabase. A inclusão não foi finalizada.\n\nErro: '+(e.message||e));}
+}function editarProjeto(){
  if(!canEdit()||!cur)return;
  let p=cur,analystOpts=usersData.filter(u=>u.role==='analyst').map(u=>'<option value="'+escAttr(u.id)+'" '+(String(p.operatorIds?.[0])===String(u.id)||p.owner===u.email?'selected':'')+'>'+esc(u.name)+'</option>').join('');
  let lifecycle=p.projectStatus||'Ativo',ptype=p.projectType||'implantacao',scope=p.documentationScope||'all';
