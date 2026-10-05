@@ -1218,7 +1218,40 @@ function importCatalogModules(){if(!hasAdminAccess())return;let opts=productsDat
 function importModulesToProduct(targetId){if(!hasAdminAccess())return;let target=productsData.find(p=>String(p.id)===String(targetId));if(!target)return;let opts=productsData.filter(p=>String(p.id)!==String(targetId)).map(p=>'<option value="'+escAttr(String(p.id))+'">'+esc(p.name)+'</option>').join('');if(!opts)return alert('Não há outro produto com módulos para importar.');openSimpleModal('Importar módulos para '+esc(target.name),'<label>Produto de origem</label><select id="singleImportSource">'+opts+'</select>',async()=>{let saveBtn=document.getElementById('simpleModalSave');if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Salvando...'}let sourceId=document.getElementById('singleImportSource')?.value;if(!sourceId){if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Salvar'}return alert('Selecione o produto de origem.')}try{let r=await cloneModules(sourceId,targetId);if(!r?.ok){alert('Não foi possível salvar os módulos: '+(r?.message||'erro desconhecido'));return}closeModal();renderProductMenu();refreshProductArea(targetId);renderUnifiedCatalog();alert('Módulos importados e salvos no Supabase.')}catch(e){console.error(e);alert('Não foi possível salvar os módulos: '+(e.message||e))}finally{if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Salvar'}}})}
 
 function clientProjectHistoryHtml(id){let arr=ps.filter(p=>p.clientId===id);let unlinked=ps;let linkBox=hasAdminAccess()?'<div class="card" style="margin-bottom:12px"><b>Vincular projeto existente</b><div class="row2" style="margin-top:8px"><select id="linkProjectSelect"><option value="">Selecione um projeto...</option>'+unlinked.map(p=>'<option value="'+p.id+'">'+esc(p.n)+(p.clientId?' · atualmente: '+esc(p.c):' · sem cliente')+'</option>').join('')+'</select><button class="primary" type="button" onclick="linkProjectToClient('+id+')">Vincular ao cliente</button></div></div>':'';let list=arr.length?arr.map(p=>{let analysts=usersData.filter(u=>u.role==='analyst');let opts=analysts.map(u=>'<option value="'+escAttr(u.email)+'" '+(p.owner===u.email?'selected':'')+'>'+esc(u.name)+'</option>').join('');let closed=p.homologacao?.status==='Homologado';return '<div class="card"><div class="top"><div><b>'+esc(p.n)+'</b><div class="muted">'+esc(p.c)+' · '+(closed?'Projeto encerrado':'Em implantação')+'</div></div><span class="badge">'+(p.docs||[]).length+' documento(s)</span></div><label>Analista responsável</label><select onchange="assignClientProjectAnalyst('+p.id+',this.value)" '+(hasAdminAccess()?'':'disabled')+'><option value="">Selecione</option>'+opts+'</select><div class="muted small">Histórico: '+(p.d||[]).length+' registro(s) de diário · Homologação: '+esc(p.homologacao?.status||'Pendente')+'</div><div style="margin-top:10px"><button class="secondary" onclick="openP('+p.id+')">Abrir projeto</button> <button class="secondary" onclick="openPDocs('+p.id+')">Consultar documentos</button></div></div>'}).join(''):'<div class="empty">Nenhum projeto vinculado a este cliente.</div>';return linkBox+list}
-async function linkProjectToClient(clientId){if(!hasAdminAccess())return;let sel=document.getElementById('linkProjectSelect');let projectId=sel?.value;if(!projectId)return alert('Selecione um projeto para vincular.');let p=ps.find(x=>sameLegacyId(x.id,projectId));if(!p)return;let c=clientsData.find(x=>sameLegacyId(x.id,clientId)||sameLegacyId(x.dbId,clientId));if(!c)return;p.clientId=c.id;p.clientDbId=c.dbId||null;p.c=c.name;persistState();renderClients();document.getElementById('modalbox').innerHTML=clientFormHtml(c,true);clientModalTab('history');try{if(supabaseSession&&p.dbId&&c.dbId){const {error}=await supabaseClient.from('projects').update({client_id:c.dbId}).eq('id',p.dbId);if(error)throw error;}alert('Projeto vinculado ao cliente com sucesso.')}catch(e){alert('O projeto foi vinculado na tela, mas não foi possível sincronizar o vínculo no Supabase: '+(e.message||e))}}
+async function linkProjectToClient(clientId){
+ if(!hasAdminAccess())return;
+ let sel=document.getElementById('linkProjectSelect'),projectId=sel?.value;
+ if(!projectId)return alert('Selecione um projeto para vincular.');
+ let p=ps.find(x=>sameLegacyId(x.id,projectId));
+ let c=clientsData.find(x=>sameLegacyId(x.id,clientId)||sameLegacyId(x.dbId,clientId));
+ if(!p||!c)return;
+ try{
+   if(supabaseSession){
+     if(!c.dbId){
+       const cq=await supabaseClient.from('clients').select('id').eq('legacy_id',localLegacy('client',c.id)).maybeSingle();
+       if(cq.error)throw cq.error;
+       c.dbId=cq.data?.id||null;
+     }
+     if(!p.dbId){
+       const pq=await supabaseClient.from('projects').select('id').eq('legacy_id',localLegacy('project',p.id)).maybeSingle();
+       if(pq.error)throw pq.error;
+       p.dbId=pq.data?.id||null;
+     }
+     if(!c.dbId)throw new Error('Cliente não possui ID no Supabase.');
+     if(!p.dbId)throw new Error('Projeto não possui ID no Supabase.');
+     const uq=await supabaseClient.from('projects').update({client_id:c.dbId}).eq('id',p.dbId).select('id,client_id').single();
+     if(uq.error)throw uq.error;
+     if(!uq.data||String(uq.data.client_id)!==String(c.dbId))throw new Error('O vínculo não foi confirmado no Supabase.');
+   }
+   p.clientId=c.id;p.clientDbId=c.dbId||null;p.c=c.name;
+   persistState();renderClients();
+   document.getElementById('modalbox').innerHTML=clientFormHtml(c,true);
+   clientModalTab('history');
+   alert('Projeto vinculado ao cliente com sucesso.');
+ }catch(e){
+   alert('Não foi possível confirmar o vínculo do projeto com o cliente: '+(e.message||e));
+ }
+}
 function assignClientProjectAnalyst(projectId,email){if(!hasAdminAccess())return;let p=ps.find(x=>x.id===projectId);if(!p)return;p.owner=email||p.owner;p.operatorIds=p.operatorIds||[];let u=usersData.find(x=>x.email===email);if(u&&!p.operatorIds.includes(u.id))p.operatorIds=[u.id];renderClients()}
 function openPDocs(id){let p=ps.find(x=>x.id===id);if(!p)return;cur=p;if(!canAccess(p)){alert('Você não tem acesso a este projeto.');return}homeSec(false);document.getElementById('title').textContent=p.n;document.getElementById('info').textContent=p.c+' · Responsável: '+p.owner;tab('docs')}
 function normalizeClient(c){c.contacts=Array.isArray(c.contacts)?c.contacts:((c.contact||c.email||c.phone)?[{id:Date.now(),name:c.contact||'',email:c.email||'',phone:c.phone||'',projectResponsible:true}]:[]);if(c.contacts.length&&!c.contacts.some(x=>x.projectResponsible))c.contacts[0].projectResponsible=true;c.documents=Array.isArray(c.documents)?c.documents:[];c.productIds=Array.isArray(c.productIds)?c.productIds:[];c.productStatus=(c.productStatus&&typeof c.productStatus==='object')?c.productStatus:{};c.productIds.forEach(id=>{if(!c.productStatus[String(id)])c.productStatus[String(id)]='implantacao'});return c}
@@ -1254,16 +1287,28 @@ async function changeProjectClient(pid,newId){
  let p=ps.find(x=>sameLegacyId(x.id,pid)),c=clientsData.find(x=>sameLegacyId(x.id,newId)||sameLegacyId(x.dbId,newId));
  if(!p||!c)return;
  if(!confirm('Alterar o cliente vinculado a este projeto para “'+c.name+'”?'))return;
- p.clientId=c.id;p.clientDbId=c.dbId||null;p.c=c.name;
- persistState();renderClients();
  try{
-   if(supabaseSession&&p.dbId&&c.dbId){
-     const {error}=await supabaseClient.from('projects').update({client_id:c.dbId}).eq('id',p.dbId);
-     if(error)throw error;
+   if(supabaseSession){
+     if(!c.dbId){
+       const cq=await supabaseClient.from('clients').select('id').eq('legacy_id',localLegacy('client',c.id)).maybeSingle();
+       if(cq.error)throw cq.error;
+       c.dbId=cq.data?.id||null;
+     }
+     if(!p.dbId){
+       const pq=await supabaseClient.from('projects').select('id').eq('legacy_id',localLegacy('project',p.id)).maybeSingle();
+       if(pq.error)throw pq.error;
+       p.dbId=pq.data?.id||null;
+     }
+     if(!c.dbId||!p.dbId)throw new Error('Cliente ou projeto não possui vínculo no Supabase.');
+     const uq=await supabaseClient.from('projects').update({client_id:c.dbId}).eq('id',p.dbId).select('id,client_id').single();
+     if(uq.error)throw uq.error;
+     if(!uq.data||String(uq.data.client_id)!==String(c.dbId))throw new Error('O vínculo não foi confirmado no Supabase.');
    }
+   p.clientId=c.id;p.clientDbId=c.dbId||null;p.c=c.name;
+   persistState();renderClients();
    alert('Vínculo do projeto atualizado e sincronizado.');
  }catch(e){
-   alert('O vínculo foi atualizado na tela, mas não foi possível sincronizar com o Supabase: '+(e.message||e));
+   alert('Não foi possível confirmar o vínculo no Supabase: '+(e.message||e));
  }
 }
 function clientDocumentsHtml(c,editable){normalizeClient(c);return (c.documents||[]).map((d,i)=>'<div class="client-doc-row"><div class="row"><b>'+esc(d.name)+'</b><span class="muted">'+esc(d.type||'PDF/Documento')+' · '+esc(d.date||'')+'</span></div><div style="margin-top:8px">'+(editable?'<button class="danger" onclick="deleteClientDoc('+c.id+','+i+')">Excluir</button>':'')+' <button class="secondary" onclick="downloadClientDoc('+c.id+','+i+')">Baixar</button></div></div>').join('')||'<div class="empty">Nenhum documento cadastrado.</div>'}
