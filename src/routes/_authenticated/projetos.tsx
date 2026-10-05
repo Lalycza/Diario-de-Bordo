@@ -620,7 +620,7 @@ function ProjetosPage() {
                 <Select value={form.product_id || undefined} onValueChange={(value) => {
                   const link = (clientProductsQuery.data ?? []).find((item) => item.client_id === form.client_id && item.product_id === value);
                   const projectType = (link?.status ?? "implantacao") as ProjectForm["project_type"];
-                  setForm((current) => current ? { ...current, product_id: value, project_type: projectType, documentation_scope: projectType === "consultoria" ? "diario" : current.documentation_scope } : current);
+                  setForm((current) => current ? { ...current, product_id: value, project_type: projectType } : current);
                 }}>
                   <SelectTrigger className="w-full"><SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} /></SelectTrigger>
                   <SelectContent>
