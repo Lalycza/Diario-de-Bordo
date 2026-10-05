@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type ManagedRole = "admin" | "supervisor" | "analista" | "operador" | "comercial" | "cliente";
+export type ManagedRole = "admin" | "supervisor" | "analista" | "operador" | "cs" | "comercial" | "cliente";
 
 const PROTECTED_ADMIN_EMAIL = "larissazonetti@outlook.com";
 
