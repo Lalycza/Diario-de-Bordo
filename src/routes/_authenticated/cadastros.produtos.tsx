@@ -351,7 +351,7 @@ function ProdutosPage() {
       </div>
 
       <Dialog open={productForm !== null} onOpenChange={(open) => !open && setProductForm(null)}>
-        <DialogContent>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{productForm?.id ? "Editar produto" : "Novo produto"}</DialogTitle>
             <DialogDescription>Sistema que será implantado nos clientes.</DialogDescription>
@@ -395,7 +395,7 @@ function ProdutosPage() {
       </Dialog>
 
       <Dialog open={moduleForm !== null} onOpenChange={(open) => !open && setModuleForm(null)}>
-        <DialogContent>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {moduleForm?.parent_id ? "Submódulo" : "Módulo"}
