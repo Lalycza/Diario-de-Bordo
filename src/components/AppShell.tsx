@@ -219,6 +219,7 @@ export function AppShell({
           <div className="flex-1 overflow-y-auto p-3">
             <MenuItems
               canManage={canManage}
+              canViewDashboard={canViewDashboard}
               open={open}
               toggle={toggle}
               products={productsQuery.data ?? []}
@@ -299,6 +300,7 @@ export function AppShell({
                 <div className="flex-1 overflow-y-auto p-3">
                   <MenuItems
                     canManage={canManage}
+                    canViewDashboard={canViewDashboard}
                     open={open}
                     toggle={toggle}
                     products={productsQuery.data ?? []}
