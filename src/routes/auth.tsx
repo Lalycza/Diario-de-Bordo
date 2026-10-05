@@ -22,13 +22,14 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
       if (data.user) {
         const homeRoute = await resolveProfileHomeRoute();
         window.location.replace(homeRoute);
       }
-    });
-  }, [navigate]);
+    })();
+  }, []);
 
   async function handleLogin() {
     if (!email.trim() || !senha) {
