@@ -20,7 +20,7 @@ const STATUS_STYLE: Record<string, { fill: ReturnType<typeof rgb>; text: ReturnT
   Homologado:{fill:rgb(0.92,0.87,0.98),text:rgb(0.45,0.20,0.65)},
   Atrasada:{fill:rgb(0.96,0.82,0.82),text:rgb(0.72,0.08,0.08)}
 };
-const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
+const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};\nconst json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json",...CORS}});
 const clean=(v:unknown)=>String(v??"").replace(/\s+/g," ").trim();
 const dateBR=(v:unknown)=>{if(!v)return "—";const p=String(v).slice(0,10).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:String(v)};
 const statusLabel=(v:unknown)=>{const s=clean(v);const m:Record<string,string>={nao_iniciada:"Pendente",em_andamento:"Em andamento",concluida:"Concluída",homologada:"Homologada",replanejada:"Replanejada",atrasada:"Atrasada",em_risco:"Atrasada",pendente:"Pendente"};return m[s]??s??"Pendente"};
