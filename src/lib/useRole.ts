@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "supervisor" | "analista" | "operador" | "comercial" | "cliente";
+export type AppRole = "admin" | "supervisor" | "analista" | "operador" | "cs" | "comercial" | "cliente";
 
 const PROTECTED_ADMIN_EMAIL = "larissazonetti@outlook.com";
 
@@ -33,9 +33,10 @@ export function useRole() {
     isSupervisor: roles.includes("supervisor"),
     isAnalista: roles.includes("analista"),
     isOperador: roles.includes("operador"),
+    isCS: roles.includes("cs"),
     isComercial: roles.includes("comercial"),
     isCliente: roles.includes("cliente"),
-    isConsultationOnly: roles.includes("operador") || roles.includes("cliente"),
+    isConsultationOnly: roles.includes("operador") || roles.includes("cs") || roles.includes("cliente"),
     isLoading: query.isLoading,
   };
 }
