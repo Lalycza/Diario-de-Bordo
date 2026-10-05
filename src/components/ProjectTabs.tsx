@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { DocumentationSendCard } from "@/components/DocumentationSendCard";
 import { ArrowLeft, BookOpen, CalendarRange, LayoutGrid, ClipboardList, Mail, FileText } from "lucide-react";
 
 const tabs = [
@@ -56,7 +55,6 @@ export function ProjectHeader({
           </Link>
         ))}
       </nav>
-      <DocumentationSendCard projectId={projectId} compact />
     </div>
   );
 }
