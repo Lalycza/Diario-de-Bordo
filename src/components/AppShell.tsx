@@ -166,12 +166,6 @@ export function AppShell({
   const queryClient = useQueryClient();
   const { isAdmin, isSupervisor } = useRole();
 
-  function goHome() {
-    // /projetos é a página inicial do aplicativo atual para todos os perfis.
-    // Administradores e Supervisores encontram o Dashboard no topo; demais perfis,
-    // seus projetos conforme as regras de acesso.
-    navigate({ to: "/projetos", replace: true });
-  }
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [open, setOpen] = useState<Record<MenuSection, boolean>>({
@@ -215,9 +209,9 @@ export function AppShell({
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
           <div className="flex h-16 items-center border-b px-4">
-            <button type="button" onClick={goHome} className="flex w-full items-center rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial">
-              <img src="/favicon.ico" alt="HPro" className="h-10 w-auto object-contain" />
-            </button>
+            <Link to="/projetos" className="flex w-full items-center rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+              <img src="/hpro-logo.svg" alt="HPro" className="h-10 w-auto object-contain" />
+            </Link>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3">
@@ -268,9 +262,9 @@ export function AppShell({
                 >
                   <Menu className="size-5" />
                 </Button>
-                <button type="button" onClick={goHome} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial">
-                  <img src="/favicon.ico" alt="HPro" className="h-9 w-auto object-contain" />
-                </button>
+                <Link to="/projetos" className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+                  <img src="/hpro-logo.svg" alt="HPro" className="h-9 w-auto object-contain" />
+                </Link>
               </div>
 
               <div className="flex items-center gap-2">
@@ -292,9 +286,9 @@ export function AppShell({
               />
               <aside className="relative flex h-full w-[min(86vw,20rem)] flex-col border-r bg-card shadow-xl">
                 <div className="flex h-16 items-center justify-between border-b px-4">
-                  <button type="button" onClick={goHome} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial">
-                    <img src="/favicon.ico" alt="HPro" className="h-10 w-auto object-contain" />
-                  </button>
+                  <Link to="/projetos" className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+                    <img src="/hpro-logo.svg" alt="HPro" className="h-10 w-auto object-contain" />
+                  </Link>
                   <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
                     <X className="size-5" />
                   </Button>
