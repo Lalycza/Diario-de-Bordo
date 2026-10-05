@@ -167,6 +167,9 @@ export function AppShell({
   const { isAdmin, isSupervisor } = useRole();
 
   function goHome() {
+    // /projetos é a página inicial do aplicativo atual para todos os perfis.
+    // Administradores e Supervisores encontram o Dashboard no topo; demais perfis,
+    // seus projetos conforme as regras de acesso.
     navigate({ to: "/projetos", replace: true });
   }
   const [mobileOpen, setMobileOpen] = useState(false);
