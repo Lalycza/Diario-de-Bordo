@@ -298,7 +298,7 @@ function DemandasPage() {
       </div>
 
       <Dialog open={Boolean(form)} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-6xl max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{form?.id ? "Editar demanda" : "Nova demanda"}</DialogTitle></DialogHeader>
           {form ? <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nº da OS"><Input value={form.os_number} onChange={e => setForm({...form,os_number:e.target.value})}/></Field>
@@ -326,7 +326,7 @@ function DemandasPage() {
       </Dialog>
 
       <Dialog open={Boolean(eventTarget)} onOpenChange={(open) => !open && setEventTarget(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader><DialogTitle>Nova inclusão · {eventTarget ? label(EVENTS,eventTarget.type) : ""}</DialogTitle></DialogHeader>
           {eventTarget ? <div className="space-y-4">
             <Field label="Data"><Input type="date" value={eventForm.occurred} onChange={e => setEventForm({...eventForm,occurred:e.target.value})}/></Field>
@@ -343,7 +343,7 @@ function DemandasPage() {
       </Dialog>
 
       <Dialog open={Boolean(historyId)} onOpenChange={(open) => !open && setHistoryId(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-5xl">
           <DialogHeader><DialogTitle>Histórico completo da demanda</DialogTitle></DialogHeader>
           <div className="max-h-[65vh] space-y-3 overflow-y-auto">
             {historyRows.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma ocorrência registrada.</p> : historyRows.map((h:any) => <div key={h.id} className="rounded-lg border p-3"><div className="font-medium">{h.event}</div><div className="text-xs text-muted-foreground">{fmtDate(h.occurred)} · registrado por {h.actor} · {fmtDateTime(h.changed_at)}</div>{h.details ? <div className="mt-2 whitespace-pre-wrap text-sm">{h.details}</div> : null}</div>)}
@@ -352,7 +352,7 @@ function DemandasPage() {
       </Dialog>
 
       <Dialog open={Boolean(attachmentsId)} onOpenChange={(open) => !open && setAttachmentsId(null)}>
-        <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Anexos da demanda</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-4xl"><DialogHeader><DialogTitle>Anexos da demanda</DialogTitle></DialogHeader>
           {attachmentsId ? <div className="space-y-4">
             {canEdit ? <div className="rounded-lg border border-dashed p-4"><Label>Anexar escopo / documento</Label><Input type="file" className="mt-2" onChange={async e => { const file=e.target.files?.[0]; if(!file)return; const path=attachmentsId+"/"+crypto.randomUUID()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_"); const up=await supabase.storage.from("demand-attachments").upload(path,file); if(up.error){toast.error("Não foi possível anexar o arquivo.");return;} const ins=await supabase.from("demand_attachments").insert({demand_id:attachmentsId,file_name:file.name,storage_path:path,mime_type:file.type||null,file_size:file.size,created_by:user.id}); if(ins.error){await supabase.storage.from("demand-attachments").remove([path]);toast.error("Não foi possível registrar o anexo.");return;} qc.invalidateQueries({queryKey:["demand-attachments",attachmentsId]}); e.currentTarget.value=""; toast.success("Anexo adicionado."); }}/></div> : null}
             <div className="space-y-2">{(attachmentsQuery.data??[]).length===0 ? <p className="text-sm text-muted-foreground">Nenhum anexo.</p> : (attachmentsQuery.data??[]).map((a:any)=><div key={a.id} className="flex items-center justify-between rounded border p-3"><span className="truncate font-medium">{a.file_name}</span><div className="flex gap-1"><Button variant="ghost" size="icon" onClick={async()=>{const r=await supabase.storage.from("demand-attachments").createSignedUrl(a.storage_path,300);if(r.data?.signedUrl)window.open(r.data.signedUrl,"_blank");}}><Download className="size-4"/></Button>{canEdit?<Button variant="ghost" size="icon" onClick={async()=>{await supabase.storage.from("demand-attachments").remove([a.storage_path]);await supabase.from("demand_attachments").delete().eq("id",a.id);qc.invalidateQueries({queryKey:["demand-attachments",attachmentsId]});}}><X className="size-4"/></Button>:null}</div></div>)}</div>
