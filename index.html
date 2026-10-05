@@ -541,7 +541,6 @@ async function saveTask(index){
    alert('Não foi possível salvar o treinamento no Supabase. O registro não foi alterado localmente.\n\n'+(e?.message||e));
  }
 }
-}
 async function delTask(i){
  if(!canEdit())return;
  if(!confirm('Excluir treinamento?'))return;
