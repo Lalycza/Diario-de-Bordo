@@ -470,8 +470,8 @@ function ClientesPage() {
                 <TabsList>
                   <TabsTrigger value="dados">Dados do cliente</TabsTrigger>
                   <TabsTrigger value="produto">Produto</TabsTrigger>
-                  <TabsTrigger value="emails">E-mails</TabsTrigger>
                   <TabsTrigger value="produto">Produto</TabsTrigger>
+                  <TabsTrigger value="emails">E-mails</TabsTrigger>
                 </TabsList>
                 <TabsContent value="emails" className="space-y-3">
                   {clientEmailsQuery.data?.length ? clientEmailsQuery.data.map((email) => (
