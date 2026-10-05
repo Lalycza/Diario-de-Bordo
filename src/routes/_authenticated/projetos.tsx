@@ -184,55 +184,44 @@ function ProjetosPage() {
 
   const saveProject = useMutation({
     mutationFn: async (values: ProjectForm) => {
-      const clientProductId = clientsQuery.data?.find((client) => client.id === values.client_id)?.product_id ?? null;
-      const effectiveProductId = values.product_id || clientProductId;
+      const currentProject = values.id
+        ? await supabase
+            .from("projects")
+            .select("client_id, product_id, cliente, descricao, responsavel, analista, coordenacao, email_cliente, data_inicio, previsao_conclusao, data_entrega_original, project_type, documentation_scope")
+            .eq("id", values.id)
+            .single()
+        : null;
+
+      if (currentProject?.error) throw currentProject.error;
+
+      // Em edição, o registro existente é a fonte da verdade. Nunca usamos
+      // defaults do cliente para substituir vínculos já salvos no projeto.
+      const existing = currentProject?.data;
+      const clientId = values.id ? (existing?.client_id ?? values.client_id ?? null) : (values.client_id || null);
+      const productId = values.id ? (existing?.product_id ?? values.product_id ?? null) : (values.product_id || null);
+
       const payload = {
-        client_id: values.client_id || null,
-        cliente: values.cliente,
+        client_id: clientId,
+        cliente: values.id ? (values.cliente || existing?.cliente || "") : values.cliente,
         descricao: values.descricao || null,
         responsavel: values.responsavel || null,
         analista: values.analista || null,
         coordenacao: values.coordenacao || null,
         email_cliente: values.email_cliente || null,
-        product_id: effectiveProductId,
+        product_id: productId,
         project_type: values.project_type,
         documentation_scope: values.documentation_scope,
         data_inicio: values.data_inicio || null,
         previsao_conclusao: values.previsao_conclusao || null,
         data_entrega_original: values.data_entrega_original || null,
       };
-      if (values.id) {
-        const { data: currentProject, error: currentError } = await supabase
-          .from("projects")
-          .select("product_id")
-          .eq("id", values.id)
-          .single();
-        if (currentError) throw currentError;
 
+      if (values.id) {
         const { error } = await supabase.from("projects").update(payload).eq("id", values.id);
         if (error) throw error;
 
-        if (currentProject.product_id !== effectiveProductId) {
-          const { error: clearError } = await supabase.from("project_modules").delete().eq("project_id", values.id);
-          if (clearError) throw clearError;
-
-          if (effectiveProductId) {
-            const { data: catalogModules, error: catalogError } = await supabase
-              .from("modules")
-              .select("id")
-              .eq("product_id", effectiveProductId)
-              .eq("active", true);
-            if (catalogError) throw catalogError;
-
-            const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
-            if (uniqueModuleIds.length > 0) {
-              const { error: linksError } = await supabase.from("project_modules").insert(
-                uniqueModuleIds.map((moduleId) => ({ project_id: values.id!, module_id: moduleId })),
-              );
-              if (linksError) throw linksError;
-            }
-          }
-        }
+        // Não recriamos nem apagamos project_modules durante uma simples
+        // edição do projeto. Os vínculos existentes são preservados.
         return;
       }
 
@@ -249,17 +238,21 @@ function ProjetosPage() {
 
       if (!created) return;
 
-      if (effectiveProductId) {
+      if (productId) {
         const { data: catalogModules, error: catalogError } = await supabase
-          .from("modules").select("id").eq("product_id", effectiveProductId).eq("active", true);
+          .from("modules")
+          .select("id")
+          .eq("product_id", productId)
+          .eq("active", true);
         if (catalogError) throw catalogError;
+
         const uniqueModuleIds = [...new Set((catalogModules ?? []).map((m) => m.id))];
         if (uniqueModuleIds.length > 0) {
           const { error: linksError } = await supabase.from("project_modules").upsert(
             uniqueModuleIds.map((moduleId) => ({ project_id: created.id, module_id: moduleId })),
             { onConflict: "project_id,module_id", ignoreDuplicates: true },
           );
-        if (linksError) throw linksError;
+          if (linksError) throw linksError;
         }
         return;
       }
@@ -291,7 +284,10 @@ function ProjetosPage() {
       setForm(null);
       toast.success("Projeto salvo.");
     },
-    onError: () => toast.error("Não foi possível salvar o projeto."),
+    onError: (error) => {
+      console.error("Erro ao salvar projeto:", error);
+      toast.error("Não foi possível salvar o projeto. Nenhuma informação existente foi substituída.");
+    },
   });
 
   const toggleArchive = useMutation({
@@ -434,8 +430,8 @@ function ProjetosPage() {
                         setForm({
                           id: project.id,
                           cliente: project.cliente,
-                          client_id: project.client_id ?? clientsQuery.data?.find((client) => client.razao_social === project.cliente)?.id ?? "",
-                          product_id: project.product_id ?? clientsQuery.data?.find((client) => client.id === (project.client_id ?? clientsQuery.data?.find((client) => client.razao_social === project.cliente)?.id))?.product_id ?? "",
+                          client_id: project.client_id ?? "",
+                          product_id: project.product_id ?? "",
                           descricao: project.descricao ?? "",
                           responsavel: project.responsavel ?? "",
                           analista: project.analista ?? "",
@@ -552,8 +548,8 @@ function ProjetosPage() {
                       client_id: value,
                       cliente: client?.razao_social ?? client?.nome_fantasia ?? current.cliente,
                       email_cliente: client?.email ?? current.email_cliente,
-                      product_id: client?.product_id ?? current.product_id,
-                      project_type: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.status ?? "implantacao") as ProjectForm["project_type"],
+                      product_id: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.product_id ?? client?.product_id ?? current.product_id),
+                      project_type: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value && link.product_id === ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.product_id ?? client?.product_id))?.status ?? "implantacao") as ProjectForm["project_type"],
                       documentation_scope: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.status === "consultoria" ? "diario" : "all") as ProjectForm["documentation_scope"],
                     } : current);
                   }}
