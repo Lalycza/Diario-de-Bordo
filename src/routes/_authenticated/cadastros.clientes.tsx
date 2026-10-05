@@ -435,7 +435,41 @@ function ClientesPage() {
                             queryClient.setQueryData(["client-products", detalhe], next.map((product_id) => ({ product_id, status: product_id === product.id ? (currentProduct?.status ?? "implantacao") : (clientProductsQuery.data?.find((row) => row.product_id === product_id)?.status ?? "implantacao") })));
                             queryClient.invalidateQueries({ queryKey: ["clients"] });
                           }} />
-                          {product.name}
+                          <span className="flex-1">{product.name}</span>
+                          {checked ? (
+                            <Select
+                              value={currentProduct?.status ?? "implantacao"}
+                              onValueChange={async (value: "implantacao" | "suporte" | "consultoria") => {
+                                if (!detalhe) return;
+                                const { error } = await supabase
+                                  .from("client_products")
+                                  .upsert(
+                                    { client_id: detalhe, product_id: product.id, status: value },
+                                    { onConflict: "client_id,product_id" },
+                                  );
+                                if (error) {
+                                  toast.error("Não foi possível atualizar a situação do produto.");
+                                  return;
+                                }
+                                queryClient.setQueryData(
+                                  ["client-products", detalhe],
+                                  (clientProductsQuery.data ?? []).map((row) =>
+                                    row.product_id === product.id ? { ...row, status: value } : row,
+                                  ),
+                                );
+                                queryClient.invalidateQueries({ queryKey: ["clients"] });
+                              }}
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="implantacao">Em Implantação</SelectItem>
+                                <SelectItem value="suporte">Em Suporte</SelectItem>
+                                <SelectItem value="consultoria">Consultoria</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : null}
                         </label>
                       );
                     })}
