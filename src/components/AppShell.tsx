@@ -15,7 +15,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -208,6 +208,12 @@ export function AppShell({
     navigate({ to: "/auth", replace: true });
   }
 
+  async function handleHomeClick(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    const target = canViewDashboard ? "/dashboard" : await resolveProfileHomeRoute();
+    window.location.assign(target);
+  }
+
   function toggle(section: MenuSection) {
     setOpen((current) => ({ ...current, [section]: !current[section] }));
   }
@@ -225,7 +231,7 @@ export function AppShell({
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
           <div className="flex h-16 items-center border-b px-4">
-            <a href={homeHref} className="flex w-full items-center rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+            <a href={homeHref} onClick={(event) => void handleHomeClick(event)} className="flex w-full items-center rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
               <img src="/hpro-logo.svg" alt="HPro" className="h-10 w-auto object-contain" />
             </a>
           </div>
@@ -279,7 +285,7 @@ export function AppShell({
                 >
                   <Menu className="size-5" />
                 </Button>
-                <a href={homeHref} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+                <a href={homeHref} onClick={(event) => void handleHomeClick(event)} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
                   <img src="/hpro-logo.svg" alt="HPro" className="h-9 w-auto object-contain" />
                 </a>
               </div>
@@ -303,7 +309,7 @@ export function AppShell({
               />
               <aside className="relative flex h-full w-[min(86vw,20rem)] flex-col border-r bg-card shadow-xl">
                 <div className="flex h-16 items-center justify-between border-b px-4">
-                  <a href={homeHref} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+                  <a href={homeHref} onClick={(event) => void handleHomeClick(event)} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
                     <img src="/hpro-logo.svg" alt="HPro" className="h-10 w-auto object-contain" />
                   </a>
                   <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
