@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useProject } from "@/lib/useProject";
 import { DocumentationSendCard } from "@/components/DocumentationSendCard";
 import { ArrowLeft, BookOpen, CalendarRange, LayoutGrid, ClipboardList, Mail, FileText } from "lucide-react";
 
@@ -20,6 +21,12 @@ export function ProjectHeader({
   cliente: string;
   subtitle?: string | null | undefined;
 }) {
+  const projectQuery = useProject(projectId);
+  const documentationScope = projectQuery.data?.documentation_scope ?? "all";
+  const visibleTabs = documentationScope === "diario"
+    ? tabs.filter((tab) => ["/projeto/$projectId/diario", "/projeto/$projectId/demandas", "/projeto/$projectId/documentos", "/projeto/$projectId/emails"].includes(tab.to))
+    : tabs;
+
   return (
     <div className="mb-6 space-y-4">
       <Link
@@ -33,7 +40,7 @@ export function ProjectHeader({
         {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
       </div>
       <nav className="flex flex-wrap gap-1 border-b">
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <Link
             key={tab.to}
             to={tab.to}
