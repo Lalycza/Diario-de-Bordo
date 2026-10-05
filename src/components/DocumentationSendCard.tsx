@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, FileText, Mail, RefreshCw, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,8 @@ export function DocumentationSendCard({ projectId, compact = false }: Props) {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const promptTimer = useRef<number | null>(null);
+  const lastPromptAt = useRef(0);
 
   const statusQuery = useQuery({
     queryKey: ["documentation-status", projectId],
@@ -77,7 +79,7 @@ export function DocumentationSendCard({ projectId, compact = false }: Props) {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Falha ao enviar."),
   });
 
-  const openComposer = () => {
+  const openComposer = useCallback(() => {
     const contacts = contactsQuery.data ?? [];
     const defaults = contacts.filter((c) => c.is_project_responsible || contacts.length === 1).map((c) => c.id);
     setSelectedDocs(DOCS.map((d) => d.id));
@@ -85,7 +87,27 @@ export function DocumentationSendCard({ projectId, compact = false }: Props) {
     setSubject(`Atualização da implantação — ${project.data?.cliente ?? "Projeto"}`);
     setBody("Olá!\n\nSegue a documentação atualizada da implantação para acompanhamento.\n\nAtenciosamente,\nEquipe HPro");
     setOpen(true);
-  };
+  }, [project.data?.cliente, contactsQuery.data]);
+
+  useEffect(() => {
+    const onDocumentationUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ projectId?: string }>).detail;
+      if (detail?.projectId !== projectId) return;
+      const now = Date.now();
+      if (now - lastPromptAt.current < 1000) return;
+      lastPromptAt.current = now;
+      if (promptTimer.current) window.clearTimeout(promptTimer.current);
+      promptTimer.current = window.setTimeout(() => {
+        openComposer();
+        toast.info("Documentação atualizada. Selecione os documentos e envie ao cliente quando estiver pronto.");
+      }, 150);
+    };
+    window.addEventListener("documentation:updated", onDocumentationUpdated);
+    return () => {
+      window.removeEventListener("documentation:updated", onDocumentationUpdated);
+      if (promptTimer.current) window.clearTimeout(promptTimer.current);
+    };
+  }, [openComposer, projectId]);
 
   return <>
     <section className={`rounded-lg border ${pending.length ? "border-warning bg-warning/10" : "bg-card"} p-4`}>
