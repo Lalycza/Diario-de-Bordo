@@ -204,11 +204,12 @@ async function hydrateFromSupabase(){
   if(window._dbHydrationPromise)return window._dbHydrationPromise;
   window._dbHydrationPromise=(async()=>{
   try{
-    const [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ,cd,pd]=await Promise.all([
+    const [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,profilesQ,cd,pd]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,city,state,legacy_id,status').order('created_at'),
+      supabaseClient.from('client_products').select('client_id,product_id,status,analyst_id'),
       supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope').order('created_at'),
       supabaseClient.from('project_products').select('project_id,product_id'),
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
@@ -218,12 +219,14 @@ async function hydrateFromSupabase(){
       supabaseClient.from('client_documents').select('id,client_id,name,storage_path,mime_type,size_bytes,description,uploaded_by,created_at').order('created_at',{ascending:false}),
       supabaseClient.from('project_documents').select('id,project_id,name,storage_path,mime_type,size_bytes,description,uploaded_by,created_at').order('created_at',{ascending:false})
     ]);
-    for(const q of [pr,mo,su,cl,pg,pp,pm,pa,tr,profilesQ,cd,pd])if(q.error)throw q.error;
+    for(const q of [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,profilesQ,cd,pd])if(q.error)throw q.error;
     const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
     const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
     const moduleByDb=new Map((mo.data||[]).map(x=>[x.id,lid(x.legacy_id,'module')]));
     const subByDb=new Map((su.data||[]).map(x=>[x.id,lid(x.legacy_id,'submodule')]));
     const clientByDb=new Map((cl.data||[]).map(x=>[x.id,lid(x.legacy_id,'client')]));
+    const clientProductsByDb=new Map();
+    for(const x of (cp.data||[])){const arr=clientProductsByDb.get(x.client_id)||[];arr.push(x);clientProductsByDb.set(x.client_id,arr);}
     const projectByDb=new Map((pg.data||[]).map(x=>[x.id,lid(x.legacy_id,'project')]));
     const projectDocsByDb=new Map();
     for(const d of (pd.data||[])){const arr=projectDocsByDb.get(d.project_id)||[];arr.push(d);projectDocsByDb.set(d.project_id,arr);}
@@ -258,7 +261,10 @@ async function hydrateFromSupabase(){
     clientsData=(cl.data||[]).map(x=>{
       const id=clientByDb.get(x.id);
       const old=oldClients.find(c=>String(c.id)===String(id));
-      return {...(old||{}),id,dbId:x.id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo',productIds:Array.isArray(old?.productIds)?old.productIds:[],documents:(clientDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description}))};
+      const linkedProducts=clientProductsByDb.get(x.id)||[];
+      const dbProductIds=linkedProducts.map(v=>productByDb.get(v.product_id)).filter(v=>v!=null);
+      const dbProductStatus={}; linkedProducts.forEach(v=>{const pid=productByDb.get(v.product_id);if(pid!=null)dbProductStatus[String(pid)]=v.status||'implantacao';});
+      return {...(old||{}),id,dbId:x.id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo',productIds:dbProductIds.length?dbProductIds:(Array.isArray(old?.productIds)?old.productIds:[]),productStatus:Object.keys(dbProductStatus).length?dbProductStatus:(old?.productStatus||{}),documents:(clientDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description}))};
     });
 
     const monthNames=cronMonths;
@@ -1349,6 +1355,20 @@ async function syncClientToSupabase(c){
   const {data,error}=await supabaseClient.from('clients').upsert(payload,{onConflict:'legacy_id'}).select('id,legacy_id').single();
   if(error) throw new Error('Cliente: '+error.message);
   c.dbId=data.id;
+  const selectedLocalProductIds=Array.from(new Set((c.productIds||[]).map(v=>String(v))));
+  const productRows=[];
+  if(selectedLocalProductIds.length){
+    const {data:productRowsDb,error:pe}=await supabaseClient.from('products').select('id,legacy_id').in('legacy_id',selectedLocalProductIds.map(v=>localLegacy('product',v)));
+    if(pe)throw new Error('Produtos do cliente: '+pe.message);
+    const productDbByLocal=new Map((productRowsDb||[]).map(v=>[String(localLegacy('product',v.legacy_id)),v.id]));
+    for(const localPid of selectedLocalProductIds){const dbPid=productDbByLocal.get(String(localPid));if(!dbPid)throw new Error('Produto não encontrado no Supabase: '+localPid);productRows.push({product_id:dbPid,status:c.productStatus?.[String(localPid)]||'implantacao'});}
+  }
+  const {data:existingClientProducts,error:existingCpError}=await supabaseClient.from('client_products').select('client_id,product_id').eq('client_id',data.id);
+  if(existingCpError)throw new Error('Produtos vinculados ao cliente: '+existingCpError.message);
+  const selectedDbIds=new Set(productRows.map(v=>String(v.product_id)));
+  for(const row of (existingClientProducts||[])) if(!selectedDbIds.has(String(row.product_id))){const {error:de}=await supabaseClient.from('client_products').delete().eq('client_id',data.id).eq('product_id',row.product_id);if(de)throw new Error('Remoção de produto do cliente: '+de.message);}
+  for(const row of productRows){const {error:ue}=await supabaseClient.from('client_products').upsert({client_id:data.id,product_id:row.product_id,status:row.status},{onConflict:'client_id,product_id'});if(ue)throw new Error('Vínculo de produto do cliente: '+ue.message);}
+  c.productIds=selectedLocalProductIds.map(v=>Number(v));
   for(const ct of clientContacts(c)){
     const cp={
       legacy_id:localLegacy('contact',c.id+'-'+ct.id),
@@ -1430,7 +1450,7 @@ async function downloadClientDoc(cid,i){
  const blob=new Blob([d.content||'Documento do cliente'],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(d.name||'documento').replace(/\s+/g,'_')+'.txt';a.click();URL.revokeObjectURL(a.href);
 }
 
-function renderClients(){let q=(document.getElementById('clientSearch')?.value||'').toLowerCase();let base=currentUser?.role==='client'?clientsData.filter(c=>sameLegacyId(c.id,currentUser.clientId)||sameLegacyId(c.dbId,currentUser.clientId)):clientsData;let arr=base.filter(c=>(c.name+' '+c.cnpj+' '+c.email+' '+(c.fantasy||'')+' '+(c.city||'')).toLowerCase().includes(q));document.getElementById('clientsBody').innerHTML=arr.map(c=>{normalizeClient(c);let count=clientProjectCount(c),r=clientResponsible(c);return '<div class="card"><div class="top"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.fantasy||'')+'</div></div><span class="badge">'+count+' projeto(s)</span></div><p class="muted">CNPJ: '+esc(c.cnpj||'não informado')+'<br>Responsável: '+esc(r.name||'não informado')+'<br>E-mail: '+esc(r.email||'não informado')+'<br>Telefone: '+esc(r.phone||'não informado')+'</p><button class="secondary" onclick="editClient('+JSON.stringify(c.id)+')">Abrir cadastro</button> <button class="secondary" onclick="lookupCnpj('+JSON.stringify(c.id)+')">Consultar CNPJ</button></div>'}).join('')||'<div class="card muted">Nenhum cliente encontrado.</div>'}
+function renderClients(){let q=(document.getElementById('clientSearch')?.value||'').toLowerCase();let base=currentUser?.role==='client'?clientsData.filter(c=>sameLegacyId(c.id,currentUser.clientId)||sameLegacyId(c.dbId,currentUser.clientId)):clientsData;let arr=base.filter(c=>(c.name+' '+c.cnpj+' '+c.email+' '+(c.fantasy||'')+' '+(c.city||'')).toLowerCase().includes(q));document.getElementById('clientsBody').innerHTML=arr.map(c=>{normalizeClient(c);let count=clientProjectCount(c),r=clientResponsible(c);const productCount=Array.isArray(c.productIds)?c.productIds.length:0;return '<div class="card"><div class="top"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.fantasy||'')+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><span class="badge">'+count+' projeto(s)</span><span class="badge">'+productCount+' produto(s)</span></div></div><p class="muted">CNPJ: '+esc(c.cnpj||'não informado')+'<br>Responsável: '+esc(r.name||'não informado')+'<br>E-mail: '+esc(r.email||'não informado')+'<br>Telefone: '+esc(r.phone||'não informado')+'</p><button class="secondary" onclick="editClient('+JSON.stringify(c.id)+')">Abrir cadastro</button> <button class="secondary" onclick="lookupCnpj('+JSON.stringify(c.id)+')">Consultar CNPJ</button></div>'}).join('')||'<div class="card muted">Nenhum cliente encontrado.</div>'}
 function fillClientFromCnpj(cnpj,formMode){return fillClientFromCnpjAsync(cnpj,formMode)}
 async function fillClientFromCnpjAsync(cnpj,formMode){let clean=(cnpj||'').replace(/\D/g,'');if(clean.length!==14)return false;let status=document.getElementById('cnpjStatus');if(status)status.textContent='Consultando dados cadastrais...';try{let r=await fetch('https://brasilapi.com.br/cnpj/v1/'+clean);if(!r.ok)throw new Error();let d=await r.json();if(formMode){let map={clientName:d.razao_social||d.nome_fantasia,clientFantasy:d.nome_fantasia,clientZip:d.cep,clientState:d.uf,clientAddress:d.logradouro,clientNumber:d.numero,clientComplement:d.complemento,clientNeighborhood:d.bairro,clientCity:d.municipio};Object.entries(map).forEach(([id,v])=>{let el=document.getElementById(id);if(el&&v)el.value=v});let ie=document.getElementById('clientIe');if(ie&&d.inscricao_estadual)ie.value=d.inscricao_estadual}else{let c=clientsData.find(x=>x.cnpj.replace(/\D/g,'')===clean);if(c){Object.assign(c,{name:d.razao_social||d.nome_fantasia||c.name,fantasy:d.nome_fantasia||c.fantasy,zip:d.cep||c.zip,state:d.uf||c.state,address:d.logradouro||c.address,number:d.numero||c.number,complement:d.complemento||c.complement,neighborhood:d.bairro||c.neighborhood,city:d.municipio||c.city});persistState();renderClients()}}if(status)status.textContent='Dados preenchidos pela consulta pública do CNPJ.';return true}catch(e){if(status)status.textContent='Não foi possível consultar o CNPJ agora.';return false}}
 function autoLookupClientCnpj(){let v=document.getElementById('clientCnpj')?.value||'';if(v.replace(/\D/g,'').length===14)fillClientFromCnpj(v,true)}
