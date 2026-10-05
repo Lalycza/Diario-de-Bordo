@@ -166,7 +166,17 @@ export function GradeSemanas({ stages }: { stages: GradeStage[] }) {
                 {meses.map((m) =>
                   SEMANAS.map((s, i) => {
                     const status = linha.marcas.get(`${m}-${i}`);
-                    const statusStyle = status ? STAGE_STATUS[status].className : "bg-muted";
+                    const statusStyle = status
+                      ? {
+                          nao_iniciada: "bg-red-100 dark:bg-red-600",
+                          em_andamento: "bg-yellow-100 dark:bg-yellow-500",
+                          concluida: "bg-green-100 dark:bg-green-600",
+                          atrasada: "bg-red-200 dark:bg-red-700",
+                          em_risco: "bg-orange-200 dark:bg-orange-600",
+                          replanejada: "bg-blue-100 dark:bg-blue-600",
+                          homologada: "bg-purple-100 dark:bg-purple-600",
+                        }[status]
+                      : "bg-muted dark:bg-muted/60";
                     return (
                       <td
                         key={`${linha.nome}-${m}-${s}`}
