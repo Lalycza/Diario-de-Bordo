@@ -707,8 +707,59 @@ function docsView(){let q=(document.getElementById('docSearch')?.value||'').toLo
 async function addDoc(){if(!canEdit())return;const p=ps.find(x=>String(x.id)===String(cur.id));if(!p?.dbId)return alert('Este projeto ainda não está vinculado ao banco.');const input=document.createElement('input');input.type='file';input.accept='*/*';input.onchange=async()=>{const file=input.files?.[0];if(!file)return;const desc=prompt('Descrição / observação do documento (opcional):','')??'';const safeName=(file.name||'arquivo').replace(/[^a-zA-Z0-9._-]+/g,'_');const path='projects/'+p.dbId+'/'+Date.now()+'_'+safeName;try{const up=await supabaseClient.storage.from('project-documents').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});if(up.error)throw up.error;const ins=await supabaseClient.from('project_documents').insert({project_id:p.dbId,name:file.name||safeName,storage_path:path,mime_type:file.type||null,size_bytes:file.size||null,description:desc||null,uploaded_by:currentUser?.id||null}).select('id,project_id,name,storage_path,mime_type,size_bytes,description,uploaded_by,created_at').single();if(ins.error){await supabaseClient.storage.from('project-documents').remove([path]);throw ins.error;}p.docs=p.docs||[];p.docs.unshift({id:ins.data.id,name:ins.data.name,type:ins.data.mime_type||'Arquivo',date:new Date(ins.data.created_at).toLocaleDateString('pt-BR'),storagePath:ins.data.storage_path,mimeType:ins.data.mime_type,size:ins.data.size_bytes,description:ins.data.description});persistState();docsView();}catch(e){console.error(e);alert('Não foi possível anexar o arquivo: '+(e?.message||'erro'));}};input.click()}
 async function downloadDoc(i){const d=(cur.docs||[])[i];if(!d)return;if(d.storagePath){const r=await supabaseClient.storage.from('project-documents').download(d.storagePath);if(r.error)return alert('Não foi possível baixar o arquivo: '+r.error.message);const a=document.createElement('a');a.href=URL.createObjectURL(r.data);a.download=d.name||'documento';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);return}const blob=new Blob([d.content||''],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(d.name||'documento')+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 async function delDoc(i){if(!canEdit())return;const p=ps.find(x=>String(x.id)===String(cur.id));const d=(p?.docs||[])[i];if(!d)return;if(!confirm('Excluir documento?'))return;try{if(d.id&&d.storagePath){const db=await supabaseClient.from('project_documents').delete().eq('id',d.id);if(db.error)throw db.error;const st=await supabaseClient.storage.from('project-documents').remove([d.storagePath]);if(st.error)throw st.error;}p.docs.splice(i,1);persistState();docsView();}catch(e){console.error(e);alert('Não foi possível excluir o documento: '+(e?.message||'erro'));}}
-function emailsView(){let q=(document.getElementById('emailSearch')?.value||'').toLowerCase();let arr=cur.emails||[];arr=arr.filter(e=>(e.to+' '+e.subject+' '+e.status).toLowerCase().includes(q));document.getElementById('emails').innerHTML='<div class="top"><div><b>Histórico de e-mails</b><p class="muted">Registro dos envios e documentos encaminhados ao cliente.</p></div><div>'+(canEdit()?'<button class="primary" onclick="addEmail()">＋ Registrar e-mail</button>':'')+' <button class="secondary" onclick="pdfEmails()">📄 Ver / gerar PDF</button></div></div><input id="emailSearch" class="search" placeholder="Pesquisar e-mail..." value="'+q.replace(/"/g,'&quot;')+'" oninput="emailsView()">'+(arr.length?arr.map(e=>'<div class="doc-card"><div class="row"><b>'+e.subject+'</b><span class="badge">'+e.status+'</span></div><div class="doc-meta">Para: '+e.to+' · '+e.date+'</div><p>'+e.body+'</p></div>').join(''):'<div class="empty">Nenhum e-mail registrado.</div>')}
-function addEmail(){if(!canEdit())return;openSimpleModal('Registrar e-mail','<label>Destinatário</label><input id="emailTo" type="email"><label>Assunto</label><input id="emailSubject" value="Atualização do projeto"><label>Resumo do conteúdo</label><textarea id="emailBody"></textarea>',()=>{let to=document.getElementById('emailTo').value.trim();if(!to)return alert('Informe o destinatário.');(cur.emails||(cur.emails=[])).unshift({to,subject:document.getElementById('emailSubject').value,body:document.getElementById('emailBody').value,status:'Registrado',date:new Date().toLocaleString('pt-BR')});persistState();closeModal();emailsView()})}
+function emailsView(){
+ let q=(document.getElementById('emailSearch')?.value||'').toLowerCase();
+ let arr=cur.emails||[];
+ arr=arr.filter(e=>(e.to+' '+e.subject+' '+e.status).toLowerCase().includes(q));
+ const client=clientsData.find(c=>sameLegacyId(c.id,cur.clientId)||sameLegacyId(c.dbId,cur.clientId))||{};
+ const contacts=clientContacts(client).filter(c=>c.email);
+ const canSend=canEdit()&&cur?.dbId;
+ const contactHtml=contacts.length?contacts.map((c,i)=>'<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #263247;border-radius:8px;margin:6px 0"><input type="checkbox" class="email-contact" value="'+escAttr(c.dbId||c.id)+'" '+(c.projectResponsible||i===0?'checked':'')+'><span><b>'+esc(c.name||'Contato')+'</b><br><span class="muted">'+esc(c.email)+'</span></span></label>').join(''):'<div class="empty">Nenhum contato com e-mail cadastrado para este cliente.</div>';
+ const history=arr.length?arr.map(e=>'<div class="doc-card"><div class="row"><b>'+esc(e.subject||'')+'</b><span class="badge">'+esc(e.status||'Registrado')+'</span></div><div class="doc-meta">Para: '+esc(e.to||'')+' · '+esc(e.date||'')+'</div><p style="white-space:pre-wrap">'+esc(e.body||'')+'</p></div>').join(''):'<div class="empty">Nenhum e-mail enviado/registrado neste projeto.</div>';
+ document.getElementById('emails').innerHTML=
+ '<div class="top"><div><b>E-mails</b><p class="muted">Envie a documentação do projeto diretamente para os contatos do cliente e mantenha o histórico dos envios.</p></div><div><button class="secondary" onclick="pdfEmails()">📄 Ver / gerar PDF</button></div></div>'+
+ (canSend?'<div class="doc-card" style="margin-bottom:16px"><div class="section-title">Enviar documentação</div><p class="muted">Selecione os documentos e os contatos que receberão os PDFs.</p>'+
+ '<label><input type="checkbox" id="sendDocMapa" checked> Mapa de treinamentos</label><br>'+
+ '<label><input type="checkbox" id="sendDocCron" checked> Cronograma</label><br>'+
+ '<label><input type="checkbox" id="sendDocDiario"> Diário de bordo</label>'+
+ '<div class="section-title" style="margin-top:16px">Contatos</div><div id="emailContacts">'+contactHtml+'</div>'+
+ '<label>Assunto</label><input id="sendEmailSubject" value="Atualização da implantação — '+escAttr(cur.c||cur.n||'Projeto')+'">'+
+ '<label>Mensagem</label><textarea id="sendEmailBody" rows="5">Olá!\\n\\nSegue a documentação atualizada da implantação para acompanhamento.\\n\\nAtenciosamente,\\nEquipe HPro</textarea>'+
+ '<div style="text-align:right;margin-top:12px"><button class="primary" id="sendDocumentationBtn" onclick="sendProjectDocumentation()">✉ Enviar documentação</button></div></div>':'')+
+ '<div class="top" style="margin-top:12px"><div><b>Histórico</b><p class="muted">Registros dos envios realizados neste projeto.</p></div></div>'+
+ '<input id="emailSearch" class="search" placeholder="Pesquisar e-mail..." value="'+escAttr(q)+'" oninput="emailsView()">'+history;
+}
+async function sendProjectDocumentation(){
+ if(!canEdit())return;
+ if(!cur?.dbId)return alert('Este projeto ainda não possui vínculo com o Supabase.');
+ const docs=[];
+ if(document.getElementById('sendDocMapa')?.checked)docs.push('mapa');
+ if(document.getElementById('sendDocCron')?.checked)docs.push('cronograma');
+ if(document.getElementById('sendDocDiario')?.checked)docs.push('diario');
+ if(!docs.length)return alert('Selecione pelo menos um documento.');
+ const contacts=[...document.querySelectorAll('.email-contact:checked')].map(x=>x.value).filter(Boolean);
+ if(!contacts.length)return alert('Selecione pelo menos um contato.');
+ const subject=document.getElementById('sendEmailSubject')?.value.trim()||'Atualização da implantação — '+(cur.c||cur.n||'Projeto');
+ const body=document.getElementById('sendEmailBody')?.value.trim()||'Olá!\\n\\nSegue a documentação atualizada da implantação para acompanhamento.\\n\\nAtenciosamente,\\nEquipe HPro';
+ const btn=document.getElementById('sendDocumentationBtn');if(btn){btn.disabled=true;btn.textContent='Enviando...'}
+ try{
+   const token=supabaseSession?.access_token;
+   if(!token)throw new Error('Sessão expirada. Faça login novamente.');
+   const response=await fetch(SUPABASE_URL+'/functions/v1/enviar-documentacao',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({projectId:cur.dbId,documentTypes:docs,contactIds:contacts,subject,body})});
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok||!result.ok)throw new Error(result.message||'Não foi possível enviar a documentação.');
+   const client=clientsData.find(c=>sameLegacyId(c.id,cur.clientId)||sameLegacyId(c.dbId,cur.clientId))||{};
+   const recipientNames=clientContacts(client).filter(c=>contacts.includes(String(c.dbId||c.id))).map(c=>c.email).join(', ');
+   (cur.emails||(cur.emails=[])).unshift({to:recipientNames,subject,body,status:'Enviado',date:new Date().toLocaleString('pt-BR'),documentTypes:docs,emailId:result.emailId});
+   persistState();
+   emailsView();
+   alert('E-mail enviado com sucesso.');
+ }catch(e){
+   alert('Não foi possível enviar o e-mail: '+(e.message||e));
+ }finally{
+   const b=document.getElementById('sendDocumentationBtn');if(b){b.disabled=false;b.textContent='✉ Enviar documentação'}
+ }
+}
 function phaseView(type){
  if(type==='handoff') return handoffView();
  let key='kickoff',title='Kickoff',data=cur[key]||{status:'Não preenchido',notes:''};
