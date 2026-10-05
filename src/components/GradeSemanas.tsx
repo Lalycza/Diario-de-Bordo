@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { STAGE_STATUS, effectiveStageStatus, type StageStatus } from "@/lib/status";
 
 export type GradeStage = {
   modulo: string | null;
@@ -9,6 +10,7 @@ export type GradeStage = {
   data_inicio: string | null;
   data_prevista: string | null;
   data_conclusao: string | null;
+  status?: string | null;
 };
 
 const MESES = [
@@ -55,15 +57,20 @@ export function GradeSemanas({ stages }: { stages: GradeStage[] }) {
   const [trimestre, setTrimestre] = useState(() => Math.floor(new Date().getMonth() / 3));
 
   const linhas = useMemo(() => {
-    const mapa = new Map<string, { responsavel: string; marcas: Set<string> }>();
+    const mapa = new Map<string, { responsavel: string; marcas: Map<string, StageStatus> }>();
     for (const s of stages) {
       const nome = s.modulo ?? "Sem módulo";
       const linha =
         mapa.get(nome) ??
-        { responsavel: s.responsavel_tipo ?? s.responsavel ?? "", marcas: new Set<string>() };
+        { responsavel: s.responsavel_tipo ?? s.responsavel ?? "", marcas: new Map<string, StageStatus>() };
       if (!linha.responsavel && (s.responsavel_tipo || s.responsavel)) {
         linha.responsavel = s.responsavel_tipo ?? s.responsavel ?? "";
       }
+      const status = effectiveStageStatus({
+        status: s.status ?? "nao_iniciada",
+        data_prevista: s.data_prevista,
+        data_conclusao: s.data_conclusao,
+      });
       for (const d of [s.data_inicio, s.data_prevista, s.data_conclusao]) {
         if (!d) continue;
         const partes = d.split("-").map(Number);
@@ -71,7 +78,20 @@ export function GradeSemanas({ stages }: { stages: GradeStage[] }) {
         const m = partes[1] ?? 1;
         const dia = partes[2] ?? 1;
         if (y !== ano) continue;
-        linha.marcas.add(`${m - 1}-${semanaDoMes(dia)}`);
+        const chave = `${m - 1}-${semanaDoMes(dia)}`;
+        const atual = linha.marcas.get(chave);
+        const prioridade: Record<StageStatus, number> = {
+          nao_iniciada: 1,
+          em_risco: 2,
+          atrasada: 3,
+          replanejada: 4,
+          em_andamento: 5,
+          concluida: 6,
+          homologada: 7,
+        };
+        if (!atual || prioridade[status] > prioridade[atual]) {
+          linha.marcas.set(chave, status);
+        }
       }
       mapa.set(nome, linha);
     }
@@ -145,15 +165,21 @@ export function GradeSemanas({ stages }: { stages: GradeStage[] }) {
                 <td className="px-3 py-2 text-muted-foreground">{linha.responsavel || "—"}</td>
                 {meses.map((m) =>
                   SEMANAS.map((s, i) => {
-                    const marcada = linha.marcas.has(`${m}-${i}`);
+                    const status = linha.marcas.get(`${m}-${i}`);
+                    const statusStyle = status ? STAGE_STATUS[status].className : "bg-muted";
                     return (
                       <td
                         key={`${linha.nome}-${m}-${s}`}
                         className={`px-2 py-2 ${i === 0 ? "border-l" : ""}`}
                       >
                         <div
-                          className={`mx-auto h-3 w-full rounded-sm ${marcada ? "bg-primary" : "bg-muted"}`}
-                          aria-label={marcada ? `${linha.nome} em ${MESES[m]} ${s}` : undefined}
+                          className={`mx-auto h-3 w-full rounded-sm ${statusStyle}`}
+                          aria-label={
+                            status
+                              ? `${linha.nome} — ${STAGE_STATUS[status].label} em ${MESES[m]} ${s}`
+                              : undefined
+                          }
+                          title={status ? STAGE_STATUS[status].label : undefined}
                         />
                       </td>
                     );
