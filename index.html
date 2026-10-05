@@ -395,7 +395,7 @@ function taskObj(t){if(Array.isArray(t))return {name:t[0]||'',week:Number(t[1])|
 function saveTaskObj(i,obj){cur.t[i]=obj}
 function pendingSummary(){if(!cur)return [];return (cur.t||[]).map((t,i)=>{const x=taskObj(t);return {...x,index:i}}).filter(x=>x.month&&['PENDENTE','EM ANDAMENTO'].includes((x.status||'').toUpperCase()))}
 function cronView(){let action=(canEdit()?'<button class="primary" onclick="addTask()">＋ Nova etapa</button>':'<span class="badge">Somente leitura</span>')+' <button class="secondary" onclick="pdfCron()">📄 Ver / gerar PDF</button>';let h='<div class="top"><div><b>Cronograma</b><p class="muted">O cliente visualiza o status e a semana prevista do treinamento de cada módulo, seguindo o modelo oficial do cronograma.</p></div>'+action+'</div><input id="cronSearch" class="search" placeholder="Pesquisar atividade, mês ou treinamento..." oninput="renderCronRows()"><div id="cronRows"></div>';document.getElementById('cron').innerHTML=h;const pend=pendingSummary();if(pend.length)document.getElementById('cronRows').insertAdjacentHTML('beforebegin','<div class="hint"><b>Central de pendências</b> · '+pend.length+' treinamento(s) pendente(s) ou em andamento. <span class="muted">Acompanhe o detalhe no Mapa.</span></div>');renderCronRows()}
-function cronStatusClass(status){let x=(status||'').toString().trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/_/g,' ');if(x==='HOMOLOGADO')return 'status-homologado';if(x==='CONCLUIDO')return 'status-concluido';if(x==='EM ANDAMENTO')return 'status-andamento';if(x==='REPLANEJADO')return 'status-replanejado';if(x==='PENDENTE')return 'status-pendente';return 'status-vazio'}
+function cronStatusClass(status){let x=(status||'').toString().trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ');if(x==='HOMOLOGADO')return 'status-homologado';if(x==='CONCLUIDO')return 'status-concluido';if(x==='EM ANDAMENTO')return 'status-andamento';if(x==='REPLANEJADO')return 'status-replanejado';if(x==='PENDENTE')return 'status-pendente';return 'status-vazio'}
 const cronOfficialRows=[['INFRAESTRUTURA E SISTEMAS','HPRO'],['IMPORTAÇÃO DE DADOS','HPRO'],['CADASTRO PESSOAS','CLIENTE'],['CADASTRO MATERIAIS','CLIENTE'],['PARAMETRIZAÇÃO FISCAL','HPRO/CLIENTE'],['SUPRIMENTOS','HPRO/CLIENTE'],['ESTOQUE','HPRO/CLIENTE'],['VENDAS','HPRO/CLIENTE'],['FATURAMENTO','HPRO/CLIENTE'],['FINANCEIRO','HPRO/CLIENTE'],['PRODUÇÃO','HPRO/CLIENTE'],['GO LIVE','HPRO/CLIENTE']];
 const cronQuarterDefs=[['Trimestre',['Janeiro','Fevereiro','Março']],['Trimestre',['Abril','Maio','Junho']],['Trimestre',['Julho','Agosto','Setembro']],['Trimestre',['Outubro','Novembro','Dezembro']]];
 function taskObj(t){if(Array.isArray(t))return {name:t[0]||'',week:Number(t[1])||1,month:t[2]||'',trainingDate:t[3]||'',trainingStartDate:t[3]||'',trainingEndDate:t[9]||'',status:t[4]||'PENDENTE',responsible:t[5]||'',module:t[6]||'',submodule:t[7]||'',subject:'',plannedDate:t[10]||'',plannedDateOriginal:t[11]||t[10]||'',homologationDate:t[12]||'',homologationResponsible:t[13]||'',plannedHistory:[]};return {name:t.name||'',week:Number(t.week)||1,month:t.month||'',trainingDate:t.trainingDate||t.trainingStartDate||'',trainingStartDate:t.trainingStartDate||t.trainingDate||'',trainingEndDate:t.trainingEndDate||'',status:(t.status||'PENDENTE').toUpperCase(),responsible:t.responsible||'',module:t.module||'',submodule:t.submodule||'',subject:'',plannedDate:t.plannedDate||'',plannedDateOriginal:t.plannedDateOriginal||t.plannedDate||'',plannedHistory:t.plannedHistory||[],rescheduledDate:t.rescheduledDate||'',homologationDate:t.homologationDate||'',homologationResponsible:t.homologationResponsible||''}}
@@ -407,7 +407,7 @@ function quarterHasTraining(months){return trainingRecords().some(t=>months.incl
 function moduleCronStatus(name,records){
  const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&String(m[0]).trim().toUpperCase()===String(name).trim().toUpperCase());
  const moduleSubs=[...(entry?.[1]||[])].filter(Boolean).map(s=>String(s).trim().toUpperCase());
- const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/_/g,' ');
+ const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ');
  const relevant=records.filter(t=>!moduleSubs.length||moduleSubs.includes(String(t.submodule||'').trim().toUpperCase()));
  const keys=(arr)=>new Set(arr.map(t=>String(t.submodule||'').trim().toUpperCase()).filter(Boolean));
  const started=relevant.filter(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(norm(t.status)));
@@ -1312,7 +1312,7 @@ async function submitPublicSurvey(token){let answers={};surveyQuestions.forEach(
 
 
 /* LZ-CRONOGRAMA-FINAL-STATUS-FIX */
-function lzCronNormalizeStatus(v){return String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/_/g,' ')}
+function lzCronNormalizeStatus(v){return String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ')}
 function lzCronSummaryColors(root){
  const host=root||document;
  host.querySelectorAll('.summary-status-cell').forEach(td=>{
@@ -1347,7 +1347,7 @@ function lzCronStatusColors(root){
     }
   });
 }
-function cronStatusClass(status){const x=lzCronNormalizeStatus(status);if(x==='HOMOLOGADO')return 'status-homologado';if(x==='CONCLUIDO')return 'status-concluido';if(x==='EM ANDAMENTO')return 'status-andamento';if(x==='PENDENTE')return 'status-pendente';return 'status-vazio'}
+function cronStatusClass(status){const x=lzCronNormalizeStatus(status);if(x==='HOMOLOGADO')return 'status-homologado';if(x==='CONCLUIDO')return 'status-concluido';if(x==='EM ANDAMENTO')return 'status-andamento';if(x==='REPLANEJADO')return 'status-replanejado';if(x==='PENDENTE')return 'status-pendente';return 'status-vazio'}
 const lzCronObserver=new MutationObserver(()=>{const root=document.getElementById('cronRows');if(root)lzCronStatusColors(root)});
 function lzStartCronStatusGuard(){const root=document.getElementById('cronRows');if(root){lzCronStatusColors(root);lzCronSummaryColors(root);lzCronObserver.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style']})}}
 
