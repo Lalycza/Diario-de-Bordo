@@ -221,14 +221,39 @@ function ClientesPage() {
         observacoes: values.observacoes || null,
       };
       if (values.id) {
-        const { error: clearProductsError } = await supabase.from("client_products").delete().eq("client_id", values.id);
-        if (clearProductsError) throw clearProductsError;
-        if (values.product_ids.length > 0) {
-          const { error: productLinksError } = await supabase.from("client_products").insert(
-            values.product_ids.map((product_id) => ({ client_id: values.id!, product_id, status: values.product_statuses[product_id] ?? "implantacao" })),
-          );
-          if (productLinksError) throw productLinksError;
+        // Atualização não destrutiva: nunca apagamos todos os vínculos antes de
+        // recriá-los. Isso evita perder produtos quando uma segunda operação falha.
+        const { data: existingLinks, error: existingLinksError } = await supabase
+          .from("client_products")
+          .select("product_id")
+          .eq("client_id", values.id);
+        if (existingLinksError) throw existingLinksError;
+
+        const existingIds = new Set((existingLinks ?? []).map((row) => row.product_id));
+        const desiredIds = new Set(values.product_ids);
+
+        const removedIds = [...existingIds].filter((productId) => !desiredIds.has(productId));
+        if (removedIds.length > 0) {
+          const { error } = await supabase
+            .from("client_products")
+            .delete()
+            .eq("client_id", values.id)
+            .in("product_id", removedIds);
+          if (error) throw error;
         }
+
+        if (values.product_ids.length > 0) {
+          const { error } = await supabase.from("client_products").upsert(
+            values.product_ids.map((product_id) => ({
+              client_id: values.id!,
+              product_id,
+              status: values.product_statuses[product_id] ?? "implantacao",
+            })),
+            { onConflict: "client_id,product_id" },
+          );
+          if (error) throw error;
+        }
+
         const { error } = await supabase.from("clients").update(payload).eq("id", values.id);
         if (error) throw error;
         return;
