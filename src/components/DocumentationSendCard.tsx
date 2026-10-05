@@ -25,6 +25,10 @@ export function DocumentationSendCard({ projectId, compact = false }: Props) {
   const project = useProject(projectId);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const allowedDocs = useMemo(
+    () => project.data?.documentation_scope === "diario" ? DOCS.filter((doc) => doc.id === "diario") : DOCS,
+    [project.data?.documentation_scope],
+  );
   const [selectedDocs, setSelectedDocs] = useState<DocumentationType[]>(DOCS.map((d) => d.id));
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [subject, setSubject] = useState("");
@@ -53,11 +57,11 @@ export function DocumentationSendCard({ projectId, compact = false }: Props) {
 
   const pending = useMemo(() => {
     const rows = statusQuery.data ?? [];
-    return DOCS.filter((doc) => {
+    return allowedDocs.filter((doc) => {
       const row = rows.find((x) => x.document_type === doc.id);
       return row && (!row.sent_at || new Date(row.sent_at) < new Date(row.updated_at));
     });
-  }, [statusQuery.data]);
+  }, [statusQuery.data, allowedDocs]);
 
   const send = useMutation({
     mutationFn: async () => {
@@ -82,12 +86,12 @@ export function DocumentationSendCard({ projectId, compact = false }: Props) {
   const openComposer = useCallback(() => {
     const contacts = contactsQuery.data ?? [];
     const defaults = contacts.filter((c) => c.is_project_responsible || contacts.length === 1).map((c) => c.id);
-    setSelectedDocs(DOCS.map((d) => d.id));
+    setSelectedDocs(allowedDocs.map((d) => d.id));
     setSelectedContacts(defaults.length ? defaults : contacts.map((c) => c.id));
     setSubject(`Atualização da implantação — ${project.data?.cliente ?? "Projeto"}`);
     setBody("Olá!\n\nSegue a documentação atualizada da implantação para acompanhamento.\n\nAtenciosamente,\nEquipe HPro");
     setOpen(true);
-  }, [project.data?.cliente, contactsQuery.data]);
+  }, [project.data?.cliente, contactsQuery.data, allowedDocs]);
 
   useEffect(() => {
     const onDocumentationUpdated = (event: Event) => {
@@ -121,11 +125,11 @@ export function DocumentationSendCard({ projectId, compact = false }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle>Enviar documentação ao cliente</DialogTitle></DialogHeader>
         <div className="space-y-5">
-          <div className="rounded-lg border bg-muted/30 p-3"><p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Documentações</p><div className="grid gap-2 sm:grid-cols-3">{DOCS.map((doc) => <label key={doc.id} className="flex items-center gap-2 rounded-md border bg-background p-3 text-sm"><Checkbox checked={selectedDocs.includes(doc.id)} onCheckedChange={(checked) => setSelectedDocs((current) => checked ? [...new Set([...current, doc.id])] : current.filter((id) => id !== doc.id))}/><span>{doc.label}</span></label>)}</div></div>
+          <div className="rounded-lg border bg-muted/30 p-3"><p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Documentações</p><div className="grid gap-2 sm:grid-cols-3">{allowedDocs.map((doc) => <label key={doc.id} className="flex items-center gap-2 rounded-md border bg-background p-3 text-sm"><Checkbox checked={selectedDocs.includes(doc.id)} onCheckedChange={(checked) => setSelectedDocs((current) => checked ? [...new Set([...current, doc.id])] : current.filter((id) => id !== doc.id))}/><span>{doc.label}</span></label>)}</div></div>
           <div className="space-y-2"><Label>Contatos do cliente</Label>{contactsQuery.isLoading ? <p className="text-xs text-muted-foreground">Carregando contatos…</p> : null}{(contactsQuery.data ?? []).length === 0 ? <div className="rounded-md border border-warning p-3 text-sm">Nenhum contato com e-mail foi cadastrado para este cliente.</div> : <div className="grid gap-2 sm:grid-cols-2">{(contactsQuery.data ?? []).map((contact) => <label key={contact.id} className="flex items-center gap-2 rounded-md border p-3 text-sm"><Checkbox checked={selectedContacts.includes(contact.id)} onCheckedChange={(checked) => setSelectedContacts((current) => checked ? [...new Set([...current, contact.id])] : current.filter((id) => id !== contact.id))}/><span><span className="font-medium">{contact.name}</span>{contact.is_project_responsible ? <Badge className="ml-2" variant="secondary">Responsável</Badge> : null}<span className="block text-xs text-muted-foreground">{contact.email}</span></span></label>)}</div>}</div>
           <div className="space-y-1.5"><Label>Assunto</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Texto do e-mail</Label><Textarea className="min-h-40" value={body} onChange={(e) => setBody(e.target.value)} /></div>
-          <p className="text-xs text-muted-foreground">Os três documentos são selecionados automaticamente. Você pode retirar qualquer um antes do envio.</p>
+          <p className="text-xs text-muted-foreground">{allowedDocs.length === 1 ? "Este projeto está configurado para enviar somente o Diário de Bordo." : "Os três documentos são selecionados automaticamente. Você pode retirar qualquer um antes do envio."}</p>
         </div>
         <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button><Button onClick={() => send.mutate()} disabled={send.isPending || !selectedContacts.length || !selectedDocs.length}>{send.isPending ? <><RefreshCw className="size-4 animate-spin" /> Enviando…</> : <><Send className="size-4" /> Enviar agora</>}</Button></DialogFooter>
       </DialogContent>
