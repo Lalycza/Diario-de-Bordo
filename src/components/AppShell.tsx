@@ -216,7 +216,9 @@ export function AppShell({
   const canViewDashboard = canManage || isCS;
   const homeHref = roleLoading || homeRouteQuery.isLoading
     ? "#"
-    : homeRouteQuery.data ?? "/projetos";
+    : canViewDashboard
+      ? "/dashboard"
+      : homeRouteQuery.data ?? "/projetos";
 
   return (
     <div className="min-h-screen bg-background">
