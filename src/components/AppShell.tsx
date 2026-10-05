@@ -251,7 +251,7 @@ export function AppShell({
           <div className="flex h-16 items-center border-b px-4">
             <a href={homeHref} className="flex w-full items-center rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
               <img src="/hpro-logo.svg" alt="HPro" className="h-10 w-auto object-contain" />
-            </Link>
+            </a>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3">
@@ -329,7 +329,7 @@ export function AppShell({
                 <div className="flex h-16 items-center justify-between border-b px-4">
                   <a href={homeHref} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
                     <img src="/hpro-logo.svg" alt="HPro" className="h-10 w-auto object-contain" />
-                  </Link>
+                  </a>
                   <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
                     <X className="size-5" />
                   </Button>
