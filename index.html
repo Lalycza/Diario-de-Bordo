@@ -460,6 +460,7 @@ async function resolveTrainingRefs(moduleName,submoduleName){
    const q=await supabaseClient.from('submodules').select('id,name').eq('module_id',moduleId).eq('name',submoduleName).maybeSingle();
    if(q.error)throw q.error;
    submoduleId=q.data?.id||null;
+   if(!submoduleId)throw new Error('Submódulo não encontrado no cadastro do Supabase: '+submoduleName);
  }
  return {projectId:cur.dbId,moduleId,submoduleId};
 }
@@ -531,7 +532,7 @@ function saveTask(index){
  syncTrainingToSupabase(obj,old).catch(e=>{console.error(e);alert('Os dados foram salvos localmente, mas não foi possível sincronizar o treinamento com o Supabase: '+(e?.message||e))});
 }
 function delTask(i){if(!canEdit())return;if(confirm('Excluir treinamento?')){let x=taskObj(cur.t[i]);cur.t.splice(i,1);audit('Treinamento excluído',x.module||x.name||'Registro');persistState();mapView();deleteTrainingFromSupabase(x).catch(e=>{console.error(e);alert('O treinamento foi removido da tela, mas não foi possível removê-lo do Supabase: '+(e?.message||e))})}}
-if(!canEdit())return;if(confirm('Excluir treinamento?')){let x=taskObj(cur.t[i]);cur.t.splice(i,1);audit('Treinamento excluído',x.module||x.name||'Registro');mapView()}}
+
 function escAttr(v){return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function goLiveData(){
   if(!cur.goLive||typeof cur.goLive!=='object')cur.goLive={};
