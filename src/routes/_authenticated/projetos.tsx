@@ -118,14 +118,21 @@ function ProjetosPage() {
     if (!clientId || form || !clientsQuery.data || !clientProductsQuery.data) return;
     const client = clientsQuery.data.find((item) => item.id === clientId);
     if (!client) return;
+    const linkedProducts = (clientProductsQuery.data ?? []).filter((link) => link.client_id === client.id);
+    const selectedProductId =
+      client.product_id && linkedProducts.some((link) => link.product_id === client.product_id)
+        ? client.product_id
+        : linkedProducts[0]?.product_id ?? client.product_id ?? "";
+    const linkedProduct = linkedProducts.find((link) => link.product_id === selectedProductId);
+    const linkedType = (linkedProduct?.status ?? "implantacao") as ProjectForm["project_type"];
     setForm({
       ...emptyForm,
       client_id: client.id,
       cliente: client.razao_social ?? client.nome_fantasia ?? "",
       email_cliente: client.email ?? "",
-      product_id: (clientProductsQuery.data ?? []).find((link) => link.client_id === client.id)?.product_id ?? client.product_id ?? "",
-      project_type: ((clientProductsQuery.data ?? []).find((link) => link.client_id === client.id)?.status ?? "implantacao") as ProjectForm["project_type"],
-      documentation_scope: ((clientProductsQuery.data ?? []).find((link) => link.client_id === client.id)?.status === "consultoria" ? "diario" : "all") as ProjectForm["documentation_scope"],
+      product_id: selectedProductId,
+      project_type: linkedType,
+      documentation_scope: linkedType === "consultoria" ? "diario" : "all",
     });
     window.history.replaceState({}, "", "/projetos");
   }, [clientsQuery.data, clientProductsQuery.data, form]);
@@ -200,6 +207,26 @@ function ProjetosPage() {
       const clientId = values.id ? (existing?.client_id ?? values.client_id ?? null) : (values.client_id || null);
       const productId = values.id ? (existing?.product_id ?? values.product_id ?? null) : (values.product_id || null);
 
+      let authoritativeProjectType = values.project_type;
+      let authoritativeDocumentationScope = values.documentation_scope;
+
+      if (clientId && productId) {
+        const { data: productLink, error: productLinkError } = await supabase
+          .from("client_products")
+          .select("status")
+          .eq("client_id", clientId)
+          .eq("product_id", productId)
+          .maybeSingle();
+        if (productLinkError) throw productLinkError;
+
+        if (productLink?.status) {
+          authoritativeProjectType = productLink.status as ProjectForm["project_type"];
+          if (authoritativeProjectType === "consultoria") {
+            authoritativeDocumentationScope = "diario";
+          }
+        }
+      }
+
       const payload = {
         client_id: clientId,
         cliente: values.id ? (values.cliente || existing?.cliente || "") : values.cliente,
@@ -209,8 +236,8 @@ function ProjetosPage() {
         coordenacao: values.coordenacao || null,
         email_cliente: values.email_cliente || null,
         product_id: productId,
-        project_type: values.project_type,
-        documentation_scope: values.documentation_scope,
+        project_type: authoritativeProjectType,
+        documentation_scope: authoritativeDocumentationScope,
         data_inicio: values.data_inicio || null,
         previsao_conclusao: values.previsao_conclusao || null,
         data_entrega_original: values.data_entrega_original || null,
@@ -548,9 +575,26 @@ function ProjetosPage() {
                       client_id: value,
                       cliente: client?.razao_social ?? client?.nome_fantasia ?? current.cliente,
                       email_cliente: client?.email ?? current.email_cliente,
-                      product_id: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.product_id ?? client?.product_id ?? current.product_id),
-                      project_type: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value && link.product_id === ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.product_id ?? client?.product_id))?.status ?? "implantacao") as ProjectForm["project_type"],
-                      documentation_scope: ((clientProductsQuery.data ?? []).find((link) => link.client_id === value)?.status === "consultoria" ? "diario" : "all") as ProjectForm["documentation_scope"],
+                      product_id: (() => {
+                        const links = (clientProductsQuery.data ?? []).filter((link) => link.client_id === value);
+                        return (client?.product_id && links.some((link) => link.product_id === client.product_id))
+                          ? client.product_id
+                          : links[0]?.product_id ?? client?.product_id ?? current.product_id;
+                      })(),
+                      project_type: (() => {
+                        const links = (clientProductsQuery.data ?? []).filter((link) => link.client_id === value);
+                        const productId = (client?.product_id && links.some((link) => link.product_id === client.product_id))
+                          ? client.product_id
+                          : links[0]?.product_id ?? client?.product_id ?? current.product_id;
+                        return ((links.find((link) => link.product_id === productId)?.status ?? "implantacao") as ProjectForm["project_type"]);
+                      })(),
+                      documentation_scope: (() => {
+                        const links = (clientProductsQuery.data ?? []).filter((link) => link.client_id === value);
+                        const productId = (client?.product_id && links.some((link) => link.product_id === client.product_id))
+                          ? client.product_id
+                          : links[0]?.product_id ?? client?.product_id ?? current.product_id;
+                        return links.find((link) => link.product_id === productId)?.status === "consultoria" ? "diario" : "all";
+                      })(),
                     } : current);
                   }}
                 >
