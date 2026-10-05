@@ -60,7 +60,7 @@ function MenuItems({
           </button>
           {open.gerencial ? (
             <div className="mt-1">
-              <Link to="/projetos" onClick={onNavigate} className={itemClass}>
+              <Link to="/dashboard" onClick={onNavigate} className={itemClass}>
                 <LayoutDashboard className="size-4" />
                 Dashboards
               </Link>
@@ -166,7 +166,7 @@ export function AppShell({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, isSupervisor, isCS, isComercial, isCliente } = useRole();
+  const { isAdmin, isSupervisor, isCS, isComercial, isCliente, isLoading: roleLoading } = useRole();
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -236,13 +236,17 @@ export function AppShell({
 
   const canManage = isAdmin || isSupervisor;
   const canViewDashboard = canManage || isCS;
-  const homeHref = isCliente
-    ? clientHomeQuery.data?.id
-      ? `/projeto/${clientHomeQuery.data.id}/cronograma`
-      : "/projetos"
-    : isComercial
-      ? "/cadastros/clientes"
-      : "/projetos";
+  const homeHref = roleLoading
+    ? "#"
+    : isCliente
+      ? clientHomeQuery.data?.id
+        ? `/projeto/${clientHomeQuery.data.id}/cronograma`
+        : "/projetos"
+      : isComercial
+        ? "/cadastros/clientes"
+        : (isAdmin || isSupervisor || isCS)
+          ? "/dashboard"
+          : "/projetos";
 
   return (
     <div className="min-h-screen bg-background">
