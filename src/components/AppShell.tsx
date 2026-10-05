@@ -166,7 +166,7 @@ export function AppShell({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, isSupervisor, isCS } = useRole();
+  const { isAdmin, isSupervisor, isCS, isComercial, isCliente } = useRole();
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -176,6 +176,36 @@ export function AppShell({
     produtos: true,
     clientes: true,
     usuarios: true,
+  });
+
+  const clientHomeQuery = useQuery({
+    queryKey: ["client-home-project"],
+    enabled: isCliente,
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) return null;
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("client_id")
+        .eq("id", uid)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile?.client_id) return null;
+
+      const { data: project, error: projectError } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("client_id", profile.client_id)
+        .eq("arquivado", false)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (projectError) throw projectError;
+      return project;
+    },
+    staleTime: 60_000,
   });
 
   const productsQuery = useQuery({
@@ -206,13 +236,20 @@ export function AppShell({
 
   const canManage = isAdmin || isSupervisor;
   const canViewDashboard = canManage || isCS;
+  const homeHref = isCliente
+    ? clientHomeQuery.data?.id
+      ? `/projeto/${clientHomeQuery.data.id}/cronograma`
+      : "/projetos"
+    : isComercial
+      ? "/cadastros/clientes"
+      : "/projetos";
 
   return (
     <div className="min-h-screen bg-background">
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
           <div className="flex h-16 items-center border-b px-4">
-            <Link to="/projetos" className="flex w-full items-center rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+            <a href={homeHref} className="flex w-full items-center rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
               <img src="/hpro-logo.svg" alt="HPro" className="h-10 w-auto object-contain" />
             </Link>
           </div>
@@ -266,9 +303,9 @@ export function AppShell({
                 >
                   <Menu className="size-5" />
                 </Button>
-                <Link to="/projetos" className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+                <a href={homeHref} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
                   <img src="/hpro-logo.svg" alt="HPro" className="h-9 w-auto object-contain" />
-                </Link>
+                </a>
               </div>
 
               <div className="flex items-center gap-2">
@@ -290,7 +327,7 @@ export function AppShell({
               />
               <aside className="relative flex h-full w-[min(86vw,20rem)] flex-col border-r bg-card shadow-xl">
                 <div className="flex h-16 items-center justify-between border-b px-4">
-                  <Link to="/projetos" className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
+                  <a href={homeHref} className="flex items-center gap-2 rounded-md p-1 hover:bg-muted" aria-label="Ir para a página inicial do perfil">
                     <img src="/hpro-logo.svg" alt="HPro" className="h-10 w-auto object-contain" />
                   </Link>
                   <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
