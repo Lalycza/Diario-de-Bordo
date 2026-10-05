@@ -1489,7 +1489,7 @@ async function saveClientForm(id){
     alert('Não foi possível salvar o cliente no Supabase. O cadastro não foi fechado nem perdido.\n\n'+(e?.message||e));
   }
 }
-async async function syncClientContactsToSupabase(c){
+async async async function syncClientContactsToSupabase(c){
  if(!c?.dbId)throw new Error('Cliente ainda não possui vínculo no Supabase.');
  const wanted=new Set();
  for(const ct of clientContacts(c)){
