@@ -23,4 +23,8 @@ export async function registerDocumentationUpdate(projectId: string, documentTyp
     { onConflict: "project_id,document_type" },
   );
   if (error) throw error;
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("documentation:updated", { detail: { projectId, documentType } }));
+  }
 }
