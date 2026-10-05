@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useRole } from "@/lib/useRole";
+import { resolveProfileHomeRoute } from "@/lib/profile-home";
 
 type MenuSection = "gerencial" | "projetos" | "produtos" | "clientes" | "usuarios";
 
@@ -178,34 +179,11 @@ export function AppShell({
     usuarios: true,
   });
 
-  const clientHomeQuery = useQuery({
-    queryKey: ["client-home-project"],
-    enabled: isCliente,
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
-      if (!uid) return null;
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("client_id")
-        .eq("id", uid)
-        .maybeSingle();
-      if (profileError) throw profileError;
-      if (!profile?.client_id) return null;
-
-      const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("client_id", profile.client_id)
-        .eq("arquivado", false)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (projectError) throw projectError;
-      return project;
-    },
+  const homeRouteQuery = useQuery({
+    queryKey: ["profile-home-route"],
+    queryFn: resolveProfileHomeRoute,
     staleTime: 60_000,
+    enabled: !roleLoading,
   });
 
   const productsQuery = useQuery({
@@ -236,17 +214,9 @@ export function AppShell({
 
   const canManage = isAdmin || isSupervisor;
   const canViewDashboard = canManage || isCS;
-  const homeHref = roleLoading
+  const homeHref = roleLoading || homeRouteQuery.isLoading
     ? "#"
-    : isCliente
-      ? clientHomeQuery.data?.id
-        ? `/projeto/${clientHomeQuery.data.id}/cronograma`
-        : "/projetos"
-      : isComercial
-        ? "/cadastros/clientes"
-        : (isAdmin || isSupervisor || isCS)
-          ? "/dashboard"
-          : "/projetos";
+    : homeRouteQuery.data ?? "/projetos";
 
   return (
     <div className="min-h-screen bg-background">
