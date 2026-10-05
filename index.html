@@ -209,7 +209,7 @@ async function hydrateFromSupabase(){
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,city,state,legacy_id,status').order('created_at'),
-      supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id').order('created_at'),
+      supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope').order('created_at'),
       supabaseClient.from('project_products').select('project_id,product_id'),
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
       supabaseClient.from('project_analysts').select('project_id,profile_id'),
@@ -267,7 +267,7 @@ async function hydrateFromSupabase(){
       const old=oldProjects.find(p=>String(p.id)===String(id));
       const client=clientsData.find(c=>String(c.id)===String(clientByDb.get(x.client_id)));
       const lifecycle=(x.status==='Finalizado'||x.status==='Congelado'||x.status==='Ativo')?x.status:(old?.projectStatus||'Ativo');
-      return {...(old||{}),id,dbId:x.id,n:x.name,c:client?.name||old?.c||'',clientId:client?.id||old?.clientId||null,progress:Number(x.progress||0),projectStatus:lifecycle,baseDate:x.base_date||old?.baseDate||'',startDate:x.start_date||old?.startDate||'',endDate:x.delivery_date||old?.endDate||'',productIds:[],m:[],t:Array.isArray(old?.t)?old.t:[],d:old?.d||[],docs:(projectDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description})).concat(old?.docs||[]),emails:old?.emails||[],kickoff:old?.kickoff||{status:'Pendente',notes:''},handoff:old?.handoff||{status:'Pendente',notes:''},pesquisa:old?.pesquisa||{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:old?.homologacao||{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''}};
+      return {...(old||{}),id,dbId:x.id,n:x.name,c:client?.name||old?.c||'',clientId:client?.id||old?.clientId||null,projectType:x.project_type==='consultoria'?'consultoria':(x.project_type==='implantacao'?'implantacao':(old?.projectType||'implantacao')),documentationScope:x.documentation_scope==='diario'?'diario':'all',progress:Number(x.progress||0),projectStatus:lifecycle,baseDate:x.base_date||old?.baseDate||'',startDate:x.start_date||old?.startDate||'',endDate:x.delivery_date||old?.endDate||'',productIds:[],m:[],t:Array.isArray(old?.t)?old.t:[],d:old?.d||[],docs:(projectDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description})).concat(old?.docs||[]),emails:old?.emails||[],kickoff:old?.kickoff||{status:'Pendente',notes:''},handoff:old?.handoff||{status:'Pendente',notes:''},pesquisa:old?.pesquisa||{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:old?.homologacao||{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''}};
     });
     const profileById=new Map((profilesQ.data||[]).map(u=>[String(u.id),u]));
     // O Supabase é a fonte oficial da permissão dos usuários. Reidrata a lista
@@ -877,8 +877,8 @@ async function saveProjetoEdicao(){
  const selectedAnalyst=v('editProjOwner');
  const au=selectedAnalyst?usersData.find(u=>String(u.id)===String(selectedAnalyst)||String(u.email||'').toLowerCase()===String(selectedAnalyst).toLowerCase()):null;
  p.n=n;p.c=c;
- p.owner=au?.email||'';
- p.operatorIds=au?[au.id]:[];
+ p.owner=au?.email||p.owner||'';
+ p.operatorIds=au?[au.id]:(p.operatorIds||[]);
  p.baseDate=v('editProjBase');p.startDate=v('editProjStart');p.endDate=v('editProjEnd');p.projectStatus=v('editProjStatus')||'Ativo';p.projectType=v('editProjType')||p.projectType||'implantacao';p.documentationScope=p.projectType==='consultoria'?(v('editProjScope')||'all'):'all';
  audit('Projeto alterado','Dados cadastrais do projeto atualizados. Analista responsável: '+(au.name||au.email)+'. Status: '+p.projectStatus+'.');
  if(typeof persistState==='function')persistState();
@@ -962,7 +962,7 @@ async function syncLocalToSupabase(){
      const primaryUser=(usersData||[]).find(u=>String(u.id)===String(primaryLocalId));
      const ownerId=profileByEmail[String(primaryUser?.email||'').toLowerCase()]||profileByEmail[String(p0.owner||'').toLowerCase()]||currentUser.id;
      const dbClient=clientMap[p0.clientId]||null;
-     const projectPayload={legacy_id:localLegacy('project',p0.id),name:p0.n||'Projeto sem nome',client_id:dbClient,owner_id:ownerId,status:p0.projectStatus||'Ativo',progress:Number(p0.progress||0),start_date:p0.startDate||null,delivery_date:p0.endDate||null,original_delivery_date:p0.originalEndDate||null,base_date:p0.baseDate||null,finalized:!!p0.finalizado,finalized_at:p0.finalizadoAt||null,finalized_by:profileByEmail[String(p0.finalizadoBy||'').toLowerCase()]||null,created_by:currentUser.id};
+     const projectPayload={legacy_id:localLegacy('project',p0.id),name:p0.n||'Projeto sem nome',client_id:dbClient,owner_id:ownerId,status:p0.projectStatus||'Ativo',progress:Number(p0.progress||0),start_date:p0.startDate||null,delivery_date:p0.endDate||null,original_delivery_date:p0.originalEndDate||null,base_date:p0.baseDate||null,finalized:!!p0.finalizado,finalized_at:p0.finalizadoAt||null,finalized_by:profileByEmail[String(p0.finalizadoBy||'').toLowerCase()]||null,project_type:p0.projectType==='consultoria'?'consultoria':'implantacao',documentation_scope:p0.projectType==='consultoria'?(p0.documentationScope==='diario'?'diario':'all'):'all',created_by:currentUser.id};
      const {data,error}=await supabaseClient.from('projects').upsert(projectPayload,{onConflict:'legacy_id'}).select('id').single();
      if(error)throw new Error('Projeto '+(p0.n||'')+': '+error.message);
      const projectId=data.id;
