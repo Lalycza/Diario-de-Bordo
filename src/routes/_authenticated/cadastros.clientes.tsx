@@ -491,7 +491,7 @@ function ClientesPage() {
         </DialogContent>
       </Dialog>
       <Dialog open={form !== null} onOpenChange={(open) => !open && setForm(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onEscapeKeyDown={() => setForm(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{form?.id ? "Editar cliente" : "Novo cliente"}</DialogTitle>
             <DialogDescription>
