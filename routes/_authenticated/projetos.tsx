@@ -25,6 +25,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/projetos")({
   head: () => ({
@@ -80,7 +83,7 @@ function ProjetosPage() {
   const { isAdmin, isSupervisor } = useRole();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
-  const [form, setForm] = useState<ProjectForm | null>(null);
+  const [form, setForm] = useState<ProjectForm | null>(null);\n  const [clientPickerOpen, setClientPickerOpen] = useState(false);
 
   const productsQuery = useQuery({
     queryKey: ["products-for-project"],
@@ -444,24 +447,57 @@ function ProjetosPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1.5 md:col-span-2">
                   <Label>Cliente</Label>
-                  <Select value={form.client_id || undefined} onValueChange={(value) => {
-                    const client = clientsQuery.data?.find((item) => item.id === value);
-                    const allowed = clientProductsQuery.data?.filter((link) => link.client_id === value).map((link) => link.product_id) ?? [];
-                    setForm((current) => current ? {
-                      ...current,
-                      client_id: value,
-                      cliente: client?.razao_social ?? client?.nome_fantasia ?? current.cliente,
-                      email_cliente: client?.email ?? current.email_cliente,
-                      product_id: allowed.includes(current.product_id) ? current.product_id : (allowed[0] ?? client?.product_id ?? ""),
-                    } : current);
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-                    <SelectContent>
-                      {(clientsQuery.data ?? []).map((client) => (
-                        <SelectItem key={client.id} value={client.id}>{client.razao_social}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clientPickerOpen}
+                        className="w-full justify-between font-normal"
+                      >
+                        {form.client_id
+                          ? (() => {
+                              const selected = clientsQuery.data?.find((item) => item.id === form.client_id);
+                              return selected?.razao_social ?? selected?.nome_fantasia ?? form.cliente ?? "Cliente selecionado";
+                            })()
+                          : "Selecione o cliente"}
+                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Pesquisar cliente..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {[...(clientsQuery.data ?? [])]
+                              .sort((a, b) => (a.razao_social ?? a.nome_fantasia ?? "").localeCompare(b.razao_social ?? b.nome_fantasia ?? "", "pt-BR", { sensitivity: "base" }))
+                              .map((client) => (
+                                <CommandItem
+                                  key={client.id}
+                                  value={client.razao_social ?? client.nome_fantasia ?? ""}
+                                  onSelect={() => {
+                                    const allowed = clientProductsQuery.data?.filter((link) => link.client_id === client.id).map((link) => link.product_id) ?? [];
+                                    setForm((current) => current ? {
+                                      ...current,
+                                      client_id: client.id,
+                                      cliente: client.razao_social ?? client.nome_fantasia ?? current.cliente,
+                                      email_cliente: client.email ?? current.email_cliente,
+                                      product_id: allowed.includes(current.product_id) ? current.product_id : (allowed[0] ?? client.product_id ?? ""),
+                                    } : current);
+                                    setClientPickerOpen(false);
+                                  }}
+                                >
+                                  <Check className={`mr-2 size-4 ${form.client_id === client.id ? "opacity-100" : "opacity-0"}`} />
+                                  <span className="truncate">{client.razao_social ?? client.nome_fantasia}</span>
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <Input className="mt-2" value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} required placeholder="Nome do projeto/cliente" />
                 </div>
 
