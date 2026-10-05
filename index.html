@@ -1447,7 +1447,7 @@ async function syncClientToSupabase(c){
   }
   return data.id;
 }
-async async function saveClientForm(id){
+async function saveClientForm(id){
   if(!canEditClient())return;
   let c=id?clientsData.find(x=>x.id===id):{id:id||Date.now(),contacts:[],documents:[]};
   let v=x=>document.getElementById(x)?.value||'';
