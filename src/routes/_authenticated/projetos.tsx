@@ -76,7 +76,7 @@ const emptyForm: ProjectForm = {
 
 function ProjetosPage() {
   const { user } = Route.useRouteContext();
-  const { isAdmin, isSupervisor, isAnalista } = useRole();
+  const { isAdmin, isSupervisor, isAnalista, isCS } = useRole();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<ProjectForm | null>(null);
@@ -337,7 +337,7 @@ function ProjetosPage() {
 
   return (
     <>
-      {isAdmin || isSupervisor ? <ManagementDashboard /> : null}
+      {isAdmin || isSupervisor || isCS ? <ManagementDashboard /> : null}
 
       {!showArchived && (isAdmin || isSupervisor) ? (() => {
         const visible = projects;
