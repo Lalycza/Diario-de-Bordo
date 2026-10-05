@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useProject } from "@/lib/useProject";
+import { registerDocumentationUpdate } from "@/lib/documentation";
 
 export const Route = createFileRoute("/_authenticated/projeto/$projectId/cronograma")({
   head: () => ({
@@ -109,9 +110,10 @@ function CronogramaPage() {
     },
   });
 
-  const invalidate = () => {
+  const invalidate = async () => {
     queryClient.invalidateQueries({ queryKey: ["stages", projectId] });
     queryClient.invalidateQueries({ queryKey: ["all-stages"] });
+    await registerDocumentationUpdate(projectId, "cronograma");
   };
 
   const saveStage = useMutation({
