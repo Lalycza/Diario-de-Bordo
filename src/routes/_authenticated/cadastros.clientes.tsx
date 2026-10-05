@@ -255,6 +255,16 @@ function ClientesPage() {
     }
   }, [clientProductsEditQuery.data, form]);
 
+  const clientEmailsQuery = useQuery({
+    queryKey: ["client-emails", form?.id],
+    enabled: Boolean(form?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("project_emails").select("id,sent_at,recipients,subject,body,attachment_names,status").eq("client_id", form!.id!).order("sent_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const clients = clientsQuery.data ?? [];
   const clienteDetalhe = clients.find((c) => c.id === detalhe);
   const projetosDoCliente = (projectsQuery.data ?? []).filter((p) => {
@@ -458,6 +468,7 @@ function ClientesPage() {
             >
               <Tabs defaultValue="dados" className="w-full">
                 <TabsList>
+                <TabsTrigger value="emails">E-mails</TabsTrigger>
                   <TabsTrigger value="dados">Dados do cliente</TabsTrigger>
                   <TabsTrigger value="produto">Produto</TabsTrigger>
                 </TabsList>
