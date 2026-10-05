@@ -122,7 +122,7 @@ function ClientesPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("client_products").select("product_id, status").eq("client_id", form!.id!);
       if (error) throw error;
-      return (data ?? []).map((row) => row.product_id);
+      return (data ?? []).map((row) => ({ product_id: row.product_id, status: row.status as "implantacao" | "suporte" | "consultoria" }));
     },
   });
 
@@ -626,19 +626,42 @@ function ClientesPage() {
                 <TabsContent value="produto" className="space-y-4">
                   <div className="rounded-lg border p-4">
                     <p className="font-medium">Produtos do cliente</p>
-                    <p className="text-xs text-muted-foreground">Selecione todos os produtos que este cliente possui em andamento.</p>
+                    <p className="text-xs text-muted-foreground">Selecione os produtos que este cliente possui e informe a situação de cada um.</p>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {(productsQuery.data ?? []).map((product) => {
                         const checked = form.product_ids.includes(product.id);
                         const status = form.product_statuses[product.id] ?? "implantacao";
-                        return <div key={product.id} className="flex items-center gap-2 rounded-md border p-3 text-sm"><input type="checkbox" checked={checked} onChange={(e) => setForm({ ...form, product_ids: e.target.checked ? [...new Set([...form.product_ids, product.id])] : form.product_ids.filter((id) => id !== product.id) })} />{product.name}{checked ? <Select value={currentProduct?.status ?? "implantacao"} onValueChange={async (value: "implantacao" | "suporte" | "consultoria") => { if (!detalhe) return; const { error } = await supabase.from("client_products").update({ status: value }).eq("client_id", detalhe).eq("product_id", product.id); if (error) { toast.error("Não foi possível atualizar a situação do produto."); return; } queryClient.setQueryData(["client-products", detalhe], (rows = []) => rows.map((row: { product_id: string; status: "implantacao" | "suporte" | "consultoria" }) => row.product_id === product.id ? { ...row, status: value } : row)); }}><SelectTrigger className="ml-auto w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="implantacao">Em Implantação</SelectItem><SelectItem value="suporte">Em Suporte</SelectItem><SelectItem value="consultoria">Consultoria</SelectItem></SelectContent></Select> : null}</label>;
+                        return (
+                          <div key={product.id} className="flex items-center gap-2 rounded-md border p-3 text-sm">
+                            <input type="checkbox" checked={checked} onChange={(e) => setForm({
+                              ...form,
+                              product_ids: e.target.checked
+                                ? [...new Set([...form.product_ids, product.id])]
+                                : form.product_ids.filter((id) => id !== product.id),
+                              product_statuses: e.target.checked
+                                ? { ...form.product_statuses, [product.id]: form.product_statuses[product.id] ?? "implantacao" }
+                                : Object.fromEntries(Object.entries(form.product_statuses).filter(([id]) => id !== product.id)),
+                            })} />
+                            <span className="flex-1">{product.name}</span>
+                            {checked ? (
+                              <Select value={status} onValueChange={(value: "implantacao" | "suporte" | "consultoria") => setForm({ ...form, product_statuses: { ...form.product_statuses, [product.id]: value } })}>
+                                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="implantacao">Em Implantação</SelectItem>
+                                  <SelectItem value="suporte">Em Suporte</SelectItem>
+                                  <SelectItem value="consultoria">Consultoria</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : null}
+                          </div>
+                        );
                       })}
                     </div>
                   </div>
                   <div className="rounded-lg border p-4">
                     <div className="space-y-1.5">
-                      <Label>Produto / sistema</Label>
-                      <p className="text-xs text-muted-foreground">Cadastre aqui o produto principal do cliente. Ele será levado automaticamente para novos projetos desse cliente.</p>
+                      <Label>Produto / sistema principal</Label>
+                      <p className="text-xs text-muted-foreground">Este produto será levado automaticamente para novos projetos deste cliente.</p>
                       <Select value={form.product_id || undefined} onValueChange={(value) => setForm({ ...form, product_id: value })}>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder={productsQuery.isLoading ? "Carregando produtos..." : "Selecione o produto / sistema"} />
