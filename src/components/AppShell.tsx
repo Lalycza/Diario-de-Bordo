@@ -52,7 +52,7 @@ function MenuItems({
 
   return (
     <nav className="space-y-2" aria-label="Menu principal">
-      {canManage ? (
+      {canViewDashboard ? (
         <section>
           <button type="button" onClick={() => toggle("gerencial")} className={sectionClass}>
             <span>Gerencial</span>
@@ -204,7 +204,8 @@ export function AppShell({
     setOpen((current) => ({ ...current, [section]: !current[section] }));
   }
 
-  const canManage = isAdmin || isSupervisor;\n  const canViewDashboard = canManage || isCS;
+  const canManage = isAdmin || isSupervisor;
+  const canViewDashboard = canManage || isCS;
 
   return (
     <div className="min-h-screen bg-background">
