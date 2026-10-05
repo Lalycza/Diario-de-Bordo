@@ -37,8 +37,9 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      onKeyDownCapture={(event) => {
-        if (event.key === "Escape") {
+      onEscapeKeyDown={(event) => {
+        props.onEscapeKeyDown?.(event);
+        if (!event.defaultPrevented) {
           const closeButton = event.currentTarget.querySelector<HTMLButtonElement>('[data-dialog-close="true"]');
           closeButton?.click();
         }
