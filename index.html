@@ -1046,31 +1046,7 @@ async function syncProjectAnalystToSupabase(p){
  if(byId.data?.email)p.owner=byId.data.email;
  return profileId;
 }
-async function saveProjetoEdicao(){
- if(!canEdit()||!cur)return;
- let p=cur,v=id=>document.getElementById(id)?.value||'';
- let n=v('editProjName').trim(),c=v('editProjClient').trim();
- if(!n||!c)return alert('Informe o nome do projeto e o cliente.');
- const selectedAnalyst=v('editProjOwner');
- const au=selectedAnalyst?usersData.find(u=>String(u.id)===String(selectedAnalyst)||String(u.email||'').toLowerCase()===String(selectedAnalyst).toLowerCase()):null;
- p.n=n;p.c=c;
- p.owner=au?.email||p.owner||'';
- p.operatorIds=au?[au.id]:(p.operatorIds||[]);
- p.baseDate=v('editProjBase');p.startDate=v('editProjStart');p.endDate=v('editProjEnd');p.projectStatus=v('editProjStatus')||'Ativo';p.projectType=v('editProjType')||p.projectType||'implantacao';p.documentationScope=p.projectType==='consultoria'?(v('editProjScope')||'diario'):'all';if(p.documentationScope==='all'){syncProjectMap(p);p.modulesInitialized=true;}else if(p.projectType==='consultoria'){p.m=[];p.t=[];p.modulesInitialized=true;}
- audit('Projeto alterado','Dados cadastrais do projeto atualizados. Analista responsável: '+(au?.name||au?.email||'sem responsável')+'. Status: '+p.projectStatus+'. Documentação: '+(p.documentationScope==='diario'?'Somente Diário':'Mapa + Cronograma + Diário')+'.');
- if(typeof persistState==='function')persistState();
- closeModal();openP(p.id);render();
- try{
-   if(p.dbId){
-     await syncProjectBasicDataToSupabase(p);
-     if((p.operatorIds||[]).length)await syncProjectAnalystToSupabase(p);
-     await syncProjectLifecycleStatusToSupabase(p);
-   }
- }catch(e){
-   alert('Os dados foram salvos localmente, mas não foi possível confirmar o analista no Supabase: '+(e.message||e));
- }
-}
-function usuarios(){if(!hasAdminAccess())return;hideSections();document.getElementById('users').classList.remove('hidden');renderUsers()}
+async function saveProjetoEdicao(){if(!canEdit()||!cur)return;let p=cur,v=id=>document.getElementById(id)?.value||'';let n=v('editProjName').trim(),clientName=v('editProjClient').trim();if(!n||!clientName)return alert('Informe o nome do projeto e o cliente.');const selectedAnalyst=v('editProjOwner');const au=selectedAnalyst?usersData.find(u=>String(u.id)===String(selectedAnalyst)||String(u.email||'').toLowerCase()===String(selectedAnalyst).toLowerCase()):null;const draft=JSON.parse(JSON.stringify(p));draft.n=n;draft.c=clientName;draft.owner=au?.email||draft.owner||'';draft.operatorIds=au?[au.id]:(draft.operatorIds||[]);draft.baseDate=v('editProjBase');draft.startDate=v('editProjStart');draft.endDate=v('editProjEnd');draft.projectStatus=v('editProjStatus')||'Ativo';draft.projectType=v('editProjType')||draft.projectType||'implantacao';draft.documentationScope=draft.projectType==='consultoria'?(v('editProjScope')||'diario'):'all';if(draft.documentationScope==='all'){syncProjectMap(draft);draft.modulesInitialized=true}else if(draft.projectType==='consultoria'){draft.m=[];draft.t=[];draft.modulesInitialized=true}try{if(draft.dbId){await syncProjectBasicDataToSupabase(draft);if((draft.operatorIds||[]).length)await syncProjectAnalystToSupabase(draft);await syncProjectLifecycleStatusToSupabase(draft)}Object.assign(p,draft);audit('Projeto alterado','Dados cadastrais do projeto atualizados. Analista responsável: '+(au?.name||au?.email||'sem responsável')+'. Status: '+p.projectStatus+'. Documentação: '+(p.documentationScope==='diario'?'Somente Diário':'Mapa + Cronograma + Diário')+'.');persistState();closeModal();openP(p.id);render()}catch(err){console.error(err);alert('Não foi possível confirmar as alterações do projeto no Supabase. O cadastro original foi mantido.\\n\\n'+(err?.message||err))}}function usuarios(){if(!hasAdminAccess())return;hideSections();document.getElementById('users').classList.remove('hidden');renderUsers()}
 function localLegacy(prefix,id){return prefix+'-'+String(id)}
 function monthNumber(name){let i=cronMonths.indexOf(name);return i>=0?i+1:null}
 function parseBRDate(v){if(!v)return null;let m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);return m?m[3]+'-'+m[2]+'-'+m[1]:v}
