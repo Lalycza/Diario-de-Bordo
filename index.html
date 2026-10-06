@@ -192,6 +192,8 @@
 .diary-entry table{font-size:8px}.diary-entry th{width:20%;background:#2a978f;color:#fff;border:1px solid #aaa;text-align:right;padding:3px 6px}.diary-entry td{border:1px solid #aaa;padding:3px 5px;vertical-align:top}
 .diary-empty{border:1px solid #aaa;padding:12px;font-size:9px}
 @media print{
+ html,body{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;background:#fff!important;color:#111!important}
+ .pdf-map-page,.pdf-cron-page,.pdf-diary-page,.pdf-map-page *, .pdf-cron-page *, .pdf-diary-page *{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
  @page{size:A4 portrait;margin:8mm}
  html,body{background:#fff!important}
  .pdf-map-page,.pdf-cron-page,.pdf-diary-page{width:100%!important}
