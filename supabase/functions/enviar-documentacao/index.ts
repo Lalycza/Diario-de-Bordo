@@ -32,38 +32,37 @@ function normalizeFieldName(v:string){return v.normalize("NFD").replace(/[\u0300
 function tryFillForm(doc:PDFDocument,values:Record<string,string>){try{const form=doc.getForm(),fields=form.getFields();let filled=0;for(const field of fields){if(!(field instanceof PDFTextField))continue;const name=normalizeFieldName(field.getName());const hit=Object.entries(values).find(([key])=>name.includes(normalizeFieldName(key)));if(!hit)continue;try{field.setText(hit[1]);filled++}catch{}}if(filled)form.updateFieldAppearances();return filled}catch{return 0}}
 
 async function makePdf(type:DocType,project:any,rows:any[]){
-  const template=await loadTemplate(type),output=await PDFDocument.create();
-  const copied=await output.copyPages(template,template.getPageIndices());copied.forEach(p=>output.addPage(p));
-  const font=await output.embedFont(StandardFonts.Helvetica),bold=await output.embedFont(StandardFonts.HelveticaBold);
-  const formValues:Record<string,string>={projeto:clean(project.name||project.cliente),cliente:clean(project.cliente),analista:clean(project.analista)};
-  rows.slice(0,30).forEach((r,i)=>formValues["registro"+(i+1)]=clean(r.text||r.name||""));
-  tryFillForm(output,formValues);
-  let page=output.getPage(0);const {width,height}=page.getSize();const left=38,right=width-38;let y=Math.min(height-155,690);
-  const drawText=(txt:string,x:number,yy:number,size=8,isBold=false,color=rgb(0.12,0.16,0.22))=>page.drawText(clean(txt),{x,y:yy,size,font:isBold?bold:font,color});
-  const drawStatus=(txt:string,x:number,yy:number)=>{const st=STATUS_STYLE[txt]||{fill:rgb(0.93,0.93,0.93),text:rgb(0.2,0.2,0.2)};const w=Math.min(82,Math.max(48,txt.length*4.3+14));page.drawRectangle({x,y:yy-4,width:w,height:16,color:st.fill,borderColor:st.text,borderWidth:.5});drawText(txt,x+5,yy,6.5,true,st.text)};
-  const addTemplatePage = async () => {
-    const pages = await output.copyPages(template, [0]);
-    page = pages[0];
-    output.addPage(page);
-    y = height - 155;
-  };
-  if(type==="diario"){
-    const labels=["DATA DA REUNIÃO","HORÁRIO","ANALISTA IMPLANTADOR","PARTICIPANTES","PAUTA DO DIA","TAREFA CLIENTE","TAREFA HPRO","PRÓXIMO TREINAMENTO","OBSERVAÇÕES / OCORRÊNCIAS"];
-    for(const r of rows){if(y<95)await addTemplatePage();
-      drawText(labels[0],left+8,y-6,6.5,true);drawText(dateBR(r.data_reuniao),left+8,y-17,8);
-      drawText(labels[1],left+88,y-6,6.5,true);drawText(clean(r.hora_reuniao||"—"),left+88,y-17,8);
-      drawText(labels[2],left+155,y-6,6.5,true);drawText(clean(r.analista||project.analista||"—"),left+155,y-17,8);
-      drawText(labels[3],left+8,y-34,6.5,true);drawText(wrap(r.participantes||"—",105)[0],left+8,y-45,7.5);
-      drawText(labels[4],left+8,y-57,6.5,true);drawText(wrap(r.pauta||"—",105)[0],left+8,y-68,7.5);y-=80;
-    }
-  }else{
-    drawText(project.cliente||project.name||"Projeto",left,y+24,10,true);drawText(project.name||"",left,y+10,8);y-=4;
-    const headers=type==="mapa"?["MÓDULO / SUBMÓDULO","PREVISÃO","INÍCIO","CONCLUSÃO","HOMOLOGAÇÃO","STATUS"]:["ETAPA / MÓDULO","INÍCIO","PREVISTO","CONCLUSÃO","STATUS"];
-    drawText(headers.join("    "),left,y,6.5,true);y-=17;
-    for(const r of rows){if(y<60)await addTemplatePage();
-      const cols=type==="mapa"?[clean(r.name),dateBR(r.planned_date),dateBR(r.start),dateBR(r.completion),dateBR(r.homologation)]:[clean(r.name),dateBR(r.start),dateBR(r.planned_date),dateBR(r.completion)];
-      drawText(wrap(cols[0],34)[0],left,y,7);let x=type==="mapa"?left+190:left+265;for(let i=1;i<cols.length;i++){drawText(cols[i],x,y,6.5);x+=type==="mapa"?65:72}drawStatus(statusLabel(r.status),type==="mapa"?right-80:right-82,y-1);y-=23;
-    }
+  const template=await loadTemplate(type), output=await PDFDocument.create();
+  const base=template.getPage(0), size=base.getSize(); const W=size.width,H=size.height;
+  const font=await output.embedFont(StandardFonts.Helvetica), bold=await output.embedFont(StandardFonts.HelveticaBold);
+  const blue=rgb(0.03,0.47,0.74), teal=rgb(0.16,0.59,0.56), grid=rgb(0.55,0.55,0.55), light=rgb(0.93,0.93,0.93), white=rgb(1,1,1), black=rgb(.08,.08,.08);
+  const statusStyle=(v:string)=>{const s=statusLabel(v);if(s==='Pendente')return {fill:rgb(.97,.71,.73),text:rgb(.62,.16,.19)};if(s==='Em andamento')return {fill:rgb(1,.89,.60),text:rgb(.50,.36,.10)};if(s==='Concluída'||s==='Concluído')return {fill:rgb(.83,.92,.82),text:rgb(.24,.44,.25)};if(s==='Homologada'||s==='Homologado')return {fill:rgb(.85,.78,.93),text:rgb(.39,.25,.54)};return {fill:rgb(.95,.88,.67),text:rgb(.50,.36,.10)}};
+  const txt=(p:any,t:string,x:number,y:number,size=8,b=false,color=black)=>p.drawText(clean(t),{x,y,size,font:b?bold:font,color,maxWidth:W-x-18});
+  const fit=(t:string,max:number)=>{let v=clean(t);if(v.length<=max)return v;return v.slice(0,Math.max(0,max-1))+'…'};
+  const cell=(p:any,x:number,y:number,w:number,h:number,t:string,opts:any={})=>{p.drawRectangle({x,y:y-h,width:w,height:h,color:opts.fill||white,borderColor:grid,borderWidth:.45});let lines=wrap(fit(t||'',opts.max||Math.max(8,Math.floor(w/(opts.size||7)*1.55))),opts.chars||Math.max(8,Math.floor(w/(opts.size||7)*1.55)));const sz=opts.size||7;const lh=sz+1.5;let yy=y-sz-2;for(const line of lines.slice(0,Math.max(1,Math.floor((h-3)/lh)))){let tw=opts.center?(w-font.widthOfTextAtSize(line,sz))/2+ x:x+3;txt(p,line,tw,yy,sz,!!opts.bold,opts.color||black);yy-=lh}};
+  const statusCell=(p:any,x:number,y:number,w:number,h:number,v:string)=>{const st=statusStyle(v);cell(p,x,y,w,h,statusLabel(v),{fill:st.fill,color:st.text,bold:true,center:true,size:7,max:22})};
+  const newPage=()=>{const p=output.addPage([W,H]);return p};
+  const p0=()=>newPage();
+  if(type==='mapa'){
+    let p=p0(), y=H-28;
+    const pName=clean(project.name||project.cliente), client=clean(project.cliente), analyst=clean(project.analista), start=dateBR(project.start_date), end=dateBR(project.delivery_date), orig=dateBR(project.original_delivery_date||project.delivery_date), prog=String(project.progress??0)+'%';
+    const cols=[70,115,70,115,70,115];
+    for(let r=0;r<3;r++){let x=18;const vals=r===0?['Projeto:',pName,'Data Início:',start,'Total Progresso:',prog]:r===1?['Analista Implantação:',analyst,'Data Entrega:',end,'Módulos Homologados:',String(rows.filter(r=>statusLabel(r.status)==='Homologada').length)]:['Atualizado em:',new Date().toLocaleString('pt-BR'),'Entrega Original:',orig,'Pendentes:',String(rows.filter(r=>statusLabel(r.status)==='Pendente').length)];for(let i=0;i<6;i+=2){cell(p,x,y,cols[i],22,vals[i],{bold:true,size:7,center:true,fill:light,max:20});x+=cols[i];cell(p,x,y,cols[i+1],22,vals[i+1],{size:7,max:22});x+=cols[i+1]}y-=22}
+    const heads=['Utilitários','Módulos','Treinamento','Data Homologação','Responsável Homologação','Status'], widths=[100,190,65,85,95,60];let x=18;for(let i=0;i<heads.length;i++){cell(p,x,y,widths[i],25,heads[i],{fill:blue,color:white,bold:true,center:true,size:7,max:25});x+=widths[i]}y-=25;
+    const modules:any[]=[];for(const r of rows){const name=clean(r.module_name||r.module?.name||r.name), sub=clean(r.submodule_name||r.submodule?.name||r.submodule);let m=modules.find(x=>x.name===name);if(!m){m={name,items:[]};modules.push(m)}if(sub)m.items.push(r)}
+    for(const m of modules){const items=m.items.length?m.items:[{name:'',status:'Pendente'}];const blockH=Math.max(22,items.length*22);if(y-blockH<24){p=p0();y=H-35; x=18;for(let i=0;i<heads.length;i++){cell(p,x,y,widths[i],25,heads[i],{fill:blue,color:white,bold:true,center:true,size:7});x+=widths[i]}y-=25}
+      cell(p,18,y,100,blockH,m.name,{fill:blue,color:white,bold:true,center:true,size:7,max:24});
+      items.forEach((r:any,idx:number)=>{const yy=y-idx*22;cell(p,118,yy,190,22,idx===0?fit(r.name||r.submodule_name||'',48):fit(r.name||r.submodule_name||'',48),{size:7,bold:!r.submodule_name,max:48});cell(p,308,yy,65,22,dateBR(r.training_start_date||r.start||r.planned_date),{size:6.5,center:true});cell(p,373,yy,85,22,dateBR(r.homologation_date||r.homologation),{size:6.5,center:true});cell(p,458,yy,95,22,clean(r.homologation_responsible||r.homologationResponsible),{size:6.5,center:true});statusCell(p,553,yy,60,22,r.status||'Pendente')});y-=blockH}
+  } else if(type==='cronograma'){
+    let p=p0(),y=H-28;const client=clean(project.cliente),name=clean(project.name),analyst=clean(project.analista);const top=[['Projeto:',name,'Analista',analyst,'Progresso Geral:',String(project.progress??0)+'%','Módulo Homologado',String(rows.filter(r=>statusLabel(r.status)==='Homologada').length),'Responsável Cliente:',clean(project.responsavel_cliente||'')],['Cliente:',client,'Coordenação:',clean(project.coordenacao||''),'Data Base:',new Date().toLocaleString('pt-BR'),'','','','',''],['Data Início:',dateBR(project.start_date),'Data Entrega:',dateBR(project.delivery_date),'Data Entrega Original:',dateBR(project.original_delivery_date||project.delivery_date),'Dias para Go Live:',String(project.delivery_date?Math.max(0,Math.ceil((new Date(String(project.delivery_date).slice(0,10)+'T00:00:00').getTime()-Date.now())/86400000)):0),'','']];for(const rr of top){let x=18;for(let i=0;i<rr.length;i+=2){if(!rr[i])continue;const w=i===0?62: i===2?62:i===4?70:65;cell(p,x,y,w,21,rr[i],{fill:light,bold:true,center:true,size:6.5,max:18});x+=w;const vw= i===0?105:i===2?105:i===4?115:90;cell(p,x,y,vw,21,rr[i+1]||'',{size:6.5,max:22});x+=vw}y-=21}
+    txt(p,'1. RESUMO DE ENTREGAS',W/2-65,y-2,10,true);y-=14;const hs=['FASE DO PROJETO','STATUS','CONCLUSÃO','DATA HOMOLOGAÇÃO','RESPONSÁVEL HOMOLOGAÇÃO','OBSERVAÇÕES'],ww=[105,65,85,85,105,125];let x=18;hs.forEach((h,i)=>{cell(p,x,y,ww[i],25,h,{fill:blue,color:white,bold:true,center:true,size:6.5,max:25});x+=ww[i]});y-=25;
+    for(const r of rows){if(y<45){p=p0();y=H-30}x=18;const vals=[r.name||r.nome||'',statusLabel(r.status),dateBR(r.completion||r.data_conclusao),dateBR(r.homologation||r.data_homologacao),r.homologation_responsible||r.responsavel_homologacao||'',r.observations||r.observacoes||''];cell(p,x,y,ww[0],22,vals[0],{size:6.5,center:true,max:28});x+=ww[0];statusCell(p,x,y,ww[1],22,vals[1]);x+=ww[1];for(let i=2;i<6;i++){cell(p,x,y,ww[i],22,String(vals[i]||''),{size:6.5,center:true,max:i===5?35:20});x+=ww[i]}y-=22}
+    txt(p,'3. PRÓXIMOS PASSOS / ATIVIDADES',18,y-2,9,true);y-=12;const months=[['Janeiro','Fevereiro','Março'],['Abril','Maio','Junho'],['Julho','Agosto','Setembro'],['Outubro','Novembro','Dezembro']];for(const ms of months){if(y<150){p=p0();y=H-30}cell(p,18,y,W-36,18,'Trimestre',{fill:white,bold:true,center:true,size:8});y-=18;const qrows=rows.filter(r=>ms.includes(r.month));if(qrows.length){for(const r of qrows.slice(0,10)){cell(p,18,y,105,18,r.name||r.nome||'',{size:6.5,max:25});cell(p,123,y,60,18,r.responsible||r.responsavel||'HPRO',{size:6.5,center:true});for(const m of ms){for(let w=1;w<=5;w++){const active=(r.month===m&&Number(r.week)===w);cell(p,183+(ms.indexOf(m)*5+w-1)*55,y,55,18,active?statusLabel(r.status):'',{fill:active?statusStyle(r.status).fill:white,color:active?statusStyle(r.status).text:black,bold:active,center:true,size:5.5,max:12})}}y-=18}}y-=8}
+  } else {
+    const first=await output.copyPages(template,[0]);let p=first[0];output.addPage(p);p.drawRectangle({x:10,y:0,width:W-20,height:H-70,color:white});const logoArea=H-42;txt(p,new Date().toLocaleString('pt-BR'),W/2-45,logoArea-22,8,true,teal);let y=logoArea-36;
+    const ident=[['Cliente',project.cliente],['Projeto',project.name],['Analista Implantador',project.analista],['Responsável Cliente',project.responsavel_cliente||''],['Data Início',dateBR(project.start_date)],['Data Entrega',dateBR(project.delivery_date)],['Data Original Entrega',dateBR(project.original_delivery_date||project.delivery_date)]];for(const [a,b] of ident){cell(p,18,y,105,18,a,{bold:true,color:teal,center:true,size:7});cell(p,123,y,W-41,18,clean(b),{size:7});y-=18}
+    txt(p,'Ponderações/Orientações:',18,y-2,8,true);y-=14;const orient=['◆Todo o andamento do processo de implantação será registrado neste documento;','◆O cliente receberá a versão atualizada sempre quando for registrado nova movimentação;','◆O cliente deverá ler atentamente as informações registradas neste documento;','◆O cliente poderá questionar ou solicitar esclarecimentos assim que receber a nova versão;'];for(const o of orient){txt(p,o,18,y,7);y-=11}y-=4;
+    const addEntry=(r:any)=>{const date=dateBR(r.data_reuniao||r.date),time=clean(r.hora_reuniao||r.time),h=42+Math.min(130,wrap(clean(r.pauta||''),105).length*9)+Math.min(60,wrap(clean(r.tarefas_hpro||r.hpro||''),105).length*9)+Math.min(60,wrap(clean(r.tarefas_cliente||r.client||''),105).length*9);if(y-h<30){p=newPage();y=H-35}cell(p,18,y,W-36,18,date,{fill:teal,color:white,bold:true,center:true,size:8});y-=18;cell(p,18,y,W-36,17,time,{fill:teal,color:white,bold:true,center:true,size:7});y-=17;const rr=[['Participantes:',r.participantes||r.participants||''],['Pauta:',r.pauta||''],['Tarefas HPro:',r.tarefas_hpro||r.hpro||''],['Tarefas Cliente:',r.tarefas_cliente||r.client||''],['Próxima Visita:',r.proxima_visita||r.next||''],['Gerar cobrança:',r.gerar_cobranca||r.billing||'']];for(const [a,b] of rr){const lines=wrap(clean(b),105),hh=Math.max(17,lines.length*9);cell(p,18,y,105,hh,a,{fill:teal,color:white,bold:true,center:true,size:7});cell(p,123,y,W-41,hh,clean(b),{size:7,max:105});y-=hh}y-=8};for(const r of rows) addEntry(r);
   }
   return output.save();
 }
