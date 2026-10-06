@@ -719,7 +719,7 @@ function planModuleDate(i){
      if(pm)throw pm;
      const {data:tr,error:trErr}=await supabaseClient.from('trainings').select('id').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null).maybeSingle();
      if(trErr)throw trErr;
-     const tp={project_id:refs.projectId,module_id:refs.moduleId,submodule_id:null,subject:null,planned_date:v,planned_month:x.month?cronMonths.indexOf(x.month)+1:null,planned_week:x.week,realization_date:current?.trainingDate||null,responsible:current?.trainingDate?'CLIENTE':'HPRO',status:'Pendente',original_planned_date:current?.plannedDateOriginal||metaOriginal,created_by:currentUser.id,project_type:p0.projectType==='consultoria'?'consultoria':'implantacao',documentation_scope:p0.projectType==='consultoria'?(p0.documentationScope==='diario'?'diario':'all'):'all'};
+     const tp={project_id:refs.projectId,module_id:refs.moduleId,submodule_id:null,subject:null,planned_date:v,planned_month:x.month?cronMonths.indexOf(x.month)+1:null,planned_week:x.week,realization_date:current?.trainingDate||null,responsible:current?.trainingDate?'CLIENTE':'HPRO',status:'Pendente',original_planned_date:current?.plannedDateOriginal||metaOriginal,created_by:currentUser.id,project_type:cur.projectType==='consultoria'?'consultoria':'implantacao',documentation_scope:cur.projectType==='consultoria'?(cur.documentationScope==='diario'?'diario':'all'):'all'};
      if(tr?.id){const {error}=await supabaseClient.from('trainings').update(tp).eq('id',tr.id);if(error)throw error}
      else{const {error}=await supabaseClient.from('trainings').insert(tp);if(error)throw error}
      const {data:stage}=await supabaseClient.from('project_stages').select('id').eq('project_id',refs.projectId).eq('modulo',m[0]).maybeSingle();
