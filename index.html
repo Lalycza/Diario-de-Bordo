@@ -592,14 +592,15 @@ async function hydrateFromSupabase(){
     }
     for(const x of (pm.data||[])){
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
+      const rawModule=(mo.data||[]).find(v=>String(v.id)===String(x.module_id));
       const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
-      // Um project_module só pertence ao Mapa se o módulo também pertencer
-      // a um produto efetivamente vinculado ao projeto. Isso impede que
-      // módulos homônimos de outro produto (ex.: Hiron Pessoas) contaminem
-      // o Mapa de um projeto PH2.
-      const moduleProductId=m?.productIds?.[0];
-      const projectProductIds=new Set((p?.productIds||[]).map(v=>String(v)));
-      if(p&&m&&moduleProductId!=null&&projectProductIds.has(String(moduleProductId))){
+      // A relação confiável é module.product_id (UUID) x project_products.product_id (UUID).
+      // Não usamos os IDs legados locais para decidir se o módulo pertence ao projeto.
+      const projectDbProductIds=new Set((pp.data||[])
+        .filter(v=>String(v.project_id)===String(x.project_id))
+        .map(v=>String(v.product_id)));
+      const belongsToProjectProduct=!!rawModule?.product_id&&projectDbProductIds.has(String(rawModule.product_id));
+      if(p&&m&&belongsToProjectProduct){
         if(!p.m.some(existing=>String(existing[0]).trim().toUpperCase()===String(m.name).trim().toUpperCase())){
           p.m.push([m.name,m.subs||[],{plannedDate:x.planned_training_date||null}]);
         }
@@ -1039,7 +1040,7 @@ async function importModule(){
    try{
     const {data:subs,error:se}=await supabaseClient.from('submodules').select('id,name').eq('module_id',source.id).eq('active',true).order('name');
     if(se)throw se;
-    const {data:exists,error:ee}=await supabaseClient.from('project_modules').select('id').eq('project_id',cur.dbId).eq('module_id',source.id).maybeSingle();
+    const {data:exists,error:ee}=await supabaseClient.from('project_modules').select('module_id').eq('project_id',cur.dbId).eq('module_id',source.id).maybeSingle();
     if(ee)throw ee;
     if(exists?.id)throw new Error('Este módulo já está vinculado ao projeto.');
     const {error:pe}=await supabaseClient.from('project_modules').insert({project_id:cur.dbId,module_id:source.id,planned_training_date:null});
