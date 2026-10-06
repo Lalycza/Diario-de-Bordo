@@ -201,7 +201,27 @@
  .diary-entry{break-inside:avoid}
  .pdf-diary-page{font-size:8px}
 }
-</style><style id="implanta-project-dark-cards-v1">
+<style id="implanta-project-dark-cards-v2">
+/* Correção específica dos cards/resumo do projeto: os elementos internos também precisam vencer o CSS claro. */
+.app.theme-dark #proj .project-summary > span,
+.app.theme-dark #proj .project-summary > span > span,
+.app.theme-dark #proj .overview-grid > .metric,
+.app.theme-dark #proj .project-finalized,
+.app.theme-dark #proj .audit-panel{
+  background:#171b22!important;
+  color:#fff!important;
+  border-color:#17366f!important;
+}
+.app.theme-dark #proj .project-summary > span b,
+.app.theme-dark #proj .project-summary > span > span,
+.app.theme-dark #proj .metric b,
+.app.theme-dark #proj .metric span{
+  color:#fff!important;
+}
+.app.theme-dark #proj .project-summary > span b{
+  color:#b8c1cf!important;
+}
+</style></style><style id="implanta-project-dark-cards-v1">
 /* IMPLANTA — cartões e áreas internas do projeto seguem o tema escuro */
 .app.theme-dark .project-summary,
 .app.theme-dark .project-toolbar,
