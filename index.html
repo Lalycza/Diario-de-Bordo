@@ -275,6 +275,33 @@
 .app.theme-dark #proj .project-lifecycle-ativo{background:#e8f5e9!important;color:#356b3f!important}
 .app.theme-dark #proj .project-lifecycle-finalizado{background:#e8eaf6!important;color:#4b4f78!important}
 .app.theme-dark #proj .project-lifecycle-congelado{background:#fff3e0!important;color:#8a6330!important}
+</style><style id="date-picker-restoration">
+/* LZ — restaura o seletor nativo de calendário em todos os campos de data */
+#app input[type="date"],
+#app input[type="datetime-local"],
+#modal input[type="date"],
+#modal input[type="datetime-local"]{
+  -webkit-appearance:auto!important;
+  appearance:auto!important;
+  color-scheme:light;
+}
+#app.theme-dark input[type="date"],
+#app.theme-dark input[type="datetime-local"],
+.app.theme-dark input[type="date"],
+.app.theme-dark input[type="datetime-local"]{
+  color-scheme:dark!important;
+}
+#app input[type="date"]::-webkit-calendar-picker-indicator,
+#app input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+#modal input[type="date"]::-webkit-calendar-picker-indicator,
+#modal input[type="datetime-local"]::-webkit-calendar-picker-indicator{
+  display:block!important;
+  opacity:1!important;
+  visibility:visible!important;
+  cursor:pointer!important;
+  width:18px!important;
+  height:18px!important;
+}
 </style><style id="implanta-dark-theme-refinement-v2">
 /* IMPLANTA — refinamento visual do tema escuro: vence os estilos legados, mas somente no modo escuro */
 html:has(#app.theme-dark){color-scheme:dark!important;background:#05070b!important}
