@@ -1042,7 +1042,7 @@ async function importModule(){
     if(se)throw se;
     const {data:exists,error:ee}=await supabaseClient.from('project_modules').select('module_id').eq('project_id',cur.dbId).eq('module_id',source.id).maybeSingle();
     if(ee)throw ee;
-    if(exists?.id)throw new Error('Este módulo já está vinculado ao projeto.');
+    if(exists?.module_id)throw new Error('Este módulo já está vinculado ao projeto.');
     const {error:pe}=await supabaseClient.from('project_modules').insert({project_id:cur.dbId,module_id:source.id,planned_training_date:null});
     if(pe)throw pe;
     cur.m.push([source.name,(subs||[]).map(s=>s.name),{}]);
