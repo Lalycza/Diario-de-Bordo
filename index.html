@@ -870,7 +870,29 @@ function editPesquisa(){if(!canEdit())return;const d=pesquisaData(),a=d.answers|
 }
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[c]))}
 let pdfPreviewTitle='',pdfPreviewBody='';
-function printCurrentPdf(){if(!pdfPreviewTitle)return;const printEl=document.getElementById('printDoc');const restoreY=window.scrollY||document.documentElement.scrollTop||0;printEl.innerHTML=pdfPreviewBody;document.body.classList.add('printing-doc');closeModal();const cleanup=()=>{printEl.innerHTML='';document.body.classList.remove('printing-doc');window.scrollTo(0,restoreY)};window.addEventListener('afterprint',cleanup,{once:true});setTimeout(()=>{window.print();setTimeout(cleanup,1500)},150)}
+function printCurrentPdf(){
+ if(!pdfPreviewTitle)return;
+ const printEl=document.getElementById('printDoc');
+ printEl.innerHTML=pdfPreviewBody;
+ const styles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
+ const win=window.open('','_blank');
+ if(win){
+  win.document.open();
+  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+styles+'</head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div></body></html>');
+  win.document.close();
+  const doPrint=()=>setTimeout(()=>{try{win.focus();win.print()}catch(e){console.error('Impressão PDF:',e)}},250);
+  if(win.document.readyState==='complete')doPrint();else win.addEventListener('load',doPrint,{once:true});
+  closeModal();
+  printEl.innerHTML='';
+  return;
+ }
+ document.body.classList.add('printing-doc');
+ const restoreY=window.scrollY||document.documentElement.scrollTop||0;
+ closeModal();
+ const cleanup=()=>{printEl.innerHTML='';document.body.classList.remove('printing-doc');window.scrollTo(0,restoreY)};
+ window.addEventListener('afterprint',cleanup,{once:true});
+ setTimeout(()=>{window.print();setTimeout(cleanup,1500)},150);
+}
 function printProjectPdf(title,body){if(!cur)return;pdfPreviewTitle=title;pdfPreviewBody=body;document.getElementById('modalbox').innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><div><b>Prévia: '+esc(title)+'</b><div class="muted">Modelo oficial do documento.</div></div><div><button class="primary" onclick="printCurrentPdf()">🖨 Imprimir / Salvar PDF</button> <button class="secondary" onclick="closeModal()">Fechar</button></div></div><div style="background:#fff;border:1px solid #dce2eb;border-radius:10px;padding:20px;max-height:70vh;overflow:auto">'+body+'</div>';document.getElementById('modal').classList.remove('hidden')}
 function pdfProjectModelMeta(){const p=(ps||[]).find(x=>String(x.id)===String(cur.id))||cur||{};const cli=(clientsData||[]).find(x=>sameLegacyId(x.id,cur.clientId)||sameLegacyId(x.dbId,cur.clientId))||{};const analyst=(usersData||[]).find(u=>String(u.email)===String(cur.owner))?.name||cur.owner||'';const resp=clientResponsible(cli)||{};return {p,cli,analyst,resp}}
 function pdfDate(v){if(!v)return '';const s=String(v);if(/^\d{2}\/\d{2}\/\d{4}$/.test(s))return s;return formatDateBR(s)}
