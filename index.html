@@ -1016,7 +1016,7 @@ function planModuleDate(i){
      const {data:tr,error:trErr}=await supabaseClient.from('trainings').select('id').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null).maybeSingle();
      if(trErr)throw trErr;
      const moduleWasReplanned=!!(current?.plannedDate&&current.plannedDate!==v);
-     const nextStatus=(current?.homologationDate&&current?.homologationResponsible)?'Homologado':current?.trainingEndDate?'Concluído':current?.trainingStartDate||current?.trainingDate?'Em andamento':moduleWasReplanned?'Replanejado':'Pendente';
+     const nextStatus=(current?.homologationDate&&current?.homologationResponsible)?'Homologado':current?.trainingEndDate?'Concluído':moduleWasReplanned?'Replanejado':current?.trainingStartDate||current?.trainingDate?'Em andamento':'Pendente';
      const tp={project_id:refs.projectId,module_id:refs.moduleId,submodule_id:null,subject:null,planned_date:v,planned_month:x.month?cronMonths.indexOf(x.month)+1:null,planned_week:x.week,realization_date:current?.trainingStartDate||current?.trainingDate||null,training_start_date:current?.trainingStartDate||current?.trainingDate||null,training_completion_date:current?.trainingEndDate||null,responsible:current?.responsible||((current?.trainingStartDate||current?.trainingDate)?'CLIENTE':'HPRO'),status:nextStatus,homologation_date:current?.homologationDate||null,homologation_responsible:current?.homologationResponsible||null,original_planned_date:current?.plannedDateOriginal||metaOriginal,created_by:currentUser.id};
      if(tr?.id){const {error}=await supabaseClient.from('trainings').update(tp).eq('id',tr.id);if(error)throw error}
      else{const {error}=await supabaseClient.from('trainings').insert(tp);if(error)throw error}
