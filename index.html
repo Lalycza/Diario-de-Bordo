@@ -1190,22 +1190,39 @@ async function importModule(){
   // Regra do Mapa: a origem do catálogo de importação é SEMPRE o produto
   // efetivamente atribuído ao cliente deste projeto. Não usar project_products
   // aqui, pois esse vínculo pode estar ausente ou conter referência legada.
-  const proj=await supabaseClient.from('projects').select('client_id').eq('id',cur.dbId).maybeSingle();
-  if(proj.error)throw proj.error;
-  if(!proj.data?.client_id)return alert('Este projeto não possui cliente vinculado no Supabase.');
+  // O projeto pode ter vários produtos no histórico do cliente, mas o Mapa
+  // precisa importar exclusivamente a árvore do produto deste projeto.
+  // Preferimos o vínculo explícito em project_products e usamos client_products
+  // apenas como fallback para projetos legados que ainda não tenham esse vínculo.
+  const projectProductQ=await supabaseClient
+    .from('project_products')
+    .select('product_id')
+    .eq('project_id',cur.dbId)
+    .limit(1)
+    .maybeSingle();
+  if(projectProductQ.error)throw projectProductQ.error;
 
-  const cp=await supabaseClient
-    .from('client_products')
-    .select('product_id,status')
-    .eq('client_id',proj.data.client_id);
-  if(cp.error)throw cp.error;
+  let productIds=[];
+  if(projectProductQ.data?.product_id){
+    productIds=[projectProductQ.data.product_id];
+  }else{
+    const proj=await supabaseClient.from('projects').select('client_id').eq('id',cur.dbId).maybeSingle();
+    if(proj.error)throw proj.error;
+    if(!proj.data?.client_id)return alert('Este projeto não possui cliente vinculado no Supabase.');
 
-  const productIds=[...new Set(
-    (cp.data||[])
-      .filter(x=>x.product_id && String(x.status||'').trim().toUpperCase()!=='INATIVO')
-      .map(x=>x.product_id)
-  )];
-  if(!productIds.length)return alert('O cliente deste projeto não possui produto ativo atribuído no Supabase.');
+    const cp=await supabaseClient
+      .from('client_products')
+      .select('product_id,status')
+      .eq('client_id',proj.data.client_id);
+    if(cp.error)throw cp.error;
+
+    productIds=[...new Set(
+      (cp.data||[])
+        .filter(x=>x.product_id && String(x.status||'').trim().toUpperCase()!=='INATIVO')
+        .map(x=>x.product_id)
+    )];
+  }
+  if(!productIds.length)return alert('Este projeto não possui produto atribuído no Supabase.');
 
   const {data:products,error:pe}=await supabaseClient
     .from('products')
