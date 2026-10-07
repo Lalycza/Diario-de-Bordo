@@ -1074,7 +1074,7 @@ async function resolveProjectStructureModule(moduleName){
  return q.data||null;
 }
 async function resolveProjectStructureProductId(){ if(!cur?.dbId)return null; const q=await supabaseClient.from('project_products').select('product_id').eq('project_id',cur.dbId).limit(1).maybeSingle(); if(q.error)throw q.error; return q.data?.product_id||null; }
-async function importModule(){
+async async function importModule(){
  if(!canEdit())return;
  if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser importado com segurança.');
  try{
