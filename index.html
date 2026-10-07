@@ -1803,14 +1803,20 @@ async function syncClientToSupabase(c){
   for(const row of (existingClientProducts||[])) if(!selectedDbIds.has(String(row.product_id))){const {error:de}=await supabaseClient.from('client_products').delete().eq('client_id',data.id).eq('product_id',row.product_id);if(de)throw new Error('Remoção de produto do cliente: '+de.message);}
   for(const row of productRows){const {error:ue}=await supabaseClient.from('client_products').upsert({client_id:data.id,product_id:row.product_id,status:row.status,analyst_id:row.analyst_id||null},{onConflict:'client_id,product_id'});if(ue)throw new Error('Vínculo de produto do cliente: '+ue.message);}
   c.productIds=selectedLocalProductIds.map(v=>Number(v));
-  for(const ct of clientContacts(c)){
+  const contacts=clientContacts(c);
+  const responsible=contacts.find(ct=>ct.projectResponsible);
+  if(responsible){
+    const {error:clearContactResponsibility}=await supabaseClient.from('client_contacts').update({is_project_responsible:false}).eq('client_id',data.id);
+    if(clearContactResponsibility)throw new Error('Responsável dos contatos do cliente '+c.name+': '+clearContactResponsibility.message);
+  }
+  for(const ct of contacts){
     const cp={
       legacy_id:localLegacy('contact',c.id+'-'+ct.id),
       client_id:data.id,
       name:ct.name||'',
       email:ct.email||null,
       phone:ct.phone||null,
-      is_project_responsible:!!ct.projectResponsible
+      is_project_responsible:responsible?sameLegacyId(ct.id,responsible.id):false
     };
     const {error:ce}=await supabaseClient.from('client_contacts').upsert(cp,{onConflict:'legacy_id'});
     if(ce) throw new Error('Contato do cliente '+c.name+': '+ce.message);
