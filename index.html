@@ -1061,10 +1061,23 @@ async function importModule(){
  if(!canEdit())return;
  if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser importado com segurança.');
  try{
+  // O produto pode estar gravado diretamente no projeto ou apenas no vínculo
+  // cliente → produto. O Mapa precisa considerar os dois caminhos.
   const pp=await supabaseClient.from('project_products').select('product_id').eq('project_id',cur.dbId);
   if(pp.error)throw pp.error;
-  const productIds=[...new Set((pp.data||[]).map(x=>x.product_id).filter(Boolean))];
-  if(!productIds.length)return alert('Este projeto não possui produto vinculado no Supabase.');
+  let productIds=[...new Set((pp.data||[]).map(x=>x.product_id).filter(Boolean))];
+
+  if(!productIds.length){
+   const proj=await supabaseClient.from('projects').select('client_id').eq('id',cur.dbId).maybeSingle();
+   if(proj.error)throw proj.error;
+   if(proj.data?.client_id){
+    const cp=await supabaseClient.from('client_products').select('product_id,status').eq('client_id',proj.data.client_id);
+    if(cp.error)throw cp.error;
+    productIds=[...new Set((cp.data||[]).filter(x=>x.product_id&&x.status!=='INATIVO').map(x=>x.product_id))];
+   }
+  }
+
+  if(!productIds.length)return alert('O cliente deste projeto não possui produto vinculado com módulos cadastrados no Supabase.');
 
   // A estrutura do Mapa deve sempre partir dos produtos efetivamente vinculados ao projeto.
   // Não restringimos por active=true aqui: registros legados com active nulo continuam válidos.
