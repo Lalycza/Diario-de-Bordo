@@ -680,15 +680,28 @@ async function hydrateFromSupabase(){
       const prod=productByDb.get(x.product_id);
       if(p&&prod!=null){p.productIds.push(prod);const c=clientsData.find(v=>String(v.id)===String(p.clientId));if(c){c.productIds=c.productIds||[];if(!c.productIds.includes(prod))c.productIds.push(prod)}}
     }
+    // O vínculo estrutural do Mapa deve sobreviver mesmo quando um projeto
+    // antigo não possui project_products preenchido. Nesse caso, usa o produto
+    // efetivamente atribuído ao cliente do projeto como fallback seguro.
+    const clientProductsByClientDb=new Map();
+    for(const cpRow of (cp.data||[])){
+      const arr=clientProductsByClientDb.get(String(cpRow.client_id))||[];
+      if(cpRow.product_id)arr.push(String(cpRow.product_id));
+      clientProductsByClientDb.set(String(cpRow.client_id),arr);
+    }
     for(const x of (pm.data||[])){
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
       const rawModule=(mo.data||[]).find(v=>String(v.id)===String(x.module_id));
       const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
-      // A relação confiável é module.product_id (UUID) x project_products.product_id (UUID).
-      // Não usamos os IDs legados locais para decidir se o módulo pertence ao projeto.
+      // Primeiro respeita project_products. Se ele estiver ausente no legado,
+      // valida contra client_products do cliente do próprio projeto.
       const projectDbProductIds=new Set((pp.data||[])
         .filter(v=>String(v.project_id)===String(x.project_id))
         .map(v=>String(v.product_id)));
+      if(!projectDbProductIds.size&&p){
+        const projectRow=(pg.data||[]).find(v=>String(v.id)===String(x.project_id));
+        (clientProductsByClientDb.get(String(projectRow?.client_id||''))||[]).forEach(id=>projectDbProductIds.add(id));
+      }
       const belongsToProjectProduct=!!rawModule?.product_id&&projectDbProductIds.has(String(rawModule.product_id));
       if(p&&m&&belongsToProjectProduct){
         if(!p.m.some(existing=>String(existing[0]).trim().toUpperCase()===String(m.name).trim().toUpperCase())){
