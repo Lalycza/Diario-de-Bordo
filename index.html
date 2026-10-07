@@ -798,31 +798,7 @@ function weekSummaryHtml(){let done=trainingRecords().filter(t=>['CONCLUÍDO','H
 function openSimpleModal(title,body,onSave){document.getElementById('modalbox').innerHTML='<h2>'+title+'</h2>'+body+'<div style="text-align:right;margin-top:16px"><button class="secondary" onclick="closeModal()">Cancelar</button> <button class="primary" id="simpleModalSave">Salvar</button></div>';document.getElementById('modal').classList.remove('hidden');document.getElementById('simpleModalSave').onclick=onSave}
 function openTaskModal(index){let old=index==null?{name:'',month:'',week:1,plannedDate:'',trainingDate:'',trainingStartDate:'',trainingEndDate:'',status:'PENDENTE',responsible:'HPRO',module:'',submodule:'',subject:'',homologationDate:'',homologationResponsible:''}:taskObj(cur.t[index]);let mods=cur.m||[];let moduleOpts=mods.map(m=>'<option value="'+escAttr(m[0])+'" '+(old.module===m[0]?'selected':'')+'>'+esc(m[0])+'</option>').join('');document.getElementById('modalbox').innerHTML='<h2>'+(index==null?'Planejar / registrar treinamento':'Editar treinamento')+'</h2><div class="task-form"><label>Módulo</label><select id="taskModule"><option value="">Selecione</option>'+moduleOpts+'</select><label>Submódulo</label><select id="taskSubmodule"><option value="">Treinamento do módulo</option></select><div id="taskScheduleFields" class="row2"><div><label>Mês</label><select id="taskMonth"><option value="">Selecione o mês</option>'+cronMonths.map(m=>'<option '+(m===old.month?'selected':'')+'>'+m+'</option>').join('')+'</select></div><div><label>Semana</label><select id="taskWeek">'+[1,2,3,4,5].map(w=>'<option value="'+w+'" '+(w===old.week?'selected':'')+'>Semana '+w+'</option>').join('')+'</select></div></div><label>Data prevista do módulo</label><input id="taskPlannedDate" type="date" '+dateInputAttrs(old.plannedDate||'')+'><label>Data de início do treinamento</label><input id="taskTraining" type="date" '+dateInputAttrs(old.trainingStartDate||old.trainingDate||'')+'><label>Data de término do treinamento</label><input id="taskTrainingEnd" type="date" '+dateInputAttrs(old.trainingEndDate||'')+'><div class="hint" style="margin:6px 0 12px">O status é calculado automaticamente a partir da execução dos submódulos no Mapa: Pendente → Em andamento → Concluído → Homologado. Se a data prevista original for alterada, o sistema registra Replanejado sem apagar o histórico.</div><div class="hint">Antes da realização do treinamento, a responsabilidade é HPRO. Depois que a realização for registrada, passa para CLIENTE. Quando homologado, a responsabilidade da homologação fica registrada separadamente com nome e data.</div><div id="homFields" class="hidden"><label>Data da homologação</label><input id="taskHomDate" type="date" '+dateInputAttrs(old.homologationDate||'')+'><label>Responsável pela homologação</label><input id="taskHomResp" value="'+escAttr(old.homologationResponsible||'')+'" placeholder="Nome de quem homologou"></div><div style="text-align:right"><button class="secondary" onclick="closeModal()">Cancelar</button> <button class="primary" onclick="saveTask('+(index==null?'null':index)+')">Salvar</button></div></div>';document.getElementById('modal').classList.remove('hidden');let syncSubs=()=>{let m=mods.find(x=>x[0]===document.getElementById('taskModule').value);let sel=document.getElementById('taskSubmodule');sel.innerHTML='<option value="">Treinamento do módulo</option>'+(m?.[1]||[]).map(s=>'<option value="'+escAttr(s)+'">'+esc(s)+'</option>').join('');sel.value=old.submodule||'';let sf=document.getElementById('taskScheduleFields');if(sf)sf.style.display=sel.value?'none':'grid';if(sel.value){const moduleIndex=(cur?.m||[]).findIndex(x=>Array.isArray(x)&&x[0]===m?.[0]);const planned=moduleIndex>=0?getModulePlannedDate(moduleIndex):(m?.[2]?.plannedDate||'');const plannedEl=document.getElementById('taskPlannedDate');if(plannedEl)plannedEl.value=planned||'';let mw=monthWeekFromDate(planned||'');let tm=document.getElementById('taskMonth'),tw=document.getElementById('taskWeek');if(tm)tm.value=mw?.month||'';if(tw)tw.value=mw?.week||''}};document.getElementById('taskModule').onchange=syncSubs;syncSubs();document.getElementById('homFields').classList.remove('hidden')}
 function syncTaskDate(){let sub=document.getElementById('taskSubmodule')?.value;if(sub)return;let x=monthWeekFromDate(document.getElementById('taskTraining')?.value);if(!x)return;let m=document.getElementById('taskMonth'),w=document.getElementById('taskWeek');if(m)m.value=x.month;if(w)w.value=x.week}
-async function resolveTrainingRefs(moduleName,submoduleName){
- if(!cur?.dbId||!moduleName)return null;
- const localModule=modulesData.find(m=>String(m.name||'').trim().toUpperCase()===String(moduleName||'').trim().toUpperCase());
- let moduleId=null;
- if(localModule?.id){
-   const q=await supabaseClient.from('modules').select('id,name').eq('legacy_id','module-'+localModule.id).maybeSingle();
-   if(q.error)throw q.error;
-   moduleId=q.data?.id||null;
- }
- if(!moduleId){
-   const q=await supabaseClient.from('modules').select('id,name').eq('name',moduleName).maybeSingle();
-   if(q.error)throw q.error;
-   moduleId=q.data?.id||null;
- }
- if(!moduleId)return null;
- let submoduleId=null;
- if(submoduleName){
-   const q=await supabaseClient.from('submodules').select('id,name').eq('module_id',moduleId).eq('name',submoduleName).maybeSingle();
-   if(q.error)throw q.error;
-   submoduleId=q.data?.id||null;
-   if(!submoduleId)throw new Error('Submódulo não encontrado no cadastro do Supabase: '+submoduleName);
- }
- return {projectId:cur.dbId,moduleId,submoduleId};
-}
-async function syncTrainingToSupabase(obj,old){
+async function resolveTrainingRefs(moduleName,submoduleName){ if(!cur?.dbId||!moduleName)return null; const wanted=String(moduleName).trim(); const localModule=modulesData.find(m=>String(m.name||'').trim().toUpperCase()===wanted.toUpperCase()); let moduleId=null; const candidates=[]; if(localModule?.dbId)candidates.push(['id',localModule.dbId]); if(localModule?.id)candidates.push(['id',localModule.id]); if(localModule?.legacyId)candidates.push(['legacy_id',localModule.legacyId]); if(localModule?.id)candidates.push(['legacy_id','module-'+localModule.id]); for(const [field,value] of candidates){if(!value||moduleId)continue; const q=await supabaseClient.from('modules').select('id,name').eq(field,value).maybeSingle(); if(q.error)throw q.error; if(q.data?.id)moduleId=q.data.id;} if(!moduleId){ const q=await supabaseClient.from('modules').select('id,name').ilike('name',wanted).limit(1).maybeSingle(); if(q.error)throw q.error; moduleId=q.data?.id||null; } if(!moduleId)return null; let submoduleId=null; if(submoduleName){ const subWanted=String(submoduleName).trim(); const q=await supabaseClient.from('submodules').select('id,name').eq('module_id',moduleId).ilike('name',subWanted).limit(1).maybeSingle(); if(q.error)throw q.error; submoduleId=q.data?.id||null; if(!submoduleId)throw new Error('Submódulo não encontrado no cadastro do Supabase: '+submoduleName); } return {projectId:cur.dbId,moduleId,submoduleId}; } async function syncTrainingToSupabase(obj,old){
  if(!supabaseSession||!cur?.dbId)return;
  const refs=await resolveTrainingRefs(obj.module,obj.submodule);
  if(!refs)return;
@@ -888,7 +864,7 @@ async function saveTask(index){
  let plannedDateOriginal=old?.plannedDateOriginal||old?.plannedDate||plannedDate;
  let plannedChanged=!!(old&&old.plannedDate&&plannedDate&&old.plannedDate!==plannedDate);
  if(plannedChanged)plannedDateOriginal=old.plannedDateOriginal||old.plannedDate;
- let statusAuto=(homologationDate&&homologationResponsible)?'HOMOLOGADO':trainingEndDate?'CONCLUÍDO':trainingStartDate?'EM ANDAMENTO':plannedChanged?'REPLANEJADO':'PENDENTE';
+ let statusAuto=(homologationDate&&homologationResponsible)?'HOMOLOGADO':trainingEndDate?'CONCLUÍDO':plannedChanged?'REPLANEJADO':trainingStartDate?'EM ANDAMENTO':'PENDENTE';
  let obj={name:submodule||module,module,submodule,subject:'',month,week,plannedDate,plannedDateOriginal,
    plannedHistory:plannedChanged?[...(old?.plannedHistory||[]),{date:old.plannedDate,changedAt:new Date().toISOString()}]:(old?.plannedHistory||[]),
    trainingDate:trainingStartDate,trainingStartDate,trainingEndDate,status:statusAuto,
