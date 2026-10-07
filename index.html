@@ -1187,11 +1187,10 @@ async function importModule(){
  if(!canEdit())return;
  if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser importado com segurança.');
  try{
-  // O Mapa deve trabalhar com o produto do PRÓPRIO projeto.
-  // Se o vínculo project_products estiver ausente ou apontar para um registro
-  // que já não existe em products, usamos o vínculo ativo do cliente como
-  // fallback. Isso evita bloquear projetos legados que têm o produto correto
-  // no cadastro do cliente.
+  // O catálogo do Importar módulo deve ser formado SOMENTE pelos módulos
+  // pertencentes ao produto efetivamente vinculado ao cliente deste projeto.
+  // Primeiro respeitamos o vínculo explícito do projeto; em projetos legados,
+  // usamos o produto local do projeto e, por último, um único produto do cliente.
   const proj=await supabaseClient
     .from('projects')
     .select('client_id')
@@ -1219,17 +1218,21 @@ async function importModule(){
   if(pp.error)throw pp.error;
 
   const projectProductIds=[...new Set((pp.data||[]).map(x=>String(x.product_id)).filter(Boolean))];
+  const localProductIds=Array.isArray(cur?.productIds)
+    ? [...new Set(cur.productIds.map(String))]
+    : [];
 
-  // Primeiro tenta o vínculo explícito do projeto, mas somente se o produto
-  // ainda existir e estiver ativo. Se não estiver, recupera o produto ativo
-  // efetivamente cadastrado para o cliente.
-  const preferredIds=[
-    ...projectProductIds.filter(id=>clientProductIds.includes(id)),
-    ...(Array.isArray(cur?.productIds)?cur.productIds.map(String).filter(id=>clientProductIds.includes(id)):[]),
-    ...clientProductIds
-  ];
-  const productIds=[...new Set(preferredIds)].slice(0,1);
-  if(!productIds.length)return alert('O cliente deste projeto não possui produto ativo atribuído no Supabase.');
+  // Ordem de confiança:
+  // 1) produto explicitamente vinculado ao projeto e também ao cliente;
+  // 2) produto já carregado no próprio projeto/local;
+  // 3) se houver apenas um produto ativo no cliente, ele é inequívoco.
+  let productIds=projectProductIds.filter(id=>clientProductIds.includes(id));
+  if(!productIds.length)productIds=localProductIds.filter(id=>clientProductIds.includes(id));
+  if(!productIds.length&&clientProductIds.length===1)productIds=[clientProductIds[0]];
+
+  if(!productIds.length){
+   return alert('Não foi possível identificar o produto deste projeto. O produto precisa estar vinculado ao cliente e ao projeto.');
+  }
 
   const {data:products,error:pe}=await supabaseClient
     .from('products')
@@ -1238,10 +1241,8 @@ async function importModule(){
   if(pe)throw pe;
 
   const validProducts=(products||[]).filter(p=>p.active!==false);
-  const validProductIds=validProducts.map(p=>p.id);
-  if(!validProductIds.length)return alert('O produto atribuído ao cliente não está disponível no cadastro de produtos.');
-
-  const productNames=new Map(validProducts.map(p=>[String(p.id),p.name]));
+  const validProductIds=validProducts.map(p=>String(p.id));
+  if(!validProductIds.length)return alert('O produto vinculado ao cliente não está disponível no cadastro de produtos.');
 
   const {data:mods,error:me}=await supabaseClient
     .from('modules')
@@ -1251,7 +1252,7 @@ async function importModule(){
   if(me)throw me;
 
   const activeMods=(mods||[]).filter(m=>m.active!==false);
-  if(!activeMods.length)return alert('O produto atribuído ao cliente não possui módulos cadastrados no Supabase.');
+  if(!activeMods.length)return alert('O produto vinculado ao cliente não possui módulos cadastrados no Supabase.');
 
   const moduleIds=activeMods.map(m=>m.id);
   const {data:subs,error:se}=await supabaseClient
@@ -1272,24 +1273,31 @@ async function importModule(){
   const available=activeMods.filter(m=>!(cur.m||[]).some(existing=>
     String(existing[0]).trim().toUpperCase()===String(m.name||'').trim().toUpperCase()
   ));
-  if(!available.length)return alert('Todos os módulos do produto atribuído ao cliente já estão cadastrados neste projeto.');
+  if(!available.length)return alert('Todos os módulos do produto vinculado ao cliente já estão cadastrados neste projeto.');
 
-  const opts=available.map(m=>{
-   const productName=productNames.get(String(m.product_id))||'Produto atribuído';
-   const moduleSubs=subsByModule.get(String(m.id))||[];
-   const subText=moduleSubs.length
-     ? ' — '+moduleSubs.length+' submódulo(s): '+moduleSubs.map(s=>esc(s.name)).join(' · ')
-     : ' — sem submódulos cadastrados';
-   return '<option value="'+escAttr(String(m.id))+'">'+esc(m.name)+' — '+esc(productName)+subText+'</option>';
-  }).join('');
+  // A combobox mostra SOMENTE os nomes dos módulos.
+  // Os submódulos ficam vinculados ao módulo escolhido e são importados junto,
+  // mas nunca aparecem como opções separadas para escolha.
+  const opts=available
+    .map(m=>'<option value="'+escAttr(String(m.id))+'">'+esc(m.name)+'</option>')
+    .join('');
 
   openSimpleModal(
    'Importar módulo',
-   '<div class="task-form"><label>Módulo do produto atribuído ao cliente</label><select id="importModuleSelect">'+opts+'</select><div class="hint">O catálogo vem exclusivamente do produto ativo atribuído ao cliente deste projeto. Ao confirmar, o módulo selecionado e todos os seus submódulos ativos serão vinculados ao projeto e exibidos no Mapa.</div></div>',
+   '<div class="task-form">'+
+   '<label>Módulo</label>'+
+   '<select id="importModuleSelect">'+
+   '<option value="">Selecione o módulo que deseja importar</option>'+
+   opts+
+   '</select>'+
+   '<div class="hint">São exibidos somente os módulos cadastrados no produto vinculado ao cliente deste projeto. Ao confirmar, o módulo escolhido e todos os seus submódulos cadastrados serão vinculados ao projeto.</div>'+
+   '</div>',
    async()=>{
     const id=document.getElementById('importModuleSelect')?.value;
+    if(!id)return alert('Selecione o módulo que deseja importar.');
     const source=available.find(m=>String(m.id)===String(id));
     if(!source)return;
+
     try{
      const sourceSubs=subsByModule.get(String(source.id))||[];
      const {data:exists,error:ee}=await supabaseClient
@@ -1303,12 +1311,16 @@ async function importModule(){
 
      const {error:pmErr}=await supabaseClient
        .from('project_modules')
-       .insert({project_id:cur.dbId,module_id:source.id,planned_training_date:null});
+       .insert({
+         project_id:cur.dbId,
+         module_id:source.id,
+         planned_training_date:null
+       });
      if(pmErr)throw pmErr;
 
      cur.m=Array.isArray(cur.m)?cur.m:[];
      cur.m.push([source.name,sourceSubs.map(s=>s.name),{}]);
-     audit('Módulo importado','Módulo '+source.name+' e '+sourceSubs.length+' submódulo(s) importados do produto atribuído ao cliente.');
+     audit('Módulo importado','Módulo '+source.name+' e '+sourceSubs.length+' submódulo(s) importados do produto vinculado ao cliente.');
      persistState();closeModal();mapView();
     }catch(e){
      console.error(e);
@@ -1318,10 +1330,9 @@ async function importModule(){
   );
  }catch(e){
   console.error(e);
-  alert('Não foi possível carregar os módulos e submódulos do produto atribuído ao cliente.\\n\\n'+(e?.message||e));
+  alert('Não foi possível carregar os módulos do produto vinculado ao cliente.\\n\\n'+(e?.message||e));
  }
 }
-
 async function addMod(){
  if(!canEdit())return;
  if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser incluído com segurança.');
