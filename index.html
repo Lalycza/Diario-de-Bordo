@@ -1983,7 +1983,7 @@ async function cloneModules(sourceProductId,targetProductId){
 const catalogOpenProducts=new Set();
 const catalogOpenModules=new Set();
 function toggleCatalogProduct(id){let key=String(id);let current=[...catalogOpenProducts].find(x=>String(x)===key);if(current!==undefined)catalogOpenProducts.delete(current);else{catalogOpenProducts.clear();catalogOpenProducts.add(key)}renderUnifiedCatalog()}
-function toggleCatalogModule(id){let key=String(id);if(catalogOpenModules.has(key))catalogOpenModules.delete(key);else catalogOpenModules.add(key);renderUnifiedCatalog()}
+function toggleCatalogModule(id){let key=String(id);if(catalogOpenModules.has(key))catalogOpenModules.delete(key);else catalogOpenModules.add(key);if(!document.getElementById('productDetail')?.classList.contains('hidden')&&currentProductDetailId!=null){renderProductDetail(currentProductDetailId)}else{renderUnifiedCatalog()}}
 
 function toggleCatalogProduct(id){let key=String(id);let current=[...catalogOpenProducts].find(x=>String(x)===key);if(current!==undefined)catalogOpenProducts.delete(current);else{catalogOpenProducts.clear();catalogOpenProducts.add(key)}renderUnifiedCatalog()}
 function catalogJsArg(id){return escAttr(JSON.stringify(String(id)));}
