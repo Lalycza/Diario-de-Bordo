@@ -1061,34 +1061,47 @@ async function importModule(){
  if(!canEdit())return;
  if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser importado com segurança.');
  try{
-  // O produto pode estar gravado diretamente no projeto ou apenas no vínculo
-  // cliente → produto. O Mapa precisa considerar os dois caminhos.
-  const pp=await supabaseClient.from('project_products').select('product_id').eq('project_id',cur.dbId);
-  if(pp.error)throw pp.error;
-  let productIds=[...new Set((pp.data||[]).map(x=>x.product_id).filter(Boolean))];
+  // Regra do Mapa: a origem do catálogo de importação é SEMPRE o produto
+  // efetivamente atribuído ao cliente deste projeto. Não usar project_products
+  // aqui, pois esse vínculo pode estar ausente ou conter referência legada.
+  const proj=await supabaseClient.from('projects').select('client_id').eq('id',cur.dbId).maybeSingle();
+  if(proj.error)throw proj.error;
+  if(!proj.data?.client_id)return alert('Este projeto não possui cliente vinculado no Supabase.');
 
-  if(!productIds.length){
-   const proj=await supabaseClient.from('projects').select('client_id').eq('id',cur.dbId).maybeSingle();
-   if(proj.error)throw proj.error;
-   if(proj.data?.client_id){
-    const cp=await supabaseClient.from('client_products').select('product_id,status').eq('client_id',proj.data.client_id);
-    if(cp.error)throw cp.error;
-    productIds=[...new Set((cp.data||[]).filter(x=>x.product_id&&x.status!=='INATIVO').map(x=>x.product_id))];
-   }
-  }
+  const cp=await supabaseClient
+    .from('client_products')
+    .select('product_id,status')
+    .eq('client_id',proj.data.client_id);
+  if(cp.error)throw cp.error;
 
-  if(!productIds.length)return alert('O cliente deste projeto não possui produto vinculado com módulos cadastrados no Supabase.');
+  const productIds=[...new Set(
+    (cp.data||[])
+      .filter(x=>x.product_id && String(x.status||'').trim().toUpperCase()!=='INATIVO')
+      .map(x=>x.product_id)
+  )];
+  if(!productIds.length)return alert('O cliente deste projeto não possui produto ativo atribuído no Supabase.');
 
-  // A estrutura do Mapa deve sempre partir dos produtos efetivamente vinculados ao projeto.
-  // Não restringimos por active=true aqui: registros legados com active nulo continuam válidos.
+  const {data:products,error:pe}=await supabaseClient
+    .from('products')
+    .select('id,name,active')
+    .in('id',productIds);
+  if(pe)throw pe;
+
+  const validProducts=(products||[]).filter(p=>p.active!==false);
+  const validProductIds=validProducts.map(p=>p.id);
+  if(!validProductIds.length)return alert('O produto atribuído ao cliente não está disponível no cadastro de produtos.');
+
+  const productNames=new Map(validProducts.map(p=>[String(p.id),p.name]));
+
   const {data:mods,error:me}=await supabaseClient
     .from('modules')
     .select('id,name,product_id,legacy_id,active')
-    .in('product_id',productIds)
+    .in('product_id',validProductIds)
     .order('name');
   if(me)throw me;
+
   const activeMods=(mods||[]).filter(m=>m.active!==false);
-  if(!activeMods.length)return alert('Os produtos vinculados ao projeto não possuem módulos cadastrados no Supabase.');
+  if(!activeMods.length)return alert('O produto atribuído ao cliente não possui módulos cadastrados no Supabase.');
 
   const moduleIds=activeMods.map(m=>m.id);
   const {data:subs,error:se}=await supabaseClient
@@ -1106,15 +1119,13 @@ async function importModule(){
    subsByModule.set(String(sub.module_id),arr);
   }
 
-  const available=activeMods.filter(m=>!(cur.m||[]).some(existing=>String(existing[0]).trim().toUpperCase()===String(m.name||'').trim().toUpperCase()));
-  if(!available.length)return alert('Todos os módulos dos produtos vinculados já estão cadastrados neste projeto.');
-
-  const productQ=await supabaseClient.from('products').select('id,name').in('id',productIds);
-  if(productQ.error)throw productQ.error;
-  const productNames=new Map((productQ.data||[]).map(p=>[String(p.id),p.name]));
+  const available=activeMods.filter(m=>!(cur.m||[]).some(existing=>
+    String(existing[0]).trim().toUpperCase()===String(m.name||'').trim().toUpperCase()
+  ));
+  if(!available.length)return alert('Todos os módulos do produto atribuído ao cliente já estão cadastrados neste projeto.');
 
   const opts=available.map(m=>{
-   const productName=productNames.get(String(m.product_id))||'Produto vinculado';
+   const productName=productNames.get(String(m.product_id))||'Produto atribuído';
    const moduleSubs=subsByModule.get(String(m.id))||[];
    const subText=moduleSubs.length
      ? ' — '+moduleSubs.length+' submódulo(s): '+moduleSubs.map(s=>esc(s.name)).join(' · ')
@@ -1124,23 +1135,30 @@ async function importModule(){
 
   openSimpleModal(
    'Importar módulo',
-   '<div class="task-form"><label>Módulo do produto vinculado</label><select id="importModuleSelect">'+opts+'</select><div class="hint">A lista considera os produtos vinculados a este projeto e mostra os submódulos cadastrados em cada módulo. Ao importar, o módulo e todos os seus submódulos ativos serão adicionados ao Mapa.</div></div>',
+   '<div class="task-form"><label>Módulo do produto atribuído ao cliente</label><select id="importModuleSelect">'+opts+'</select><div class="hint">O catálogo vem exclusivamente do produto ativo atribuído ao cliente deste projeto. Ao confirmar, o módulo selecionado e todos os seus submódulos ativos serão vinculados ao projeto e exibidos no Mapa.</div></div>',
    async()=>{
     const id=document.getElementById('importModuleSelect')?.value;
     const source=available.find(m=>String(m.id)===String(id));
     if(!source)return;
     try{
      const sourceSubs=subsByModule.get(String(source.id))||[];
-     const {data:exists,error:ee}=await supabaseClient.from('project_modules').select('module_id').eq('project_id',cur.dbId).eq('module_id',source.id).maybeSingle();
+     const {data:exists,error:ee}=await supabaseClient
+       .from('project_modules')
+       .select('module_id')
+       .eq('project_id',cur.dbId)
+       .eq('module_id',source.id)
+       .maybeSingle();
      if(ee)throw ee;
      if(exists?.module_id)throw new Error('Este módulo já está vinculado ao projeto.');
 
-     const {error:pe}=await supabaseClient.from('project_modules').insert({project_id:cur.dbId,module_id:source.id,planned_training_date:null});
-     if(pe)throw pe;
+     const {error:pmErr}=await supabaseClient
+       .from('project_modules')
+       .insert({project_id:cur.dbId,module_id:source.id,planned_training_date:null});
+     if(pmErr)throw pmErr;
 
      cur.m=Array.isArray(cur.m)?cur.m:[];
      cur.m.push([source.name,sourceSubs.map(s=>s.name),{}]);
-     audit('Módulo importado','Módulo '+source.name+' e '+sourceSubs.length+' submódulo(s) importados do produto.');
+     audit('Módulo importado','Módulo '+source.name+' e '+sourceSubs.length+' submódulo(s) importados do produto atribuído ao cliente.');
      persistState();closeModal();mapView();
     }catch(e){
      console.error(e);
@@ -1150,9 +1168,10 @@ async function importModule(){
   );
  }catch(e){
   console.error(e);
-  alert('Não foi possível carregar os módulos e submódulos disponíveis para importação.\\n\\n'+(e?.message||e));
+  alert('Não foi possível carregar os módulos e submódulos do produto atribuído ao cliente.\\n\\n'+(e?.message||e));
  }
 }
+
 async function addMod(){if(!canEdit())return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser incluído com segurança.');openSimpleModal('Novo módulo','<label>Nome do módulo</label><input id="simpleName" placeholder="Ex.: Financeiro">',async()=>{const n=document.getElementById('simpleName').value.trim();if(!n)return alert('Informe o nome do módulo.');if((cur.m||[]).some(m=>String(m[0]).trim().toUpperCase()===n.toUpperCase()))return alert('Este módulo já está cadastrado no projeto.');try{let mod=await resolveProjectStructureModule(n);if(!mod){const productId=await resolveProjectStructureProductId();if(!productId)return alert('O projeto precisa ter um produto vinculado antes de criar um módulo.');const ins=await supabaseClient.from('modules').insert({name:n,legacy_id:localLegacy('project-module',cur.id+'-'+Date.now()),product_id:productId,active:true}).select('id,name,product_id,legacy_id').single();if(ins.error)throw ins.error;mod=ins.data;}const pm=await supabaseClient.from('project_modules').upsert({project_id:cur.dbId,module_id:mod.id,planned_training_date:null},{onConflict:'project_id,module_id'});if(pm.error)throw pm.error;cur.m.push([n,[],{}]);persistState();closeModal();mapView();}catch(e){console.error(e);alert('Não foi possível incluir o módulo no Supabase. O módulo não foi alterado localmente.\n\n'+(e?.message||e));}});}
 async function delMod(i){if(!canEdit())return;const m=cur?.m?.[i];if(!m)return;if(!confirm('Excluir módulo?'))return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A exclusão foi bloqueada.');try{const refs=await resolveProjectStructureModule(m[0]);if(!refs?.id)throw new Error('Módulo não encontrado no Supabase.');const tr=await supabaseClient.from('trainings').delete().eq('project_id',cur.dbId).eq('module_id',refs.id);if(tr.error)throw tr.error;const pm=await supabaseClient.from('project_modules').delete().eq('project_id',cur.dbId).eq('module_id',refs.id);if(pm.error)throw pm.error;cur.m.splice(i,1);cur.t=(cur.t||[]).filter(t=>String(t.module||'').trim().toUpperCase()!==String(m[0]).trim().toUpperCase());audit('Módulo excluído',m[0]);persistState();mapView();}catch(e){console.error(e);alert('Não foi possível excluir o módulo do Supabase. O módulo foi mantido.\n\n'+(e?.message||e));}}
 async function addSub(i){if(!canEdit())return;const m=cur?.m?.[i];if(!m)return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O submódulo não pode ser incluído com segurança.');openSimpleModal('Novo submódulo','<label>Módulo</label><input value="'+escAttr(m[0])+'" disabled><label>Nome do submódulo</label><input id="simpleName" placeholder="Ex.: Pessoas">',async()=>{const n=document.getElementById('simpleName').value.trim();if(!n)return alert('Informe o nome do submódulo.');if((m[1]||[]).some(x=>String(x).trim().toUpperCase()===n.toUpperCase()))return alert('Este submódulo já está cadastrado no módulo.');try{const mod=await resolveProjectStructureModule(m[0]);if(!mod?.id)throw new Error('Módulo não encontrado no Supabase.');let sub=await supabaseClient.from('submodules').select('id,name,module_id,legacy_id').eq('module_id',mod.id).ilike('name',n).limit(1).maybeSingle();if(sub.error)throw sub.error;if(!sub.data){sub=await supabaseClient.from('submodules').insert({name:n,module_id:mod.id,legacy_id:localLegacy('project-submodule',cur.id+'-'+mod.id+'-'+Date.now()),active:true}).select('id,name,module_id,legacy_id').single();if(sub.error)throw sub.error;}m[1]=Array.isArray(m[1])?m[1]:[];m[1].push(n);persistState();closeModal();mapView();}catch(e){console.error(e);alert('Não foi possível incluir o submódulo no Supabase. O submódulo não foi alterado localmente.\n\n'+(e?.message||e));}});}
