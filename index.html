@@ -1526,7 +1526,7 @@ function applyRoleVisibility(){
     gerencial: role==='admin'||role==='supervisor'||role==='cs',
     projetos: role==='admin'||role==='supervisor'||role==='analyst'||role==='operator'||role==='cs',
     produtos: role==='admin'||role==='supervisor',
-    clientes: role==='admin'||role==='supervisor'||role==='cs'||role==='commercial',
+    clientes: role==='admin'||role==='supervisor'||role==='cs'||role==='commercial'||role==='analyst',
     usuarios: role==='admin'||role==='supervisor',
     sistema: role==='admin'
   };
@@ -1540,7 +1540,7 @@ function applyRoleVisibility(){
   document.querySelector('.side [onclick="perfil()"]')?.classList.toggle('hidden',role==='client');
   const side=document.querySelector('.side');
   if(side)side.classList.toggle('client-only',role==='client');
-  document.getElementById('clientsBtn')?.classList.toggle('hidden',role!=='admin'&&role!=='supervisor'&&role!=='cs'&&role!=='commercial');
+  document.getElementById('clientsBtn')?.classList.toggle('hidden',role!=='admin'&&role!=='supervisor'&&role!=='cs'&&role!=='commercial'&&role!=='analyst');
   document.getElementById('newClientBtn')?.classList.toggle('hidden',!(role==='admin'||role==='supervisor'||role==='commercial'));
   document.getElementById('newBtn')?.classList.toggle('hidden',!(role==='admin'||role==='supervisor'||role==='analyst'));
   document.getElementById('newTopBtn')?.classList.toggle('hidden',!(role==='admin'||role==='supervisor'||role==='analyst'));
