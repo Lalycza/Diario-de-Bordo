@@ -765,7 +765,12 @@ function moduleCronCell(name,records,month,week){
  return {status,originalPlannedDate,currentDate};
 }
 function cronQuarterHtml(title,months){
- const records=trainingRecords().filter(t=>months.includes(t.month));if(!records.length)return '';
+ const records=trainingRecords().filter(t=>{
+   if(months.includes(t.month))return true;
+   if(!t.submodule)return false;
+   const dates=[t.plannedDateOriginal,t.plannedDate,t.trainingStartDate,t.trainingDate,t.trainingEndDate,t.homologationDate].filter(Boolean);
+   return dates.some(d=>{const mw=monthWeekFromDate(d);return mw&&months.includes(mw.month)});
+ });if(!records.length)return '';
  let h='<div class="cron-grid"><table><thead><tr><th class="quarter-head" colspan="17">'+title+'</th></tr><tr><th rowspan="2" class="month-head" style="width:180px">MÓDULO</th><th rowspan="2" class="month-head" style="width:110px">RESPONSÁVEL</th>';
  months.forEach(m=>h+='<th class="month-head" colspan="5">'+m.toUpperCase()+'</th>');
  h+='</tr><tr>';months.forEach(()=>{for(let w=1;w<=5;w++)h+='<th class="week-head">S'+w+'</th>'});h+='</tr></thead><tbody>';
