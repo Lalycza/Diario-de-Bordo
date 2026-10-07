@@ -1856,10 +1856,16 @@ async function saveClientForm(id){
     render();
   }catch(e){ console.error(e); if(localSnapshot&&c){ Object.keys(c).forEach(k=>delete c[k]); Object.assign(c,localSnapshot); } alert('Não foi possível salvar o cliente no Supabase. A alteração local foi desfeita.\n\n'+(e?.message||e)); } } async function syncClientContactsToSupabase(c){
  if(!c?.dbId)throw new Error('Cliente ainda não possui vínculo no Supabase.');
+ const contacts=clientContacts(c);
  const wanted=new Set();
- for(const ct of clientContacts(c)){
+ const responsible=contacts.find(ct=>ct.projectResponsible);
+ if(responsible){
+  const {error:clearError}=await supabaseClient.from('client_contacts').update({is_project_responsible:false}).eq('client_id',c.dbId);
+  if(clearError)throw clearError;
+ }
+ for(const ct of contacts){
   const legacyId=localLegacy('contact',c.id+'-'+ct.id);wanted.add(legacyId);
-  const {error}=await supabaseClient.from('client_contacts').upsert({legacy_id:legacyId,client_id:c.dbId,name:ct.name||'',email:ct.email||null,phone:ct.phone||null,is_project_responsible:!!ct.projectResponsible},{onConflict:'legacy_id'});
+  const {error}=await supabaseClient.from('client_contacts').upsert({legacy_id:legacyId,client_id:c.dbId,name:ct.name||'',email:ct.email||null,phone:ct.phone||null,is_project_responsible:responsible?sameLegacyId(ct.id,responsible.id):false},{onConflict:'legacy_id'});
   if(error)throw error;
  }
  const {data:rows,error}=await supabaseClient.from('client_contacts').select('id,legacy_id').eq('client_id',c.dbId);
