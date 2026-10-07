@@ -1172,7 +1172,134 @@ async function importModule(){
  }
 }
 
-async function addMod(){if(!canEdit())return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser incluído com segurança.');openSimpleModal('Novo módulo','<label>Nome do módulo</label><input id="simpleName" placeholder="Ex.: Financeiro">',async()=>{const n=document.getElementById('simpleName').value.trim();if(!n)return alert('Informe o nome do módulo.');if((cur.m||[]).some(m=>String(m[0]).trim().toUpperCase()===n.toUpperCase()))return alert('Este módulo já está cadastrado no projeto.');try{let mod=await resolveProjectStructureModule(n);if(!mod){const productId=await resolveProjectStructureProductId();if(!productId)return alert('O projeto precisa ter um produto vinculado antes de criar um módulo.');const ins=await supabaseClient.from('modules').insert({name:n,legacy_id:localLegacy('project-module',cur.id+'-'+Date.now()),product_id:productId,active:true}).select('id,name,product_id,legacy_id').single();if(ins.error)throw ins.error;mod=ins.data;}const pm=await supabaseClient.from('project_modules').upsert({project_id:cur.dbId,module_id:mod.id,planned_training_date:null},{onConflict:'project_id,module_id'});if(pm.error)throw pm.error;cur.m.push([n,[],{}]);persistState();closeModal();mapView();}catch(e){console.error(e);alert('Não foi possível incluir o módulo no Supabase. O módulo não foi alterado localmente.\n\n'+(e?.message||e));}});}
+async function addMod(){
+ if(!canEdit())return;
+ if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser incluído com segurança.');
+ try{
+  const proj=await supabaseClient.from('projects').select('client_id').eq('id',cur.dbId).maybeSingle();
+  if(proj.error)throw proj.error;
+  if(!proj.data?.client_id)return alert('Este projeto não possui cliente vinculado no Supabase.');
+
+  const cp=await supabaseClient
+    .from('client_products')
+    .select('product_id,status')
+    .eq('client_id',proj.data.client_id);
+  if(cp.error)throw cp.error;
+
+  const productIds=[...new Set(
+    (cp.data||[])
+      .filter(x=>x.product_id && String(x.status||'').trim().toUpperCase()!=='INATIVO')
+      .map(x=>x.product_id)
+  )];
+  if(!productIds.length)return alert('O cliente deste projeto não possui produto ativo atribuído.');
+
+  const pq=await supabaseClient.from('products').select('id,name,custom,active').in('id',productIds);
+  if(pq.error)throw pq.error;
+  const products=(pq.data||[]).filter(p=>p.active!==false);
+  if(!products.length)return alert('O produto atribuído ao cliente não está disponível no cadastro.');
+
+  const productOptions=products
+    .map(p=>'<option value="'+escAttr(String(p.id))+'">'+esc(p.name)+(p.custom?' — Personalizado':'')+'</option>')
+    .join('');
+
+  openSimpleModal(
+   'Novo módulo no Mapa',
+   '<div class="task-form">'+
+   '<label>Produto atribuído ao cliente</label>'+
+   '<select id="mapNewModuleProduct">'+productOptions+'</select>'+
+   '<label>Nome do módulo</label>'+
+   '<input id="mapNewModuleName" placeholder="Ex.: Cadastros">'+
+   '<label>Submódulos (um por linha)</label>'+
+   '<textarea id="mapNewModuleSubs" rows="8" placeholder="Ex.: Pessoas\nUsuários\nParâmetros"></textarea>'+
+   '<div class="hint">O módulo será criado dentro do produto selecionado e vinculado a este projeto. Cada linha do campo de submódulos cria um submódulo separado.</div>'+
+   '</div>',
+   async()=>{
+    const productId=document.getElementById('mapNewModuleProduct')?.value;
+    const name=document.getElementById('mapNewModuleName')?.value.trim();
+    const subs=[...new Set(
+      (document.getElementById('mapNewModuleSubs')?.value||'')
+        .split(/\\r?\\n/)
+        .map(x=>x.trim())
+        .filter(Boolean)
+    )];
+
+    if(!productId)return alert('Selecione o produto.');
+    if(!name)return alert('Informe o nome do módulo.');
+    if((cur.m||[]).some(m=>String(m[0]).trim().toUpperCase()===name.toUpperCase()))
+      return alert('Este módulo já está cadastrado no projeto.');
+
+    try{
+      // Reaproveita o módulo do catálogo do produto quando existir.
+      let modQ=await supabaseClient
+        .from('modules')
+        .select('id,name,product_id,legacy_id')
+        .eq('product_id',productId)
+        .ilike('name',name)
+        .limit(1)
+        .maybeSingle();
+      if(modQ.error)throw modQ.error;
+
+      let mod=modQ.data;
+      if(!mod){
+       const ins=await supabaseClient.from('modules').insert({
+         name,
+         legacy_id:localLegacy('project-module',cur.id+'-'+productId+'-'+name+'-'+Date.now()),
+         product_id:productId,
+         active:true
+       }).select('id,name,product_id,legacy_id').single();
+       if(ins.error)throw ins.error;
+       mod=ins.data;
+      }
+
+      // Garante os submódulos exatamente na ordem das linhas informadas.
+      const savedSubs=[];
+      for(const subName of subs){
+       let subQ=await supabaseClient
+         .from('submodules')
+         .select('id,name,module_id,legacy_id')
+         .eq('module_id',mod.id)
+         .ilike('name',subName)
+         .limit(1)
+         .maybeSingle();
+       if(subQ.error)throw subQ.error;
+
+       let sub=subQ.data;
+       if(!sub){
+        const ins=await supabaseClient.from('submodules').insert({
+          name:subName,
+          module_id:mod.id,
+          legacy_id:localLegacy('project-submodule',cur.id+'-'+mod.id+'-'+subName+'-'+Date.now()),
+          active:true
+        }).select('id,name,module_id,legacy_id').single();
+        if(ins.error)throw ins.error;
+        sub=ins.data;
+       }
+       savedSubs.push(sub.name);
+      }
+
+      const pm=await supabaseClient.from('project_modules').upsert({
+        project_id:cur.dbId,
+        module_id:mod.id,
+        planned_training_date:null
+      },{onConflict:'project_id,module_id'});
+      if(pm.error)throw pm.error;
+
+      cur.m=Array.isArray(cur.m)?cur.m:[];
+      cur.m.push([mod.name,savedSubs,{}]);
+      audit('Módulo criado no Mapa','Módulo '+mod.name+' criado no produto atribuído ao cliente com '+savedSubs.length+' submódulo(s).');
+      persistState();closeModal();mapView();
+    }catch(e){
+      console.error(e);
+      alert('Não foi possível criar o módulo e seus submódulos no Supabase. Nenhuma alteração local foi feita.\n\n'+(e?.message||e));
+    }
+   }
+  );
+ }catch(e){
+  console.error(e);
+  alert('Não foi possível carregar os produtos atribuídos ao cliente.\n\n'+(e?.message||e));
+ }
+}
+
 async function delMod(i){if(!canEdit())return;const m=cur?.m?.[i];if(!m)return;if(!confirm('Excluir módulo?'))return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A exclusão foi bloqueada.');try{const refs=await resolveProjectStructureModule(m[0]);if(!refs?.id)throw new Error('Módulo não encontrado no Supabase.');const tr=await supabaseClient.from('trainings').delete().eq('project_id',cur.dbId).eq('module_id',refs.id);if(tr.error)throw tr.error;const pm=await supabaseClient.from('project_modules').delete().eq('project_id',cur.dbId).eq('module_id',refs.id);if(pm.error)throw pm.error;cur.m.splice(i,1);cur.t=(cur.t||[]).filter(t=>String(t.module||'').trim().toUpperCase()!==String(m[0]).trim().toUpperCase());audit('Módulo excluído',m[0]);persistState();mapView();}catch(e){console.error(e);alert('Não foi possível excluir o módulo do Supabase. O módulo foi mantido.\n\n'+(e?.message||e));}}
 async function addSub(i){if(!canEdit())return;const m=cur?.m?.[i];if(!m)return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O submódulo não pode ser incluído com segurança.');openSimpleModal('Novo submódulo','<label>Módulo</label><input value="'+escAttr(m[0])+'" disabled><label>Nome do submódulo</label><input id="simpleName" placeholder="Ex.: Pessoas">',async()=>{const n=document.getElementById('simpleName').value.trim();if(!n)return alert('Informe o nome do submódulo.');if((m[1]||[]).some(x=>String(x).trim().toUpperCase()===n.toUpperCase()))return alert('Este submódulo já está cadastrado no módulo.');try{const mod=await resolveProjectStructureModule(m[0]);if(!mod?.id)throw new Error('Módulo não encontrado no Supabase.');let sub=await supabaseClient.from('submodules').select('id,name,module_id,legacy_id').eq('module_id',mod.id).ilike('name',n).limit(1).maybeSingle();if(sub.error)throw sub.error;if(!sub.data){sub=await supabaseClient.from('submodules').insert({name:n,module_id:mod.id,legacy_id:localLegacy('project-submodule',cur.id+'-'+mod.id+'-'+Date.now()),active:true}).select('id,name,module_id,legacy_id').single();if(sub.error)throw sub.error;}m[1]=Array.isArray(m[1])?m[1]:[];m[1].push(n);persistState();closeModal();mapView();}catch(e){console.error(e);alert('Não foi possível incluir o submódulo no Supabase. O submódulo não foi alterado localmente.\n\n'+(e?.message||e));}});}
 async function editSub(i,j){if(!canEdit())return;const m=cur?.m?.[i],oldName=m?.[1]?.[j];if(!m||!oldName)return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A edição foi bloqueada.');openSimpleModal('Editar submódulo','<label>Nome</label><input id="simpleName" value="'+escAttr(oldName)+'">',async()=>{const n=document.getElementById('simpleName').value.trim();if(!n)return;if(n.toUpperCase()!==String(oldName).toUpperCase()&&(m[1]||[]).some((x,k)=>k!==j&&String(x).trim().toUpperCase()===n.toUpperCase()))return alert('Este submódulo já existe no módulo.');try{const mod=await resolveProjectStructureModule(m[0]);if(!mod?.id)throw new Error('Módulo não encontrado no Supabase.');const sub=await supabaseClient.from('submodules').select('id,name').eq('module_id',mod.id).eq('name',oldName).maybeSingle();if(sub.error)throw sub.error;if(!sub.data)throw new Error('Submódulo não encontrado no Supabase.');const up=await supabaseClient.from('submodules').update({name:n}).eq('id',sub.data.id);if(up.error)throw up.error;m[1][j]=n;persistState();closeModal();mapView();}catch(e){console.error(e);alert('Não foi possível editar o submódulo no Supabase. A alteração foi bloqueada localmente.\n\n'+(e?.message||e));}});}
