@@ -627,6 +627,54 @@ async function hydrateFromSupabase(){
       if(m)m.subs.push(x.name);
     }
 
+    // Preenche automaticamente a estrutura inicial do Mapa a partir do produto
+    // atribuído ao cliente, sem duplicar módulos já vinculados ao projeto.
+    const projectProductIdsByProject=new Map();
+    for(const x of (pp.data||[])){
+      const arr=projectProductIdsByProject.get(String(x.project_id))||[];
+      if(x.product_id)arr.push(String(x.product_id));
+      projectProductIdsByProject.set(String(x.project_id),arr);
+    }
+    const clientProductIdsByDb=new Map();
+    for(const x of (cp.data||[])){
+      const status=String(x.status||'').trim().toUpperCase();
+      if(!x.product_id||status==='INATIVO')continue;
+      const arr=clientProductIdsByDb.get(String(x.client_id))||[];
+      if(!arr.includes(String(x.product_id)))arr.push(String(x.product_id));
+      clientProductIdsByDb.set(String(x.client_id),arr);
+    }
+    const existingProjectModuleKeys=new Set(
+      (pm.data||[]).map(x=>String(x.project_id)+'::'+String(x.module_id))
+    );
+    const autoProjectModules=[];
+    for(const projectRow of (pg.data||[])){
+      const projectId=String(projectRow.id);
+      const projectProducts=projectProductIdsByProject.get(projectId)||[];
+      const productIds=projectProducts.length
+        ? projectProducts
+        : (clientProductIdsByDb.get(String(projectRow.client_id||''))||[]);
+      const allowedProducts=new Set(productIds.map(String));
+      if(!allowedProducts.size)continue;
+      for(const moduleRow of (mo.data||[])){
+        if(moduleRow.active===false||!allowedProducts.has(String(moduleRow.product_id)))continue;
+        const key=projectId+'::'+String(moduleRow.id);
+        if(existingProjectModuleKeys.has(key))continue;
+        existingProjectModuleKeys.add(key);
+        autoProjectModules.push({
+          project_id:projectRow.id,
+          module_id:moduleRow.id,
+          planned_training_date:null
+        });
+      }
+    }
+    if(autoProjectModules.length){
+      const {error:autoPmError}=await supabaseClient
+        .from('project_modules')
+        .upsert(autoProjectModules,{onConflict:'project_id,module_id'});
+      if(autoPmError)throw autoPmError;
+      pm.data=[...(pm.data||[]),...autoProjectModules];
+    }
+
     clientsData=(cl.data||[]).map(x=>{
       const id=clientByDb.get(x.id);
       const old=oldClients.find(c=>String(c.id)===String(id));
@@ -1135,7 +1183,7 @@ async function resolveProjectStructureModule(moduleName){
  return q.data||null;
 }
 async function resolveProjectStructureProductId(){ if(!cur?.dbId)return null; const q=await supabaseClient.from('project_products').select('product_id').eq('project_id',cur.dbId).limit(1).maybeSingle(); if(q.error)throw q.error; return q.data?.product_id||null; }
-async function importModule(){
+async async function importModule(){
  if(!canEdit())return;
  if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O módulo não pode ser importado com segurança.');
  try{
