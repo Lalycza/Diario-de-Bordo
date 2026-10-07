@@ -1096,10 +1096,9 @@ async function importModule(){
   const available=activeMods.filter(m=>!(cur.m||[]).some(existing=>String(existing[0]).trim().toUpperCase()===String(m.name||'').trim().toUpperCase()));
   if(!available.length)return alert('Todos os módulos dos produtos vinculados já estão cadastrados neste projeto.');
 
-  const productNames=new Map();
-  for(const p of (productsData||[])){
-   if(p.dbId)productNames.set(String(p.dbId),p.name);
-  }
+  const productQ=await supabaseClient.from('products').select('id,name').in('id',productIds);
+  if(productQ.error)throw productQ.error;
+  const productNames=new Map((productQ.data||[]).map(p=>[String(p.id),p.name]));
 
   const opts=available.map(m=>{
    const productName=productNames.get(String(m.product_id))||'Produto vinculado';
