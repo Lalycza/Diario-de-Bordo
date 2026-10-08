@@ -56,7 +56,7 @@ export function ManagementDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_modules")
-        .select("project_id, module_id");
+         .select("project_id, module_id, planned_training_date");
       if (error) throw error;
       return data ?? [];
     },
@@ -90,6 +90,22 @@ export function ManagementDashboard() {
     const highPriority = pendingDemands.filter((d) => d.priority === "alta");
     const withoutAnalyst = projects.filter((p) => !p.analista?.trim());
     const withoutDeadline = projects.filter((p) => !p.previsao_conclusao);
+
+    const trainingForecastByProject = new Map<string, number>();
+    projectModules.forEach((pm) => {
+      if (pm.planned_training_date) {
+        trainingForecastByProject.set(pm.project_id, (trainingForecastByProject.get(pm.project_id) ?? 0) + 1);
+      }
+    });
+    trainings.forEach((t) => {
+      if (t.planned_date) {
+        trainingForecastByProject.set(t.project_id, (trainingForecastByProject.get(t.project_id) ?? 0) + 1);
+      }
+    });
+    const projectsWithoutTrainingForecast = projects.filter((p) => {
+      const linkedModules = projectModules.filter((pm) => pm.project_id === p.id);
+      return linkedModules.length > 0 && (trainingForecastByProject.get(p.id) ?? 0) === 0;
+    });
 
     const rescheduledCount = new Map<string, number>();
     trainings.forEach((t) => {
@@ -132,7 +148,7 @@ export function ManagementDashboard() {
     });
 
     return {
-      projects, overdue, upcoming, onTrack, pendingDemands, highPriority, withoutAnalyst, withoutDeadline,
+      projects, overdue, upcoming, onTrack, pendingDemands, highPriority, withoutAnalyst, withoutDeadline, projectsWithoutTrainingForecast,
       frequentRescheduling, goLiveAttention, documentationPending,
     };
   }, [projectsQuery.data, demandsQuery.data, trainingsQuery.data, projectModulesQuery.data, documentationQuery.data]);
@@ -168,7 +184,7 @@ export function ManagementDashboard() {
           <Card>
             <CardHeader><CardTitle className="text-base">🔴 Precisam de atenção</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {summary.overdue.length === 0 && summary.highPriority.length === 0 && summary.withoutAnalyst.length === 0 && summary.withoutDeadline.length === 0 && summary.goLiveAttention.length === 0 && summary.frequentRescheduling.length === 0 && summary.documentationPending.length === 0 ? (
+              {summary.overdue.length === 0 && summary.highPriority.length === 0 && summary.withoutAnalyst.length === 0 && summary.withoutDeadline.length === 0 && summary.projectsWithoutTrainingForecast.length === 0 && summary.goLiveAttention.length === 0 && summary.frequentRescheduling.length === 0 && summary.documentationPending.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum ponto crítico identificado.</p>
               ) : (
                 <>
@@ -189,6 +205,12 @@ export function ManagementDashboard() {
                     <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
                       <p className="font-medium">Projetos sem previsão de conclusão</p>
                       <p className="text-xs text-muted-foreground">{summary.withoutDeadline.length} projeto(s) sem prazo cadastrado.</p>
+                    </div>
+                  )}
+                  {summary.projectsWithoutTrainingForecast.length > 0 && (
+                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
+                      <p className="font-medium">Projetos sem previsão de treinamento</p>
+                      <p className="text-xs text-muted-foreground">{summary.projectsWithoutTrainingForecast.length} projeto(s) com módulos vinculados, mas sem nenhuma previsão de treinamento cadastrada.</p>
                     </div>
                   )}
                   {summary.goLiveAttention.length > 0 && (
