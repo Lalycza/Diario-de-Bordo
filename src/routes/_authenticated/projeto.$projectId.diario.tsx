@@ -194,18 +194,21 @@ function DiarioPage() {
           </Label>
           <Input id="ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
         </div>
-        {(busca || de || ate) ? (
+        {true ? (
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="icon"
+            className="shrink-0"
+            disabled={!busca && statusFiltro === "todos" && responsavelFiltro === "todos"}
+            title="Limpar filtros"
+            aria-label="Limpar filtros"
+            
             onClick={() => {
               setBusca("");
               setDe("");
               setAte("");
             }}
-            title="Limpar filtros"
-            aria-label="Limpar filtros"
           >
             <X className="size-4" /> Limpar filtros
           </Button>
