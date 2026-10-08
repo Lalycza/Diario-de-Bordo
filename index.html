@@ -2189,8 +2189,9 @@ function gerencial(){if(!currentUser||!(hasAdminAccess()||currentUser.role==='cs
 function renderGerencial(){
  const arr=visibleProjects().filter(p=>!p.finalizado);
  const today=new Date();today.setHours(0,0,0,0);
- const moduleAlerts=[];
+ const projectAlerts=[];
  arr.forEach(p=>{
+   const moduleReasons=[];
    (p.m||[]).forEach(m=>{
      const moduleName=Array.isArray(m)?String(m[0]||'').trim():String(m?.name||'').trim();
      if(!moduleName)return;
@@ -2213,14 +2214,21 @@ function renderGerencial(){
        const allHomologated=subs.every(s=>relevant.some(t=>norm(t.submodule)===norm(s)&&t.homologationDate&&t.homologationResponsible));
        if(allCompleted&&!allHomologated) reasons.push('Homologação pendente');
      }
-     if(reasons.length)moduleAlerts.push({projectId:p.id,project:p.n||p.c||'Projeto',client:p.c||'',module:moduleName,reasons});
+     if(reasons.length) moduleReasons.push({module:moduleName,reasons});
    });
+   if(moduleReasons.length) projectAlerts.push({projectId:p.id,project:p.n||p.c||'Projeto',client:p.c||'',modules:moduleReasons});
  });
  const production=arr.reduce((n,p)=>n+projectGoLiveFor(p).filter(x=>x.status==='Em produção').length,0);
  const partial=arr.filter(p=>{const g=projectGoLiveFor(p);return g.some(x=>x.status==='Em produção')&&g.some(x=>x.status!=='Em produção')}).length;
- const attention=moduleAlerts.length;
- const rows=moduleAlerts.slice(0,24).map(x=>'<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.projectId)+')"><div><b>'+esc(x.module)+'</b><div class="muted">'+esc(x.project)+(x.client?' · '+esc(x.client):'')+'</div></div><div class="small">'+esc(x.reasons.join(' · '))+' <span class="badge">Abrir projeto</span></div></div>').join('');
- document.getElementById('gerencialBody').innerHTML='<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+partial+'</b><span>Projetos com Go Live parcial</span></div><div class="metric"><b>'+attention+'</b><span>Módulos que precisam de atenção</span></div></div><div class="cards"><div class="card"><h3>🔴 Precisam de atenção</h3>'+(attention?rows:'<p class="muted">Nenhum módulo precisa de atenção no momento.</p>')+'</div></div>';
+ const attention=projectAlerts.length;
+ const rows=projectAlerts.slice(0,24).map(x=>{
+   const counts={};
+   x.modules.forEach(m=>m.reasons.forEach(r=>counts[r]=(counts[r]||0)+1));
+   const reasons=Object.entries(counts).map(([reason,count])=>count+'× '+reason).join(' · ');
+   const modules=x.modules.map(m=>m.module).join(', ');
+   return '<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.projectId)+')"><div><b>'+esc(x.project)+'</b><div class="muted">'+esc(x.client)+(modules?' · '+esc(modules):'')+'</div></div><div class="small">'+esc(reasons)+' <span class="badge">Abrir projeto</span></div></div>';
+ }).join('');
+ document.getElementById('gerencialBody').innerHTML='<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+partial+'</b><span>Projetos com Go Live parcial</span></div><div class="metric"><b>'+attention+'</b><span>Projetos que precisam de atenção</span></div></div><div class="cards"><div class="card"><h3>🔴 Precisam de atenção</h3>'+(attention?rows:'<p class="muted">Nenhum projeto precisa de atenção no momento.</p>')+'</div></div>';
 }
 function catalogo(type){if(type==='clients'){if(!canEditClient()&&currentUser.role!=='operator'&&currentUser.role!=='analyst'&&currentUser.role!=='client')return;hideSections();document.getElementById('clients').classList.remove('hidden');renderClients();return}if(!hasAdminAccess())return;hideSections();if(type==='catalog'){document.getElementById('catalog').classList.remove('hidden');renderUnifiedCatalog()}else if(type==='users'){document.getElementById('users').classList.remove('hidden');renderUsers()}}
 function productModules(p){return (p.moduleIds||[]).map(id=>modulesData.find(m=>m.id===id)).filter(Boolean)}
