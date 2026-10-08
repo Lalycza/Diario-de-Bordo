@@ -2189,15 +2189,38 @@ function gerencial(){if(!currentUser||!(hasAdminAccess()||currentUser.role==='cs
 function renderGerencial(){
  const arr=visibleProjects().filter(p=>!p.finalizado);
  const today=new Date();today.setHours(0,0,0,0);
- const dated=[];
- arr.forEach(p=>{projectGoLiveFor(p).forEach(g=>{if(g.date)dated.push({p,g,date:new Date(g.date+'T00:00:00')})})});
- const overdue=dated.filter(x=>x.date<today&&x.g.status!=='Em produção');
- const upcoming=dated.filter(x=>{const d=Math.ceil((x.date-today)/86400000);return d>=0&&d<=15&&x.g});
- const production=arr.reduce((n,p)=>n+projectGoLiveFor(p).filter(g=>g.status==='Em produção').length,0);
+ const moduleAlerts=[];
+ arr.forEach(p=>{
+   (p.m||[]).forEach(m=>{
+     const moduleName=Array.isArray(m)?String(m[0]||'').trim():String(m?.name||'').trim();
+     if(!moduleName)return;
+     const planned=Array.isArray(m)?(m[2]?.plannedDate||''):m?.plannedDate||'';
+     const records=(p.t||[]).map(taskObj).filter(t=>String(t.module||t.name||'').trim().toUpperCase()===moduleName.toUpperCase());
+     const reasons=[];
+     if(!planned) reasons.push('Sem previsão de treinamento');
+     else{
+       const due=new Date(planned+'T00:00:00');
+       const started=records.some(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(String(t.status||'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')));
+       if(!started && due<=today) reasons.push('Treinamento previsto sem início');
+     }
+     const reschedules=records.filter(t=>t.rescheduledDate||t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate).length;
+     if(reschedules>=2) reasons.push(reschedules+' replanejamentos');
+     const subs=Array.isArray(m)?(m[1]||[]).filter(Boolean).map(String):[];
+     if(subs.length){
+       const norm=v=>String(v||'').trim().toUpperCase();
+       const relevant=records.filter(t=>!t.submodule||subs.some(s=>norm(s)===norm(t.submodule)));
+       const allCompleted=subs.every(s=>relevant.some(t=>norm(t.submodule)===norm(s)&&(t.trainingEndDate||norm(t.status)==='CONCLUIDO'||norm(t.status)==='HOMOLOGADO')));
+       const allHomologated=subs.every(s=>relevant.some(t=>norm(t.submodule)===norm(s)&&t.homologationDate&&t.homologationResponsible));
+       if(allCompleted&&!allHomologated) reasons.push('Homologação pendente');
+     }
+     if(reasons.length)moduleAlerts.push({projectId:p.id,project:p.n||p.c||'Projeto',client:p.c||'',module:moduleName,reasons});
+   });
+ });
+ const production=arr.reduce((n,p)=>n+projectGoLiveFor(p).filter(x=>x.status==='Em produção').length,0);
  const partial=arr.filter(p=>{const g=projectGoLiveFor(p);return g.some(x=>x.status==='Em produção')&&g.some(x=>x.status!=='Em produção')}).length;
- const escp=typeof esc==='function'?esc:(x)=>String(x??'');
- const rows=(items,kind)=>items.slice(0,8).map(x=>{const days=Math.ceil((x.date-today)/86400000);return '<div class="listitem row"><div><b>'+escp(x.p.n)+'</b><div class="muted">'+escp(x.p.c)+' · '+escp(x.g.name)+'</div></div><div class="small">'+(kind==='overdue'?Math.abs(days)+' dia(s) de atraso':days===0?'Hoje':'em '+days+' dia(s)')+'</div></div>'}).join('');
- document.getElementById('gerencialBody').innerHTML='<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+partial+'</b><span>Projetos com Go Live parcial</span></div><div class="metric"><b>'+overdue.length+'</b><span>Itens com prazo vencido</span></div><div class="metric"><b>'+upcoming.length+'</b><span>Entregas nos próximos 15 dias</span></div></div><div class="cards"><div class="card"><h3>🚀 Próximas entregas</h3>'+(upcoming.length?rows(upcoming,'upcoming'):'<p class="muted">Nenhuma entrega nos próximos 15 dias.</p>')+'</div><div class="card"><h3>🔴 Precisam de atenção</h3>'+(overdue.length?rows(overdue,'overdue'):'<p class="muted">Nenhum prazo vencido.</p>')+'</div></div>';
+ const attention=moduleAlerts.length;
+ const rows=moduleAlerts.slice(0,24).map(x=>'<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.projectId)+')"><div><b>'+esc(x.module)+'</b><div class="muted">'+esc(x.project)+(x.client?' · '+esc(x.client):'')+'</div></div><div class="small">'+esc(x.reasons.join(' · '))+' <span class="badge">Abrir projeto</span></div></div>').join('');
+ document.getElementById('gerencialBody').innerHTML='<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+partial+'</b><span>Projetos com Go Live parcial</span></div><div class="metric"><b>'+attention+'</b><span>Módulos que precisam de atenção</span></div></div><div class="cards"><div class="card"><h3>🔴 Precisam de atenção</h3>'+(attention?rows:'<p class="muted">Nenhum módulo precisa de atenção no momento.</p>')+'</div></div>';
 }
 function catalogo(type){if(type==='clients'){if(!canEditClient()&&currentUser.role!=='operator'&&currentUser.role!=='analyst'&&currentUser.role!=='client')return;hideSections();document.getElementById('clients').classList.remove('hidden');renderClients();return}if(!hasAdminAccess())return;hideSections();if(type==='catalog'){document.getElementById('catalog').classList.remove('hidden');renderUnifiedCatalog()}else if(type==='users'){document.getElementById('users').classList.remove('hidden');renderUsers()}}
 function productModules(p){return (p.moduleIds||[]).map(id=>modulesData.find(m=>m.id===id)).filter(Boolean)}
