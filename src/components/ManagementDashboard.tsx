@@ -52,7 +52,9 @@ export function ManagementDashboard() {
     const onTrack = dated.filter((p) => daysUntil(p.previsao_conclusao!) >= 0);
     const pendingDemands = demands.filter((d) => d.status !== "finalizado");
     const highPriority = pendingDemands.filter((d) => d.priority === "alta");
-    return { projects, overdue, upcoming, onTrack, pendingDemands, highPriority };
+    const withoutAnalyst = projects.filter((p) => !p.analista?.trim());
+    const withoutDeadline = projects.filter((p) => !p.previsao_conclusao);
+    return { projects, overdue, upcoming, onTrack, pendingDemands, highPriority, withoutAnalyst, withoutDeadline };
   }, [projectsQuery.data, demandsQuery.data]);
 
   if (projectsQuery.isLoading || demandsQuery.isLoading) {
@@ -83,7 +85,36 @@ export function ManagementDashboard() {
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <Card><CardHeader><CardTitle className="text-base">🚀 Próximas entregas</CardTitle></CardHeader><CardContent>{summary.upcoming.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma entrega nos próximos 15 dias.</p> : summary.upcoming.slice(0, 6).map((p) => row(p, daysUntil(p.previsao_conclusao!) === 0 ? "hoje" : `em ${daysUntil(p.previsao_conclusao!)} dia(s)`))}</CardContent></Card>
-          <Card><CardHeader><CardTitle className="text-base">🔴 Precisam de atenção</CardTitle></CardHeader><CardContent>{summary.overdue.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum projeto com prazo vencido.</p> : summary.overdue.slice(0, 6).map((p) => row(p, <span className="text-destructive">{Math.abs(daysUntil(p.previsao_conclusao!))} dia(s) de atraso</span>))}</CardContent></Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base">🔴 Precisam de atenção</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {summary.overdue.length === 0 && summary.highPriority.length === 0 && summary.withoutAnalyst.length === 0 && summary.withoutDeadline.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum ponto crítico identificado.</p>
+              ) : (
+                <>
+                  {summary.overdue.slice(0, 4).map((p) => row(p, <span className="text-destructive">{Math.abs(daysUntil(p.previsao_conclusao!))} dia(s) de atraso</span>))}
+                  {summary.highPriority.length > 0 && (
+                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
+                      <p className="font-medium">Demandas de alta prioridade</p>
+                      <p className="text-xs text-muted-foreground">{summary.highPriority.length} demanda(s) aberta(s) aguardando atenção.</p>
+                    </div>
+                  )}
+                  {summary.withoutAnalyst.length > 0 && (
+                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
+                      <p className="font-medium">Projetos sem analista</p>
+                      <p className="text-xs text-muted-foreground">{summary.withoutAnalyst.length} projeto(s) ainda sem responsável definido.</p>
+                    </div>
+                  )}
+                  {summary.withoutDeadline.length > 0 && (
+                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
+                      <p className="font-medium">Projetos sem previsão de conclusão</p>
+                      <p className="text-xs text-muted-foreground">{summary.withoutDeadline.length} projeto(s) sem prazo cadastrado.</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>
