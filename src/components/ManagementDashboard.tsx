@@ -249,78 +249,44 @@ export function ManagementDashboard() {
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <Card><CardHeader><CardTitle className="text-base">🚀 Próximas entregas</CardTitle></CardHeader><CardContent>{summary.upcoming.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma entrega nos próximos 15 dias.</p> : summary.upcoming.slice(0, 6).map((p) => row(p, daysUntil(p.previsao_conclusao!) === 0 ? "hoje" : `em ${daysUntil(p.previsao_conclusao!)} dia(s)`))}</CardContent></Card>
           <Card>
-            <CardHeader><CardTitle className="text-base">🔴 Precisam de atenção</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-base">🔴 Precisam de atenção</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-2">
-              {summary.attentionModules.length === 0 && summary.overdue.length === 0 && summary.highPriority.length === 0 && summary.withoutAnalyst.length === 0 && summary.withoutDeadline.length === 0 && summary.goLiveAttention.length === 0 && summary.frequentRescheduling.length === 0 && summary.documentationPending.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum ponto crítico identificado.</p>
+              {summary.attentionModules.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum módulo precisa de atenção no momento.</p>
               ) : (
                 <>
-                  {summary.attentionModules.length > 0 ? (
-                    <div className="space-y-2">
-                      {Array.from(summary.projectAttentionById.entries()).slice(0, 8).map(([projectId, items]) => {
-                        const project = summary.projects.find((p) => p.id === projectId);
-                        if (!project) return null;
-                        return (
-                          <div key={projectId} className="rounded-[10px] border p-3">
-                            <p className="text-sm font-semibold">{project.cliente ?? project.descricao ?? "Projeto"}</p>
-                            <div className="mt-2 space-y-1">
-                              {items.slice(0, 6).map((item) => (
-                                <a
-                                  key={item.moduleId}
-                                  href={"/projeto/" + item.projectId + "/modulos#module-" + item.moduleId}
-                                  className="flex items-center justify-between gap-3 rounded-md border px-2.5 py-2 text-xs transition hover:bg-muted/50"
-                                >
-                                  <span className="min-w-0 truncate font-medium">{item.moduleName}</span>
-                                  <span className={item.severity === "critical" ? "shrink-0 text-destructive" : "shrink-0 text-amber-600 dark:text-amber-300"}>
-                                    {item.reasons.join(" · ")}
-                                  </span>
-                                </a>
-                              ))}
-                              {items.length > 6 ? <p className="px-1 text-xs text-muted-foreground">+ {items.length - 6} módulo(s)</p> : null}
-                            </div>
+                  <p className="text-xs text-muted-foreground">
+                    {summary.attentionModules.length} módulo(s) com pendência. Os submódulos são usados como base dos alertas, mas não aparecem nesta lista.
+                  </p>
+                  <div className="space-y-2">
+                    {Array.from(summary.projectAttentionById.entries()).slice(0, 8).map(([projectId, items]) => {
+                      const project = summary.projects.find((p) => p.id === projectId);
+                      if (!project) return null;
+                      return (
+                        <div key={projectId} className="rounded-[10px] border p-3">
+                          <p className="text-sm font-semibold">{project.cliente ?? project.descricao ?? "Projeto"}</p>
+                          <div className="mt-2 space-y-1">
+                            {items.slice(0, 6).map((item) => (
+                              <a
+                                key={item.moduleId}
+                                href={"/projeto/" + item.projectId + "/modulos#module-" + item.moduleId}
+                                className="flex items-center justify-between gap-3 rounded-md border px-2.5 py-2 text-xs transition hover:bg-muted/50"
+                              >
+                                <span className="min-w-0 truncate font-medium">{item.moduleName}</span>
+                                <span className={item.severity === "critical" ? "shrink-0 text-destructive" : "shrink-0 text-amber-600 dark:text-amber-300"}>
+                                  {item.reasons.join(" · ")}
+                                </span>
+                              </a>
+                            ))}
+                            {items.length > 6 ? <p className="px-1 text-xs text-muted-foreground">+ {items.length - 6} módulo(s) neste projeto</p> : null}
                           </div>
-                        );
-                      })}
-                      {summary.projectAttentionById.size > 8 ? <p className="text-xs text-muted-foreground">+ {summary.projectAttentionById.size - 8} projeto(s) com alertas.</p> : null}
-                    </div>
-                  ) : null}
-                  {summary.overdue.slice(0, 4).map((p) => row(p, <span className="text-destructive">{Math.abs(daysUntil(p.previsao_conclusao!))} dia(s) de atraso</span>))}
-                  {summary.highPriority.length > 0 ? (
-                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
-                      <p className="font-medium">Demandas de alta prioridade</p>
-                      <p className="text-xs text-muted-foreground">{summary.highPriority.length} demanda(s) aberta(s) aguardando atenção.</p>
-                    </div>
-                  ) : null}
-                  {summary.withoutAnalyst.length > 0 ? (
-                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
-                      <p className="font-medium">Projetos sem analista</p>
-                      <p className="text-xs text-muted-foreground">{summary.withoutAnalyst.length} projeto(s) ainda sem responsável definido.</p>{attentionProjects(summary.withoutAnalyst, () => "sem analista")}
-                    </div>
-                  ) : null}
-                  {summary.withoutDeadline.length > 0 ? (
-                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
-                      <p className="font-medium">Projetos sem previsão de conclusão</p>
-                      <p className="text-xs text-muted-foreground">{summary.withoutDeadline.length} projeto(s) sem prazo cadastrado.</p>{attentionProjects(summary.withoutDeadline, () => "sem conclusão")}
-                    </div>
-                  ) : null}
-                  {summary.goLiveAttention.length > 0 ? (
-                    <div className="rounded-[10px] border border-red-500/30 bg-red-500/5 p-3">
-                      <p className="font-medium">Go Live próximo sem módulos homologados</p>
-                      <p className="text-xs text-muted-foreground">{summary.goLiveAttention.length} projeto(s) com conclusão prevista em até 30 dias e nenhum módulo homologado no MAPA.</p>{attentionProjects(summary.goLiveAttention, (p) => Math.max(0, daysUntil(p.previsao_conclusao!)) + " dia(s)")}
-                    </div>
-                  ) : null}
-                  {summary.frequentRescheduling.length > 0 ? (
-                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
-                      <p className="font-medium">Projetos com muito replanejamento</p>
-                      <p className="text-xs text-muted-foreground">{summary.frequentRescheduling.length} projeto(s) com 2 ou mais replanejamentos registrados.</p>{attentionProjects(summary.frequentRescheduling, (p) => (summary.rescheduledCount.get(p.id) ?? 0) + " replan.")}
-                    </div>
-                  ) : null}
-                  {summary.documentationPending.length > 0 ? (
-                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
-                      <p className="font-medium">Documentação pendente</p>
-                      <p className="text-xs text-muted-foreground">{summary.documentationPending.length} projeto(s) com documentação ausente, sem versão ou ainda não enviada.</p>{attentionProjects(summary.documentationPending, () => "documentação")}
-                    </div>
-                  ) : null}
+                        </div>
+                      );
+                    })}
+                    {summary.projectAttentionById.size > 8 ? <p className="text-xs text-muted-foreground">+ {summary.projectAttentionById.size - 8} projeto(s) com módulos em atenção.</p> : null}
+                  </div>
                 </>
               )}
             </CardContent>
