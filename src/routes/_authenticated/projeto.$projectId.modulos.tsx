@@ -248,12 +248,27 @@ function ModulosPage() {
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Input
-          placeholder="Buscar módulo ou submódulo…"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="max-w-64"
-        />
+        <div className="relative max-w-64">
+          <Input
+            placeholder="Buscar módulo ou submódulo…"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="pr-9"
+          />
+          {busca ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 size-7 -translate-y-1/2"
+              title="Limpar busca"
+              aria-label="Limpar busca"
+              onClick={() => setBusca("")}
+            >
+              <X className="size-4" />
+            </Button>
+          ) : null}
+        </div>
         <Select value={statusFiltro} onValueChange={setStatusFiltro}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Status" />
@@ -280,25 +295,6 @@ function ModulosPage() {
             ))}
           </SelectContent>
         </Select>
-        {true ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            disabled={!busca && statusFiltro === "todos" && responsavelFiltro === "todos"}
-            title="Limpar filtros"
-            aria-label="Limpar filtros"
-            
-            onClick={() => {
-              setBusca("");
-              setStatusFiltro("todos");
-              setResponsavelFiltro("todos");
-            }}
-          >
-            <X className="size-4" />
-          </Button>
-        ) : null}
         <div className="ml-auto flex gap-2">
           <Button size="sm" onClick={() => setForm({ ...emptyModule })}>
             <Plus className="size-4" /> Novo módulo
