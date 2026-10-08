@@ -200,7 +200,7 @@ function DiarioPage() {
             variant="ghost"
             size="icon"
             className="shrink-0"
-            disabled={!busca && statusFiltro === "todos" && responsavelFiltro === "todos"}
+            disabled={!busca && !de && !ate}
             title="Limpar filtros"
             aria-label="Limpar filtros"
             
@@ -210,7 +210,7 @@ function DiarioPage() {
               setAte("");
             }}
           >
-            <X className="size-4" /> Limpar filtros
+            <X className="size-4" />
           </Button>
         ) : null}
         <div className="ml-auto">
