@@ -72,7 +72,7 @@ export function ManagementDashboard() {
     queryKey: ["management-dashboard-modules-v1"],
     refetchOnMount: "always",
     queryFn: async () => {
-      const { data, error } = await supabase.from("modules").select("id, name, project_id").range(0, 4999);
+      const { data, error } = await supabase.from("modules").select("id, nome").range(0, 4999);
       if (error) throw error;
       return data ?? [];
     },
@@ -149,7 +149,7 @@ export function ManagementDashboard() {
         attentionModules.push({
           projectId: pm.project_id,
           moduleId: pm.module_id,
-          moduleName: module.name,
+          moduleName: module.nome,
           reasons,
           severity: reasons.some((r) => r === "Treinamento previsto sem início" || r === "Homologação pendente") ? "critical" : "warning",
         });
