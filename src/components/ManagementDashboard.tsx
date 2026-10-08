@@ -43,12 +43,12 @@ export function ManagementDashboard() {
   });
 
   const trainingsQuery = useQuery({
-    queryKey: ["management-dashboard-trainings-v2"],
+    queryKey: ["management-dashboard-trainings-v3"],
     refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trainings")
-        .select("project_id, module_id, submodule_id, status, rescheduled_at, planned_date")
+        .select("project_id, module_id, submodule_id, status, rescheduled_at, planned_date, training_start_date, training_completion_date, homologation_date, homologation_responsible")
         .range(0, 4999);
       if (error) throw error;
       return data ?? [];
