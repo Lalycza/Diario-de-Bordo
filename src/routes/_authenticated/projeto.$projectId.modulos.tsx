@@ -280,18 +280,21 @@ function ModulosPage() {
             ))}
           </SelectContent>
         </Select>
-        {(busca || statusFiltro !== "todos" || responsavelFiltro !== "todos") ? (
+        {true ? (
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="icon"
+            className="shrink-0"
+            disabled={!busca && statusFiltro === "todos" && responsavelFiltro === "todos"}
+            title="Limpar filtros"
+            aria-label="Limpar filtros"
+            
             onClick={() => {
               setBusca("");
               setStatusFiltro("todos");
               setResponsavelFiltro("todos");
             }}
-            title="Limpar filtros"
-            aria-label="Limpar filtros"
           >
             <X className="size-4" /> Limpar filtros
           </Button>
