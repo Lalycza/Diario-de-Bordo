@@ -785,24 +785,37 @@ function openTaskModal(index){let old=index==null?{name:'',month:'',week:1,plann
 function syncTaskDate(){let sub=document.getElementById('taskSubmodule')?.value;if(sub)return;let x=monthWeekFromDate(document.getElementById('taskTraining')?.value);if(!x)return;let m=document.getElementById('taskMonth'),w=document.getElementById('taskWeek');if(m)m.value=x.month;if(w)w.value=x.week}
 async function resolveTrainingRefs(moduleName,submoduleName){
  if(!cur?.dbId||!moduleName)return null;
- const localModule=modulesData.find(m=>String(m.name||'').trim().toUpperCase()===String(moduleName||'').trim().toUpperCase());
+ const norm=v=>String(v??'').replace(/\\s+/g,' ').trim().toUpperCase();
+ const targetModule=norm(moduleName);
+ const targetSubmodule=norm(submoduleName);
+ const localModule=modulesData.find(m=>norm(m.name)===targetModule);
  let moduleId=null;
  if(localModule?.id){
-   const q=await supabaseClient.from('modules').select('id,name').eq('legacy_id','module-'+localModule.id).maybeSingle();
+   const q=await supabaseClient.from('modules').select('id,name,legacy_id').eq('legacy_id','module-'+localModule.id).maybeSingle();
    if(q.error)throw q.error;
    moduleId=q.data?.id||null;
  }
  if(!moduleId){
-   const q=await supabaseClient.from('modules').select('id,name').eq('name',moduleName).maybeSingle();
+   const q=await supabaseClient.from('modules').select('id,name,legacy_id').eq('name',moduleName).maybeSingle();
    if(q.error)throw q.error;
    moduleId=q.data?.id||null;
  }
- if(!moduleId)return null;
+ if(!moduleId){
+   const q=await supabaseClient.from('modules').select('id,name,legacy_id');
+   if(q.error)throw q.error;
+   const match=(q.data||[]).find(m=>norm(m.name)===targetModule);
+   moduleId=match?.id||null;
+ }
+ if(!moduleId)throw new Error('Módulo não encontrado no cadastro do Supabase: '+moduleName);
  let submoduleId=null;
  if(submoduleName){
-   const q=await supabaseClient.from('submodules').select('id,name').eq('module_id',moduleId).eq('name',submoduleName).maybeSingle();
+   const q=await supabaseClient.from('submodules').select('id,name,legacy_id').eq('module_id',moduleId);
    if(q.error)throw q.error;
-   submoduleId=q.data?.id||null;
+   const rows=q.data||[];
+   const localSubmoduleName=(localModule?.[1]||[]).find(s=>norm(s)===targetSubmodule);
+   const exact=rows.find(s=>norm(s.name)===targetSubmodule);
+   const legacy=localSubmoduleName?rows.find(s=>norm(s.name)===norm(localSubmoduleName)||String(s.legacy_id||'')===String(localSubmoduleName)):null;
+   submoduleId=exact?.id||legacy?.id||null;
    if(!submoduleId)throw new Error('Submódulo não encontrado no cadastro do Supabase: '+submoduleName);
  }
  return {projectId:cur.dbId,moduleId,submoduleId};
