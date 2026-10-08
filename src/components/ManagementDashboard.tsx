@@ -68,6 +68,16 @@ export function ManagementDashboard() {
     },
   });
 
+  const modulesQuery = useQuery({
+    queryKey: ["management-dashboard-modules-v1"],
+    refetchOnMount: "always",
+    queryFn: async () => {
+      const { data, error } = await supabase.from("modules").select("id, name, project_id").range(0, 4999);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const documentationQuery = useQuery({
     queryKey: ["management-dashboard-documentation-v2"],
     refetchOnMount: "always",
@@ -86,6 +96,8 @@ export function ManagementDashboard() {
     const trainings = trainingsQuery.data ?? [];
     const projectModules = projectModulesQuery.data ?? [];
     const documentation = documentationQuery.data ?? [];
+    const modules = modulesQuery.data ?? [];
+    const moduleById = new Map(modules.map((m) => [m.id, m]));
     const dated = projects.filter((p) => p.previsao_conclusao);
     const overdue = dated.filter((p) => daysUntil(p.previsao_conclusao!) < 0);
     const upcoming = dated.filter((p) => {
@@ -98,27 +110,62 @@ export function ManagementDashboard() {
     const withoutAnalyst = projects.filter((p) => !p.analista?.trim());
     const withoutDeadline = projects.filter((p) => !p.previsao_conclusao);
 
+    type AttentionModule = {
+      projectId: string;
+      moduleId: string;
+      moduleName: string;
+      reasons: string[];
+      severity: "critical" | "warning";
+    };
+
+    const attentionModules: AttentionModule[] = [];
     const trainingForecastByModule = new Set<string>();
-    const trainingForecastByProject = new Map<string, number>();
-    const trainingForecastMissingByProject = new Map<string, number>();
 
     trainings.forEach((t) => {
       if (!t.submodule_id && t.planned_date) {
-        trainingForecastByModule.add(`${t.project_id}:${t.module_id}`);
+        trainingForecastByModule.add(t.project_id + ":" + t.module_id);
       }
     });
 
     projectModules.forEach((pm) => {
-      const hasForecast = Boolean(pm.planned_training_date) || trainingForecastByModule.has(`${pm.project_id}:${pm.module_id}`);
-      if (hasForecast) {
-        trainingForecastByProject.set(pm.project_id, (trainingForecastByProject.get(pm.project_id) ?? 0) + 1);
-      } else {
-        trainingForecastMissingByProject.set(pm.project_id, (trainingForecastMissingByProject.get(pm.project_id) ?? 0) + 1);
+      const module = moduleById.get(pm.module_id);
+      if (!module) return;
+
+      const rows = trainings.filter((t) => t.project_id === pm.project_id && t.module_id === pm.module_id);
+      const main = rows.find((t) => !t.submodule_id);
+      const subs = rows.filter((t) => Boolean(t.submodule_id));
+      const forecast = pm.planned_training_date ?? main?.planned_date ?? null;
+      const reasons: string[] = [];
+
+      if (!forecast) {
+        reasons.push("Sem previsão de treinamento");
+      } else if (daysUntil(forecast) <= 0 && !main?.training_start_date && !subs.some((t) => t.training_start_date)) {
+        reasons.push("Treinamento previsto sem início");
+      }
+
+      const reschedules = rows.filter((t) => t.rescheduled_at).length;
+      if (reschedules >= 2) reasons.push(reschedules + " replanejamentos");
+
+      const allSubsHomologated = subs.length > 0 && subs.every((t) => t.homologation_date && t.homologation_responsible);
+      const hasCompletedWork = subs.length > 0
+        ? subs.every((t) => t.training_completion_date)
+        : Boolean(main?.training_completion_date);
+      if (hasCompletedWork && !allSubsHomologated) reasons.push("Homologação pendente");
+
+      if (reasons.length > 0) {
+        attentionModules.push({
+          projectId: pm.project_id,
+          moduleId: pm.module_id,
+          moduleName: module.name,
+          reasons,
+          severity: reasons.some((r) => r === "Treinamento previsto sem início" || r === "Homologação pendente") ? "critical" : "warning",
+        });
       }
     });
-    const projectsWithoutTrainingForecast = projects.filter((p) => {
-      const linkedModules = projectModules.filter((pm) => pm.project_id === p.id);
-      return linkedModules.length > 0 && (trainingForecastMissingByProject.get(p.id) ?? 0) > 0;
+
+    const projectAttentionById = new Map<string, AttentionModule[]>();
+    attentionModules.forEach((item) => {
+      projectAttentionById.set(item.projectId, [...(projectAttentionById.get(item.projectId) ?? []), item]);
     });
 
     const rescheduledCount = new Map<string, number>();
@@ -162,17 +209,17 @@ export function ManagementDashboard() {
     });
 
     return {
-      projects, overdue, upcoming, onTrack, pendingDemands, highPriority, withoutAnalyst, withoutDeadline, projectsWithoutTrainingForecast,
-      frequentRescheduling, goLiveAttention, documentationPending,
-      trainingForecastMissingByProject, rescheduledCount,
+      projects, overdue, upcoming, onTrack, pendingDemands, highPriority, withoutAnalyst, withoutDeadline,
+      frequentRescheduling, goLiveAttention, documentationPending, attentionModules, projectAttentionById,
+      rescheduledCount,
     };
-  }, [projectsQuery.data, demandsQuery.data, trainingsQuery.data, projectModulesQuery.data, documentationQuery.data]);
+  }, [projectsQuery.data, demandsQuery.data, trainingsQuery.data, projectModulesQuery.data, modulesQuery.data, documentationQuery.data]);
 
-  if (projectsQuery.isLoading || demandsQuery.isLoading || trainingsQuery.isLoading || projectModulesQuery.isLoading || documentationQuery.isLoading) {
+  if (projectsQuery.isLoading || demandsQuery.isLoading || trainingsQuery.isLoading || projectModulesQuery.isLoading || modulesQuery.isLoading || documentationQuery.isLoading) {
     return <p className="mb-6 text-sm text-muted-foreground">Carregando painel gerencial…</p>;
   }
 
-  if (projectsQuery.isError || demandsQuery.isError || trainingsQuery.isError || projectModulesQuery.isError || documentationQuery.isError) {
+  if (projectsQuery.isError || demandsQuery.isError || trainingsQuery.isError || projectModulesQuery.isError || modulesQuery.isError || documentationQuery.isError) {
     return <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">Não foi possível carregar o painel gerencial.</div>;
   }
 
@@ -211,53 +258,76 @@ export function ManagementDashboard() {
           <Card>
             <CardHeader><CardTitle className="text-base">🔴 Precisam de atenção</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {summary.overdue.length === 0 && summary.highPriority.length === 0 && summary.withoutAnalyst.length === 0 && summary.withoutDeadline.length === 0 && summary.projectsWithoutTrainingForecast.length === 0 && summary.goLiveAttention.length === 0 && summary.frequentRescheduling.length === 0 && summary.documentationPending.length === 0 ? (
+              {summary.attentionModules.length === 0 && summary.overdue.length === 0 && summary.highPriority.length === 0 && summary.withoutAnalyst.length === 0 && summary.withoutDeadline.length === 0 && summary.goLiveAttention.length === 0 && summary.frequentRescheduling.length === 0 && summary.documentationPending.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum ponto crítico identificado.</p>
               ) : (
                 <>
+                  {summary.attentionModules.length > 0 ? (
+                    <div className="space-y-2">
+                      {Array.from(summary.projectAttentionById.entries()).slice(0, 8).map(([projectId, items]) => {
+                        const project = summary.projects.find((p) => p.id === projectId);
+                        if (!project) return null;
+                        return (
+                          <div key={projectId} className="rounded-[10px] border p-3">
+                            <p className="text-sm font-semibold">{project.cliente ?? project.descricao ?? "Projeto"}</p>
+                            <div className="mt-2 space-y-1">
+                              {items.slice(0, 6).map((item) => (
+                                <a
+                                  key={item.moduleId}
+                                  href={"/projeto/" + item.projectId + "/modulos#module-" + item.moduleId}
+                                  className="flex items-center justify-between gap-3 rounded-md border px-2.5 py-2 text-xs transition hover:bg-muted/50"
+                                >
+                                  <span className="min-w-0 truncate font-medium">{item.moduleName}</span>
+                                  <span className={item.severity === "critical" ? "shrink-0 text-destructive" : "shrink-0 text-amber-600 dark:text-amber-300"}>
+                                    {item.reasons.join(" · ")}
+                                  </span>
+                                </a>
+                              ))}
+                              {items.length > 6 ? <p className="px-1 text-xs text-muted-foreground">+ {items.length - 6} módulo(s)</p> : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {summary.projectAttentionById.size > 8 ? <p className="text-xs text-muted-foreground">+ {summary.projectAttentionById.size - 8} projeto(s) com alertas.</p> : null}
+                    </div>
+                  ) : null}
                   {summary.overdue.slice(0, 4).map((p) => row(p, <span className="text-destructive">{Math.abs(daysUntil(p.previsao_conclusao!))} dia(s) de atraso</span>))}
-                  {summary.highPriority.length > 0 && (
+                  {summary.highPriority.length > 0 ? (
                     <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
                       <p className="font-medium">Demandas de alta prioridade</p>
                       <p className="text-xs text-muted-foreground">{summary.highPriority.length} demanda(s) aberta(s) aguardando atenção.</p>
                     </div>
-                  )}
-                  {summary.withoutAnalyst.length > 0 && (
+                  ) : null}
+                  {summary.withoutAnalyst.length > 0 ? (
                     <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
                       <p className="font-medium">Projetos sem analista</p>
                       <p className="text-xs text-muted-foreground">{summary.withoutAnalyst.length} projeto(s) ainda sem responsável definido.</p>{attentionProjects(summary.withoutAnalyst, () => "sem analista")}
                     </div>
-                  )}
-                  {summary.withoutDeadline.length > 0 && (
+                  ) : null}
+                  {summary.withoutDeadline.length > 0 ? (
                     <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
                       <p className="font-medium">Projetos sem previsão de conclusão</p>
                       <p className="text-xs text-muted-foreground">{summary.withoutDeadline.length} projeto(s) sem prazo cadastrado.</p>{attentionProjects(summary.withoutDeadline, () => "sem conclusão")}
                     </div>
-                  )}
-                  {summary.projectsWithoutTrainingForecast.length > 0 && (
-                    <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
-                      <p className="font-medium">Projetos sem previsão de treinamento</p>
-                      <p className="text-xs text-muted-foreground">{summary.projectsWithoutTrainingForecast.length} projeto(s) com pelo menos um módulo sem previsão de treinamento.</p>{attentionProjects(summary.projectsWithoutTrainingForecast, (p) => `${summary.trainingForecastMissingByProject.get(p.id) ?? 0} módulo(s)`)}
-                    </div>
-                  )}
-                  {summary.goLiveAttention.length > 0 && (
+                  ) : null}
+                  {summary.goLiveAttention.length > 0 ? (
                     <div className="rounded-[10px] border border-red-500/30 bg-red-500/5 p-3">
                       <p className="font-medium">Go Live próximo sem módulos homologados</p>
-                      <p className="text-xs text-muted-foreground">{summary.goLiveAttention.length} projeto(s) com conclusão prevista em até 30 dias e nenhum módulo homologado no MAPA.</p>{attentionProjects(summary.goLiveAttention, (p) => `${Math.max(0, daysUntil(p.previsao_conclusao!))} dia(s)`)}
+                      <p className="text-xs text-muted-foreground">{summary.goLiveAttention.length} projeto(s) com conclusão prevista em até 30 dias e nenhum módulo homologado no MAPA.</p>{attentionProjects(summary.goLiveAttention, (p) => Math.max(0, daysUntil(p.previsao_conclusao!)) + " dia(s)")}
                     </div>
-                  )}
-                  {summary.frequentRescheduling.length > 0 && (
+                  ) : null}
+                  {summary.frequentRescheduling.length > 0 ? (
                     <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
                       <p className="font-medium">Projetos com muito replanejamento</p>
-                      <p className="text-xs text-muted-foreground">{summary.frequentRescheduling.length} projeto(s) com 2 ou mais replanejamentos registrados.</p>{attentionProjects(summary.frequentRescheduling, (p) => `${summary.rescheduledCount.get(p.id) ?? 0} replan.`)}
+                      <p className="text-xs text-muted-foreground">{summary.frequentRescheduling.length} projeto(s) com 2 ou mais replanejamentos registrados.</p>{attentionProjects(summary.frequentRescheduling, (p) => (summary.rescheduledCount.get(p.id) ?? 0) + " replan.")}
                     </div>
-                  )}
-                  {summary.documentationPending.length > 0 && (
+                  ) : null}
+                  {summary.documentationPending.length > 0 ? (
                     <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/5 p-3">
                       <p className="font-medium">Documentação pendente</p>
                       <p className="text-xs text-muted-foreground">{summary.documentationPending.length} projeto(s) com documentação ausente, sem versão ou ainda não enviada.</p>{attentionProjects(summary.documentationPending, () => "documentação")}
                     </div>
-                  )}
+                  ) : null}
                 </>
               )}
             </CardContent>
