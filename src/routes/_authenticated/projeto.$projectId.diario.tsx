@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { CalendarClock, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { CalendarClock, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -176,12 +176,27 @@ function DiarioPage() {
       </section>
 
       <div className="mb-4 flex flex-wrap items-end gap-2">
-        <Input
-          placeholder="Buscar no conteúdo…"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="max-w-64"
-        />
+        <div className="relative max-w-64">
+          <Input
+            placeholder="Buscar no conteúdo…"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="pr-9"
+          />
+          {busca ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 size-7 -translate-y-1/2"
+              title="Limpar busca"
+              aria-label="Limpar busca"
+              onClick={() => setBusca("")}
+            >
+              <X className="size-4" />
+            </Button>
+          ) : null}
+        </div>
         <div className="space-y-1">
           <Label htmlFor="de" className="text-xs text-muted-foreground">
             De
@@ -194,25 +209,6 @@ function DiarioPage() {
           </Label>
           <Input id="ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
         </div>
-        {true ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            disabled={!busca && !de && !ate}
-            title="Limpar filtros"
-            aria-label="Limpar filtros"
-            
-            onClick={() => {
-              setBusca("");
-              setDe("");
-              setAte("");
-            }}
-          >
-            <X className="size-4" />
-          </Button>
-        ) : null}
         <div className="ml-auto">
           <Button
             size="sm"
