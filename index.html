@@ -859,7 +859,7 @@ async function hydrateFromSupabase(){
     productsData=(pr.data||[]).map(x=>{
       const id=productByDb.get(x.id);
       const old=oldProducts.find(p=>String(p.id)===String(id));
-      return {...(old||{}),id,name:x.name,customized:!!x.custom,moduleIds:[]};
+      return {...(old||{}),id,dbId:x.id,name:x.name,customized:!!x.custom,active:x.active!==false,moduleIds:[]};
     });
     modulesData=(mo.data||[]).map(x=>{
       const id=moduleByDb.get(x.id);
