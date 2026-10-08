@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CornerDownRight, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -90,6 +90,16 @@ function ModulosPage() {
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState("todos");
   const [responsavelFiltro, setResponsavelFiltro] = useState("todos");
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith("#module-")) return;
+    const targetId = hash.slice("#module-".length);
+    const timer = window.setTimeout(() => {
+      document.getElementById("module-" + targetId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const modulesQuery = useQuery({
     queryKey: ["modules", projectId],
@@ -311,7 +321,7 @@ function ModulosPage() {
           {grupos.map(({ pai, filhos, filhosTotal }) => {
             const homologados = filhosTotal.filter((f) => f.status === "homologado").length;
             return (
-              <section key={pai.id} className="overflow-hidden rounded-lg border bg-card">
+              <section id={"module-" + pai.id} key={pai.id} className="overflow-hidden rounded-lg border bg-card">
                 <header className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-4 py-3">
                   <h3 className="text-sm font-semibold">{pai.nome}</h3>
                   {pai.area ? (
