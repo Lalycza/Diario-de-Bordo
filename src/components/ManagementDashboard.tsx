@@ -18,7 +18,8 @@ function formatDate(date: string | null) {
 
 export function ManagementDashboard() {
   const projectsQuery = useQuery({
-    queryKey: ["management-dashboard-projects"],
+    queryKey: ["management-dashboard-projects-v2"],
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
@@ -32,7 +33,8 @@ export function ManagementDashboard() {
   });
 
   const demandsQuery = useQuery({
-    queryKey: ["management-dashboard-demands"],
+    queryKey: ["management-dashboard-demands-v2"],
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase.from("demands").select("id, project_id, status, priority");
       if (error) throw error;
@@ -41,29 +43,34 @@ export function ManagementDashboard() {
   });
 
   const trainingsQuery = useQuery({
-    queryKey: ["management-dashboard-trainings"],
+    queryKey: ["management-dashboard-trainings-v2"],
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trainings")
-        .select("project_id, module_id, submodule_id, status, rescheduled_at, planned_date");
+        .select("project_id, module_id, submodule_id, status, rescheduled_at, planned_date")
+        .range(0, 4999);
       if (error) throw error;
       return data ?? [];
     },
   });
 
   const projectModulesQuery = useQuery({
-    queryKey: ["management-dashboard-project-modules"],
+    queryKey: ["management-dashboard-project-modules-v2"],
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_modules")
-         .select("project_id, module_id, planned_training_date");
+        .select("project_id, module_id, planned_training_date")
+        .range(0, 4999);
       if (error) throw error;
       return data ?? [];
     },
   });
 
   const documentationQuery = useQuery({
-    queryKey: ["management-dashboard-documentation"],
+    queryKey: ["management-dashboard-documentation-v2"],
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_documentation_status")
@@ -91,12 +98,18 @@ export function ManagementDashboard() {
     const withoutAnalyst = projects.filter((p) => !p.analista?.trim());
     const withoutDeadline = projects.filter((p) => !p.previsao_conclusao);
 
+    const trainingForecastByModule = new Set<string>();
     const trainingForecastByProject = new Map<string, number>();
     const trainingForecastMissingByProject = new Map<string, number>();
+
+    trainings.forEach((t) => {
+      if (!t.submodule_id && t.planned_date) {
+        trainingForecastByModule.add(`${t.project_id}:${t.module_id}`);
+      }
+    });
+
     projectModules.forEach((pm) => {
-      const hasForecast = Boolean(pm.planned_training_date) || trainings.some(
-        (t) => t.project_id === pm.project_id && t.module_id === pm.module_id && !t.submodule_id && t.planned_date,
-      );
+      const hasForecast = Boolean(pm.planned_training_date) || trainingForecastByModule.has(`${pm.project_id}:${pm.module_id}`);
       if (hasForecast) {
         trainingForecastByProject.set(pm.project_id, (trainingForecastByProject.get(pm.project_id) ?? 0) + 1);
       } else {
