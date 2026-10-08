@@ -296,7 +296,7 @@ function ModulosPage() {
               setResponsavelFiltro("todos");
             }}
           >
-            <X className="size-4" /> Limpar filtros
+            <X className="size-4" />
           </Button>
         ) : null}
         <div className="ml-auto flex gap-2">
