@@ -119,13 +119,6 @@ export function ManagementDashboard() {
     };
 
     const attentionModules: AttentionModule[] = [];
-    const trainingForecastByModule = new Set<string>();
-
-    trainings.forEach((t) => {
-      if (!t.submodule_id && t.planned_date) {
-        trainingForecastByModule.add(t.project_id + ":" + t.module_id);
-      }
-    });
 
     projectModules.forEach((pm) => {
       const module = moduleById.get(pm.module_id);
