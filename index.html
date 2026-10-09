@@ -1210,33 +1210,76 @@ function openSimpleModal(title,body,onSave){document.getElementById('modalbox').
 function replicateSubmoduleDatesForSelected(){const moduleName=document.getElementById('taskModule')?.value;const index=(cur?.m||[]).findIndex(x=>x[0]===moduleName);if(index>=0)replicateSubmoduleDates(index)}
 function openTaskModal(index){let old=index==null?{name:'',month:'',week:1,plannedDate:'',trainingDate:'',trainingStartDate:'',trainingEndDate:'',status:'PENDENTE',responsible:'HPRO',module:'',submodule:'',subject:'',homologationDate:'',homologationResponsible:''}:taskObj(cur.t[index]);let mods=cur.m||[];let moduleOpts=mods.map(m=>'<option value="'+escAttr(m[0])+'" '+(old.module===m[0]?'selected':'')+'>'+esc(m[0])+'</option>').join('');document.getElementById('modalbox').innerHTML='<h2>'+(index==null?'Planejar / registrar treinamento':'Editar treinamento')+'</h2><div class="task-form"><label>Módulo</label><select id="taskModule"><option value="">Selecione</option>'+moduleOpts+'</select><label>Submódulo</label><select id="taskSubmodule"><option value="">Treinamento do módulo</option></select><div id="taskReplicateRow" style="display:none;margin:8px 0 12px;padding:10px;border:1px solid #86aaff;border-radius:10px;background:rgba(71,120,230,.09)"><b>Datas dos submódulos</b><p class="hint">Replicar as datas deste módulo para os demais submódulos.</p><button type="button" class="secondary" onclick="replicateSubmoduleDatesForSelected()">↔ Replicar datas entre submódulos</button></div><div id="taskScheduleFields" class="row2"><div><label>Mês</label><select id="taskMonth"><option value="">Selecione o mês</option>'+cronMonths.map(m=>'<option '+(m===old.month?'selected':'')+'>'+m+'</option>').join('')+'</select></div><div><label>Semana</label><select id="taskWeek">'+[1,2,3,4,5].map(w=>'<option value="'+w+'" '+(w===old.week?'selected':'')+'>Semana '+w+'</option>').join('')+'</select></div></div>'+dateFieldHtml('taskPlannedDate','Data prevista do módulo',old.plannedDate||'')+dateFieldHtml('taskTraining','Data de início do treinamento',old.trainingStartDate||old.trainingDate||'')+dateFieldHtml('taskTrainingEnd','Data de término do treinamento',old.trainingEndDate||'')+'<div class="hint" style="margin:6px 0 12px">O status é calculado automaticamente a partir da execução dos submódulos no Mapa: Pendente → Em andamento → Concluído → Homologado. Se a data prevista original for alterada, o sistema registra Replanejado sem apagar o histórico.</div><div class="hint">Antes da realização do treinamento, a responsabilidade é HPRO. Depois que a realização for registrada, passa para CLIENTE. Quando homologado, a responsabilidade da homologação fica registrada separadamente com nome e data.</div><div id="homFields" class="hidden">'+dateFieldHtml('taskHomDate','Data da homologação',old.homologationDate||'')+'<label>Responsável pela homologação</label><input id="taskHomResp" value="'+escAttr(old.homologationResponsible||'')+'" placeholder="Nome de quem homologou"></div><div style="text-align:right"><button class="secondary" onclick="closeModal()">Cancelar</button> <button class="primary" onclick="saveTask('+(index==null?'null':index)+')">Salvar</button></div></div>';document.getElementById('modal').classList.remove('hidden');let syncSubs=()=>{let m=mods.find(x=>x[0]===document.getElementById('taskModule').value);let sel=document.getElementById('taskSubmodule');const previousSub=sel.value;const validSubs=m?.[1]||[];sel.innerHTML='<option value="">Treinamento do módulo</option>'+validSubs.map(s=>'<option value="'+escAttr(s)+'">'+esc(s)+'</option>').join('');sel.value=validSubs.includes(previousSub)?previousSub:(validSubs.includes(old.submodule)?old.submodule:'');let sf=document.getElementById('taskScheduleFields');if(sf)sf.style.display=sel.value?'none':'grid';let replicateRow=document.getElementById('taskReplicateRow');if(replicateRow)replicateRow.style.display=sel.value?'block':'none';if(sel.value){const moduleIndex=(cur?.m||[]).findIndex(x=>Array.isArray(x)&&x[0]===m?.[0]);const planned=moduleIndex>=0?getModulePlannedDate(moduleIndex):(m?.[2]?.plannedDate||'');const plannedEl=document.getElementById('taskPlannedDate');if(plannedEl){plannedEl.value=planned||'';syncISOToDateText('taskPlannedDate','taskPlannedDateText')}let mw=monthWeekFromDate(planned||'');let tm=document.getElementById('taskMonth'),tw=document.getElementById('taskWeek');if(tm)tm.value=mw?.month||'';if(tw)tw.value=mw?.week||''}};document.getElementById('taskModule').onchange=syncSubs;document.getElementById('taskSubmodule').onchange=syncSubs;syncSubs();document.getElementById('homFields').classList.remove('hidden')}
 function syncTaskDate(){let sub=document.getElementById('taskSubmodule')?.value;if(sub)return;let x=monthWeekFromDate(document.getElementById('taskTraining')?.value);if(!x)return;let m=document.getElementById('taskMonth'),w=document.getElementById('taskWeek');if(m)m.value=x.month;if(w)w.value=x.week}
+function normalizeTrainingLookupName(value){
+ return String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ').trim().toUpperCase();
+}
 async function resolveTrainingRefs(moduleName,submoduleName){
  if(!cur?.dbId||!moduleName)return null;
- const localModule=modulesData.find(m=>String(m.name||'').trim().toUpperCase()===String(moduleName||'').trim().toUpperCase());
+ const wantedModule=normalizeTrainingLookupName(moduleName);
  let moduleId=null;
- if(localModule?.id){
-   const q=await supabaseClient.from('modules').select('id,name').eq('legacy_id','module-'+localModule.id).maybeSingle();
-   if(q.error)throw q.error;
-   moduleId=q.data?.id||null;
+ const chooseUniqueModule=(rows,source)=>{
+   const matches=(rows||[]).filter(m=>normalizeTrainingLookupName(m.name)===wantedModule);
+   if(matches.length>1)throw new Error('Há mais de um módulo chamado "'+moduleName+'" '+source+'. Não foi feita nenhuma alteração para evitar gravar datas no módulo errado.');
+   return matches[0]||null;
+ };
+ const linkedQ=await supabaseClient.from('project_modules').select('module_id').eq('project_id',cur.dbId);
+ if(linkedQ.error)throw linkedQ.error;
+ const linkedIds=[...new Set((linkedQ.data||[]).map(x=>x.module_id).filter(Boolean).map(String))];
+ if(linkedIds.length){
+   const linkedModulesQ=await supabaseClient.from('modules').select('id,name,product_id,legacy_id').in('id',linkedIds);
+   if(linkedModulesQ.error)throw linkedModulesQ.error;
+   const found=chooseUniqueModule(linkedModulesQ.data,'vinculado(s) ao projeto');
+   if(found)moduleId=found.id;
  }
  if(!moduleId){
-   const q=await supabaseClient.from('modules').select('id,name').eq('name',moduleName).maybeSingle();
-   if(q.error)throw q.error;
-   moduleId=q.data?.id||null;
+   const pp=await supabaseClient.from('project_products').select('product_id').eq('project_id',cur.dbId);
+   if(pp.error)throw pp.error;
+   const productIds=[...new Set((pp.data||[]).map(x=>x.product_id).filter(Boolean).map(String))];
+   if(productIds.length){
+     const byProduct=await supabaseClient.from('modules').select('id,name,product_id,legacy_id').in('product_id',productIds);
+     if(byProduct.error)throw byProduct.error;
+     const found=chooseUniqueModule(byProduct.data,'nos produtos vinculados ao projeto');
+     if(found)moduleId=found.id;
+   }
  }
- if(!moduleId)return null;
+ if(!moduleId){
+   const localModule=(modulesData||[]).find(m=>normalizeTrainingLookupName(m.name)===wantedModule);
+   if(localModule){
+     const possibleIds=[localModule.dbId,localModule.id].filter(Boolean).map(String);
+     for(const id of [...new Set(possibleIds)]){
+       if(moduleId)break;
+       if(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)){
+         const byId=await supabaseClient.from('modules').select('id,name').eq('id',id).maybeSingle();
+         if(byId.error)throw byId.error;
+         if(byId.data&&normalizeTrainingLookupName(byId.data.name)===wantedModule)moduleId=byId.data.id;
+       }
+       if(!moduleId){
+         for(const legacyId of [id,'module-'+id]){
+           const byLegacy=await supabaseClient.from('modules').select('id,name').eq('legacy_id',legacyId).limit(2);
+           if(byLegacy.error)throw byLegacy.error;
+           const found=chooseUniqueModule(byLegacy.data,'no cadastro legado');
+           if(found){moduleId=found.id;break}
+         }
+       }
+     }
+   }
+ }
+ if(!moduleId)throw new Error('Módulo "'+moduleName+'" não foi encontrado vinculado a este projeto ou aos seus produtos no Supabase.');
  let submoduleId=null;
  if(submoduleName){
-   const q=await supabaseClient.from('submodules').select('id,name').eq('module_id',moduleId).eq('name',submoduleName).maybeSingle();
-   if(q.error)throw q.error;
-   submoduleId=q.data?.id||null;
-   if(!submoduleId)throw new Error('Submódulo não encontrado no cadastro do Supabase: '+submoduleName);
+   const subQ=await supabaseClient.from('submodules').select('id,name,module_id').eq('module_id',moduleId);
+   if(subQ.error)throw subQ.error;
+   const wantedSub=normalizeTrainingLookupName(submoduleName);
+   const matches=(subQ.data||[]).filter(s=>normalizeTrainingLookupName(s.name)===wantedSub);
+   if(matches.length>1)throw new Error('Há mais de um submódulo chamado "'+submoduleName+'" no módulo "'+moduleName+'". A replicação foi bloqueada para evitar atualizar o registro errado.');
+   submoduleId=matches[0]?.id||null;
+   if(!submoduleId)throw new Error('Submódulo "'+submoduleName+'" não foi encontrado no cadastro do Supabase para o módulo "'+moduleName+'". Confirme se ele está cadastrado nesse módulo e produto.');
  }
  return {projectId:cur.dbId,moduleId,submoduleId};
 }
-async function syncTrainingToSupabase(obj,old){
+async function syncTrainingToSupabase(obj,old,resolvedRefs){
  if(!supabaseSession||!cur?.dbId)return;
- const refs=await resolveTrainingRefs(obj.module,obj.submodule);
+ const refs=resolvedRefs||await resolveTrainingRefs(obj.module,obj.submodule);
  if(!refs)return;
  let query=supabaseClient.from('trainings').select('id,original_planned_date,status').eq('project_id',refs.projectId).eq('module_id',refs.moduleId);
  query=refs.submoduleId?query.eq('submodule_id',refs.submoduleId):query.is('submodule_id',null);
@@ -1396,7 +1439,17 @@ async function replicateSubmoduleDates(moduleIndex){
    updates.push({sub,obj,index:existing?.index});
   }
   try{
-   for(const item of updates)await syncTrainingToSupabase(item.obj,item.index==null?null:taskObj(before[item.index]));
+   // Pré-valida todos os destinos no Supabase antes de gravar qualquer data.
+   const resolvedTargets=[];
+   for(const item of updates){
+    const refs=await resolveTrainingRefs(moduleName,item.sub);
+    if(!refs?.submoduleId)throw new Error('Não foi possível confirmar o vínculo do submódulo "'+item.sub+'" no Supabase. Nenhuma data foi replicada.');
+    resolvedTargets.push({item,refs});
+   }
+   for(const target of resolvedTargets){
+    const item=target.item;
+    await syncTrainingToSupabase(item.obj,item.index==null?null:taskObj(before[item.index]),target.refs);
+   }
    for(const item of updates){if(item.index==null)cur.t.push(item.obj);else cur.t[item.index]=item.obj;}
    persistState();closeModal();mapView();alert('Datas replicadas para '+updates.length+' submódulo(s) de '+moduleName+'. O submódulo de origem foi preservado.');
   }catch(e){console.error(e);cur.t=before;persistState();alert('Não foi possível concluir a replicação no Supabase. Verifique o módulo antes de tentar novamente.\n\n'+(e?.message||e));}
