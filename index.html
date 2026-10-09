@@ -1143,19 +1143,19 @@ function trainingRecords(){return allTrainingRecords().filter(t=>t.month&&t.week
 function taskForActivity(name,month,week){let tasks=trainingRecords(),matches=tasks.filter(t=>(t.module||'').toUpperCase()===name.toUpperCase()&&t.month===month&&Number(t.week)===Number(week));if(!matches.length)matches=tasks.filter(t=>(t.name||'').toUpperCase()===name.toUpperCase()&&t.month===month&&Number(t.week)===Number(week));return matches.length?matches[matches.length-1]:null}
 function quarterHasTraining(months){return trainingRecords().some(t=>months.includes(t.month))}
 function moduleCronStatus(name,records){
- const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&String(m[0]).trim().toUpperCase()===String(name).trim().toUpperCase());
- const moduleSubs=[...(entry?.[1]||[])].filter(Boolean).map(s=>String(s).trim().toUpperCase());
- const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ');
- const relevant=records.filter(t=>!moduleSubs.length||moduleSubs.includes(String(t.submodule||'').trim().toUpperCase()));
- const keys=(arr)=>new Set(arr.map(t=>String(t.submodule||'').trim().toUpperCase()).filter(Boolean));
- const started=relevant.filter(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(norm(t.status)));
- const ended=relevant.filter(t=>t.trainingEndDate||norm(t.status)==='CONCLUIDO'||norm(t.status)==='HOMOLOGADO');
- const homologated=relevant.filter(t=>t.homologationDate&&t.homologationResponsible||norm(t.status)==='HOMOLOGADO');
+ const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ').replace(/\s+/g,' ');
+ const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&norm(m[0])===norm(name));
+ const moduleSubs=[...(entry?.[1]||[])].filter(Boolean).map(norm);
+ const relevant=records.filter(t=>!t.submodule||!moduleSubs.length||moduleSubs.includes(norm(t.submodule)));
+ const subRows=relevant.filter(t=>!!t.submodule);
+ const keys=arr=>new Set(arr.map(t=>norm(t.submodule)).filter(Boolean));
+ const started=subRows.filter(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(norm(t.status)));
+ const ended=subRows.filter(t=>t.trainingEndDate||norm(t.status)==='CONCLUIDO'||norm(t.status)==='HOMOLOGADO');
+ const homologated=subRows.filter(t=>(t.homologationDate&&t.homologationResponsible)||norm(t.status)==='HOMOLOGADO');
  const explicitlyReplanned=relevant.some(t=>norm(t.status)==='REPLANEJADO');
  const replanned=explicitlyReplanned||relevant.some(t=>t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate);
- const expected=moduleSubs.length||keys(relevant).size||relevant.length;
- const homCount=keys(homologated).size;
- const endCount=keys(ended).size;
+ const expected=moduleSubs.length||keys(subRows).size||subRows.length;
+ const homCount=keys(homologated).size,endCount=keys(ended).size;
  if(expected>0&&homCount>=expected)return 'HOMOLOGADO';
  if(expected>0&&endCount>=expected)return 'CONCLUÍDO';
  if(replanned)return 'REPLANEJADO';
@@ -1163,19 +1163,15 @@ function moduleCronStatus(name,records){
  return 'PENDENTE';
 }
 function moduleCronCell(name,records,month,week){
- const candidates=records.filter(t=>t.month===month||true);
+ const candidates=records;
  if(!candidates.length)return null;
- const byActual=candidates.find(t=>{
-   const x=monthWeekFromDate(t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate);
-   return x&&x.month===month&&x.week===week;
- });
- const byPlanned=candidates.find(t=>{
-   const x=monthWeekFromDate(t.plannedDateOriginal||t.plannedDate);
-   return x&&x.month===month&&x.week===week;
- });
- const byCurrent=candidates.find(t=>t.month===month&&Number(t.week)===Number(week));
- const t=byActual||byPlanned||byCurrent;
- if(!t)return null;
+ const actualOf=t=>monthWeekFromDate(t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate);
+ const plannedOf=t=>monthWeekFromDate(t.plannedDateOriginal||t.plannedDate);
+ const byActual=candidates.find(t=>{const x=actualOf(t);return x&&x.month===month&&x.week===week});
+ const byPlanned=candidates.find(t=>{const x=plannedOf(t);return x&&x.month===month&&x.week===week});
+ const hasExplicitDates=candidates.some(t=>actualOf(t)||plannedOf(t));
+ const byCurrent=!hasExplicitDates?candidates.find(t=>t.month===month&&Number(t.week)===Number(week)):null;
+ if(!byActual&&!byPlanned&&!byCurrent)return null;
  const status=moduleCronStatus(name,records);
  const originalPlannedDate=candidates.map(x=>x.plannedDateOriginal||x.plannedDate).filter(Boolean).sort()[0]||'';
  const actualDates=candidates.map(x=>x.homologationDate||x.trainingEndDate||x.trainingStartDate||x.trainingDate).filter(Boolean).sort();
