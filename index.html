@@ -2410,49 +2410,57 @@ function applyRoleVisibility(){
 }
 function gerencial(){if(!currentUser||!(hasAdminAccess()||currentUser.role==='cs'))return;hideSections();document.getElementById('gerencial').classList.remove('hidden');renderGerencial()}
 function renderGerencial(){
- const arr=visibleProjects().filter(p=>!p.finalizado);
+ const oldFilters={client:document.getElementById('biClientFilter')?.value||'',analyst:document.getElementById('biAnalystFilter')?.value||'',status:document.getElementById('biStatusFilter')?.value||'',period:document.getElementById('biPeriodFilter')?.value||'all'};
+ const all=visibleProjects().filter(p=>!p.finalizado);
+ const users=Array.isArray(usersData)?usersData:[];
+ const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
+ const analystName=p=>{const u=users.find(u=>String(u.email||'').toLowerCase()===String(p.owner||'').toLowerCase())||users.find(u=>(p.operatorIds||[]).some(id=>String(id)===String(u.id)));return u?.name||p.owner||'Sem analista'};
+ const clientName=p=>{const c=(clientsData||[]).find(c=>String(c.id)===String(p.clientId)||String(c.dbId||'')===String(p.clientId||''));return c?.name||p.c||'Sem cliente'};
  const today=new Date();today.setHours(0,0,0,0);
+ const periodDays=oldFilters.period==='all'?null:Number(oldFilters.period);
+ const arr=all.filter(p=>{
+   const client=clientName(p),analyst=analystName(p),status=projectImplantationStatus(p);
+   if(oldFilters.client&&norm(client)!==norm(oldFilters.client))return false;
+   if(oldFilters.analyst&&norm(analyst)!==norm(oldFilters.analyst))return false;
+   if(oldFilters.status&&norm(status)!==norm(oldFilters.status))return false;
+   if(periodDays!==null){const dates=projectGoLiveFor(p).map(g=>g.date).filter(Boolean).map(d=>new Date(d+'T00:00:00')).filter(d=>!isNaN(d));if(!dates.some(d=>{const diff=Math.round((d-today)/86400000);return diff>=0&&diff<=periodDays}))return false}
+   return true;
+ });
+ const goLives=arr.flatMap(p=>projectGoLiveFor(p).map(g=>({...g,project:p,client:clientName(p),analyst:analystName(p)})));
  const projectAlerts=[];
  arr.forEach(p=>{
    const moduleReasons=[];
    (p.m||[]).forEach(m=>{
-     const moduleName=Array.isArray(m)?String(m[0]||'').trim():String(m?.name||'').trim();
-     if(!moduleName)return;
+     const moduleName=Array.isArray(m)?String(m[0]||'').trim():String(m?.name||'').trim();if(!moduleName)return;
      const planned=Array.isArray(m)?(m[2]?.plannedDate||''):m?.plannedDate||'';
      const records=(p.t||[]).map(taskObj).filter(t=>String(t.module||t.name||'').trim().toUpperCase()===moduleName.toUpperCase());
      const reasons=[];
-     if(!planned) reasons.push('Sem previsão de treinamento');
-     else{
-       const due=new Date(planned+'T00:00:00');
-       const started=records.some(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(String(t.status||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')));
-       if(!started && due<=today) reasons.push('Treinamento previsto sem início');
-     }
-     const reschedules=records.filter(t=>t.rescheduledDate||(t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate)).length;
-     if(reschedules>=2) reasons.push(reschedules+' replanejamentos');
+     if(!planned)reasons.push('Sem previsão de treinamento');
+     else{const due=new Date(planned+'T00:00:00');const started=records.some(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(norm(t.status)));if(!started&&due<=today)reasons.push('Treinamento previsto sem início')}
+     const reschedules=records.filter(t=>t.rescheduledDate||(t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate)).length;if(reschedules>=2)reasons.push(reschedules+' replanejamentos');
      const subs=Array.isArray(m)?(m[1]||[]).filter(Boolean).map(String):[];
-     if(subs.length){
-       const norm=v=>String(v||'').trim().toUpperCase();
-       const relevant=records.filter(t=>!t.submodule||subs.some(s=>norm(s)===norm(t.submodule)));
-       const allCompleted=subs.every(s=>relevant.some(t=>norm(t.submodule)===norm(s)&&(t.trainingEndDate||norm(t.status)==='CONCLUIDO'||norm(t.status)==='HOMOLOGADO')));
-       const allHomologated=subs.every(s=>relevant.some(t=>norm(t.submodule)===norm(s)&&t.homologationDate&&t.homologationResponsible));
-       if(allCompleted&&!allHomologated) reasons.push('Homologação pendente');
-     }
-     if(reasons.length) moduleReasons.push({module:moduleName,reasons});
+     if(subs.length){const relevant=records.filter(t=>!t.submodule||subs.some(s=>norm(s)===norm(t.submodule)));const allCompleted=subs.every(s=>relevant.some(t=>norm(t.submodule)===norm(s)&&(t.trainingEndDate||norm(t.status)==='CONCLUIDO'||norm(t.status)==='HOMOLOGADO')));const allHomologated=subs.every(s=>relevant.some(t=>norm(t.submodule)===norm(s)&&t.homologationDate&&t.homologationResponsible));if(allCompleted&&!allHomologated)reasons.push('Homologação pendente')}
+     if(reasons.length)moduleReasons.push({module:moduleName,reasons});
    });
-   if(moduleReasons.length) projectAlerts.push({projectId:p.id,project:p.n||p.c||'Projeto',client:p.c||'',modules:moduleReasons});
+   if(moduleReasons.length)projectAlerts.push({projectId:p.id,project:p.n||p.c||'Projeto',client:clientName(p),modules:moduleReasons});
  });
- const production=arr.reduce((n,p)=>n+projectGoLiveFor(p).filter(x=>x.status==='Em produção').length,0);
+ const production=goLives.filter(x=>x.status==='Em produção').length;
  const partial=arr.filter(p=>{const g=projectGoLiveFor(p);return g.some(x=>x.status==='Em produção')&&g.some(x=>x.status!=='Em produção')}).length;
- const attention=projectAlerts.length;
- const rows=projectAlerts.slice(0,24).map(x=>{
-   const counts={};
-   x.modules.forEach(m=>m.reasons.forEach(r=>counts[r]=(counts[r]||0)+1));
-   const reasons=Object.entries(counts).map(([reason,count])=>count+'× '+reason).join(' · ');
-   const modules=x.modules.map(m=>m.module).join(', ');
-   return '<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.projectId)+')"><div><b>'+esc(x.project)+'</b><div class="muted">'+esc(x.client)+(modules?' · '+esc(modules):'')+'</div></div><div class="small">'+esc(reasons)+' <span class="badge">Abrir projeto</span></div></div>';
- }).join('');
- document.getElementById('gerencialBody').innerHTML='<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+partial+'</b><span>Projetos com Go Live parcial</span></div><div class="metric"><b>'+attention+'</b><span>Projetos que precisam de atenção</span></div></div><div class="cards"><div class="card"><h3>🔴 Precisam de atenção</h3>'+(attention?rows:'<p class="muted">Nenhum prazo vencido.</p>')+'</div></div>';
+ const upcoming=goLives.filter(g=>{if(!g.date)return false;const d=new Date(g.date+'T00:00:00'),diff=Math.round((d-today)/86400000);return !isNaN(d)&&diff>=0&&diff<=30});
+ const overdue=goLives.filter(g=>{if(!g.date||g.status==='Em produção')return false;const d=new Date(g.date+'T00:00:00');return !isNaN(d)&&d<today});
+ const trainingPending=arr.reduce((n,p)=>n+(p.t||[]).map(taskObj).filter(t=>['PENDENTE','EM ANDAMENTO'].includes(norm(t.status))).length,0);
+ const statusCounts={};arr.forEach(p=>{const st=projectImplantationStatus(p);statusCounts[st]=(statusCounts[st]||0)+1});
+ const clientCounts={},analystCounts={};arr.forEach(p=>{const c=clientName(p),a=analystName(p);clientCounts[c]=(clientCounts[c]||0)+1;analystCounts[a]=(analystCounts[a]||0)+1});
+ const bars=obj=>{const entries=Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,8),max=Math.max(1,...entries.map(x=>x[1]));return entries.map(([name,n])=>'<div class="bi-bar-row"><div class="bi-bar-label"><span>'+esc(name)+'</span><b>'+n+'</b></div><div class="bi-bar-track"><span style="width:'+Math.round(n/max*100)+'%"></span></div></div>').join('')||'<p class="muted">Sem dados para os filtros selecionados.</p>'};
+ const projectOptions=(values,current)=>'<option value="">Todos</option>'+[...new Set(values.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'})).map(v=>'<option value="'+escAttr(v)+'"'+(norm(v)===norm(current)?' selected':'')+'>'+esc(v)+'</option>').join('');
+ const statuses=Object.keys(statusCounts);
+ const filterHtml='<div class="card bi-filters"><div><label for="biClientFilter">Cliente</label><select id="biClientFilter" onchange="renderGerencial()">'+projectOptions(all.map(clientName),oldFilters.client)+'</select></div><div><label for="biAnalystFilter">Analista</label><select id="biAnalystFilter" onchange="renderGerencial()">'+projectOptions(all.map(analystName),oldFilters.analyst)+'</select></div><div><label for="biStatusFilter">Status</label><select id="biStatusFilter" onchange="renderGerencial()">'+projectOptions([...new Set(all.map(projectImplantationStatus))],oldFilters.status)+'</select></div><div><label for="biPeriodFilter">Go Live previsto</label><select id="biPeriodFilter" onchange="renderGerencial()"><option value="all"'+(oldFilters.period==='all'?' selected':'')+'>Qualquer período</option><option value="7"'+(oldFilters.period==='7'?' selected':'')+'>Próximos 7 dias</option><option value="15"'+(oldFilters.period==='15'?' selected':'')+'>Próximos 15 dias</option><option value="30"'+(oldFilters.period==='30'?' selected':'')+'>Próximos 30 dias</option><option value="90"'+(oldFilters.period==='90'?' selected':'')+'>Próximos 90 dias</option></select></div><button type="button" class="secondary" onclick="clearGerencialFilters()">Limpar filtros</button></div>';
+ const rows=projectAlerts.slice(0,24).map(x=>{const counts={};x.modules.forEach(m=>m.reasons.forEach(r=>counts[r]=(counts[r]||0)+1));const reasons=Object.entries(counts).map(([reason,count])=>count+'× '+reason).join(' · ');const modules=x.modules.map(m=>m.module).join(', ');return '<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.projectId)+')"><div><b>'+esc(x.project)+'</b><div class="muted">'+esc(x.client)+(modules?' · '+esc(modules):'')+'</div></div><div class="small">'+esc(reasons)+' <span class="badge">Abrir projeto</span></div></div>'}).join('');
+ const goRows=goLives.filter(g=>g.date).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,10).map(g=>'<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(g.project.id)+')"><div><b>'+esc(g.project.n||'Projeto')+' · '+esc(g.name)+'</b><div class="muted">'+esc(g.client)+' · '+esc(g.analyst)+'</div></div><div><span class="badge">'+esc(g.status)+'</span><div class="small">'+esc(formatDateBR(g.date))+'</div></div></div>').join('');
+ const style='<style>.bi-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;align-items:end;margin:14px 0}.bi-filters label{display:block;font-size:12px;color:var(--muted,#9ca3af);margin-bottom:5px}.bi-filters select{width:100%;min-width:0}.bi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:14px 0}.bi-bar-row{margin:11px 0}.bi-bar-label{display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-bottom:5px}.bi-bar-label span{overflow-wrap:anywhere}.bi-bar-track{height:8px;border-radius:8px;background:rgba(148,163,184,.18);overflow:hidden}.bi-bar-track span{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,#3987f6,#6c63d9)}.bi-section-title{margin:18px 0 8px}.@media(max-width:600px){.bi-filters{grid-template-columns:1fr 1fr}.bi-filters button{grid-column:1/-1}}</style>';
+ document.getElementById('gerencialBody').innerHTML=style+'<div class="muted">BI operacional · '+arr.length+' projetos na seleção</div>'+filterHtml+'<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+partial+'</b><span>Projetos com Go Live parcial</span></div><div class="metric"><b>'+projectAlerts.length+'</b><span>Projetos que precisam de atenção</span></div><div class="metric"><b>'+upcoming.length+'</b><span>Go Lives nos próximos 30 dias</span></div><div class="metric"><b>'+overdue.length+'</b><span>Go Lives atrasados</span></div><div class="metric"><b>'+trainingPending+'</b><span>Treinamentos pendentes/em andamento</span></div></div><div class="bi-grid"><div class="card"><h3 class="bi-section-title">Projetos por status</h3>'+bars(statusCounts)+'</div><div class="card"><h3 class="bi-section-title">Carteira por cliente</h3>'+bars(clientCounts)+'</div><div class="card"><h3 class="bi-section-title">Carteira por analista</h3>'+bars(analystCounts)+'</div></div><div class="cards"><div class="card"><h3>📅 Próximos Go Lives</h3>'+(goRows||'<p class="muted">Não há Go Lives com data prevista na seleção.</p>')+'</div><div class="card"><h3>🔴 Precisam de atenção</h3>'+(projectAlerts.length?rows:'<p class="muted">Nenhum alerta identificado na seleção atual.</p>')+'</div></div>';
 }
+function clearGerencialFilters(){['biClientFilter','biAnalystFilter','biStatusFilter'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});const p=document.getElementById('biPeriodFilter');if(p)p.value='all';renderGerencial()}
 function catalogo(type){if(type==='clients'){if(!canEditClient()&&currentUser.role!=='operator'&&currentUser.role!=='analyst'&&currentUser.role!=='client')return;hideSections();document.getElementById('clients').classList.remove('hidden');renderClients();return}if(!hasAdminAccess())return;hideSections();if(type==='catalog'){document.getElementById('catalog').classList.remove('hidden');renderUnifiedCatalog()}else if(type==='users'){document.getElementById('users').classList.remove('hidden');renderUsers()}}
 function productModules(p){return (p.moduleIds||[]).map(id=>modulesData.find(m=>m.id===id)).filter(Boolean)}
 async function ensureStandardModules(productId){let p=productsData.find(x=>x.id===productId);if(!p)return null;const snapshot=JSON.stringify({p:{...p,moduleIds:[...(p.moduleIds||[])]},modules:modulesData.map(m=>({...m,productIds:[...(m.productIds||[])],subs:[...(m.subs||[])]}))});p.moduleIds=p.moduleIds||[];STANDARD_MODULE_NAMES.forEach(name=>{let existing=productModules(p).find(m=>m.name.toLowerCase()===name.toLowerCase());if(!existing){let m={id:Date.now()+Math.floor(Math.random()*10000),name,subs:[],productIds:[productId]};modulesData.push(m);p.moduleIds.push(m.id)}});const r=await persistCatalogProductToSupabase(productId);if(!r.ok){const snap=JSON.parse(snapshot);p.moduleIds=snap.p.moduleIds;modulesData.length=0;modulesData.push(...snap.modules);alert('Não foi possível completar o padrão do produto no Supabase. A inclusão foi desfeita.\\n\\n'+r.message);return null}persistState();return p}
