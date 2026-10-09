@@ -2481,7 +2481,7 @@ function renderDashboardGerencial(){
      else{
        const due=new Date(planned+'T00:00:00');
        const started=records.some(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(String(t.status||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')));
-       if(!started && due<=today) reasons.push('Treinamento previsto sem início');
+       if(!started){const days=Math.ceil((due-today)/86400000);if(days<=0)reasons.push('Treinamento previsto sem início');else if(days<=7)reasons.push('Treinamento previsto nos próximos 7 dias')}
      }
      const reschedules=records.filter(t=>t.rescheduledDate||(t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate)).length;
      if(reschedules>=2) reasons.push(reschedules+' replanejamentos');
@@ -2507,7 +2507,7 @@ function renderDashboardGerencial(){
    const modules=x.modules.map(m=>m.module).join(', ');
    return '<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.projectId)+')"><div><b>'+esc(x.project)+'</b><div class="muted">'+esc(x.client)+(modules?' · '+esc(modules):'')+'</div></div><div class="small">'+esc(reasons)+' <span class="badge">Abrir projeto</span></div></div>';
  }).join('');
- document.getElementById('dashboardBody').innerHTML='<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+partial+'</b><span>Projetos com Go Live parcial</span></div><div class="metric"><b>'+attention+'</b><span>Projetos que precisam de atenção</span></div></div><div class="cards"><div class="card"><h3>🔴 Precisam de atenção</h3>'+(attention?rows:'<p class="muted">Nenhum prazo vencido.</p>')+'</div></div>';
+ document.getElementById('dashboardBody').innerHTML='<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+partial+'</b><span>Projetos com Go Live parcial</span></div><div class="metric"><b>'+attention+'</b><span>Projetos que precisam de atenção</span></div></div><div class="cards"><div class="card"><h3>🔴 Precisam de atenção</h3>'+(attention?rows:'<p class="muted">Nenhum alerta identificado nos projetos ativos.</p>')+'</div></div>';
 }
 function clearBIFilters(){['biClientFilter','biAnalystFilter','biStatusFilter'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});const p=document.getElementById('biPeriodFilter');if(p)p.value='all';renderBI()}
 function catalogo(type){if(type==='clients'){if(!canEditClient()&&currentUser.role!=='operator'&&currentUser.role!=='analyst'&&currentUser.role!=='client')return;hideSections();document.getElementById('clients').classList.remove('hidden');renderClients();return}if(!hasAdminAccess())return;hideSections();if(type==='catalog'){document.getElementById('catalog').classList.remove('hidden');renderUnifiedCatalog()}else if(type==='users'){document.getElementById('users').classList.remove('hidden');renderUsers()}}
