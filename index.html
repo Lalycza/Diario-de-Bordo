@@ -1134,15 +1134,31 @@ function dashboardTrainingRecords(){
  if(!cur)return [];
  const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ').replace(/\s+/g,' ');
  const result=[];
+ const records=allTrainingRecords().map((t,i)=>({...t,index:i}));
  const modules=cur.m||[];
  for(const m of modules){
   if(!Array.isArray(m))continue;
   const moduleName=m[0],subs=[...(m[1]||[])].filter(Boolean);
-  const rows=allTrainingRecords().map((t,i)=>({...t,index:i})).filter(t=>norm(t.module)===norm(moduleName)||(!t.module&&norm(t.name)===norm(moduleName)));
+  const rows=records.filter(t=>norm(t.module)===norm(moduleName)||(!t.module&&norm(t.name)===norm(moduleName)));
   const names=subs.length?subs:Array.from(new Set(rows.map(t=>String(t.submodule||'').trim()).filter(Boolean)));
   for(const sub of names){
    const matches=rows.filter(t=>norm(t.submodule)===norm(sub));
-   if(matches.length)result.push(matches[matches.length-1]);
+   if(!matches.length)continue;
+   const latest=matches[matches.length-1];
+   // Datas de conclusão/homologação são evidência mais forte que um status legado desatualizado.
+   // Não altera registros nem substitui status de atividades que seguem em andamento.
+   const completed=matches.slice().reverse().find(t=>t.trainingEndDate);
+   const homologated=matches.slice().reverse().find(t=>t.homologationDate&&t.homologationResponsible);
+   const effective={...latest};
+   if(homologated){
+    effective.status='HOMOLOGADO';
+    effective.homologationDate=homologated.homologationDate;
+    effective.homologationResponsible=homologated.homologationResponsible;
+   }else if(completed){
+    effective.status='CONCLUIDO';
+    effective.trainingEndDate=completed.trainingEndDate;
+   }
+   result.push(effective);
   }
  }
  return result;
