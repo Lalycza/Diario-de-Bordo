@@ -92,7 +92,7 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 }
 /* LZ — hierarquia visual do Mapa: módulo x submódulo */
 .map-module-card{position:relative;border:1px solid #b9cbea!important;border-left:7px solid #4778e6!important;background:linear-gradient(135deg,#edf4ff 0%,#f8fbff 58%,#ffffff 100%)!important;box-shadow:0 8px 22px rgba(71,120,230,.14)!important;padding:23px 22px 19px!important}
-.map-module-card>.top:first-child{margin-bottom:12px}
+.map-module-card>.top:first-child{margin-bottom:12px}.map-module-card>.top:first-child{align-items:flex-start;flex-wrap:wrap}.map-module-card>.top:first-child>span{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:100%}.map-module-card>.top:first-child>span button{white-space:normal;max-width:100%}
 .map-module-title{font-size:21px;font-weight:850;letter-spacing:.01em;color:#15243d;line-height:1.25}
 .map-module-label{display:inline-flex;align-items:center;gap:6px;margin-right:9px;padding:4px 9px;border-radius:999px;background:#dce9ff;color:#31548e;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.06em;vertical-align:middle}
 .map-module-meta{margin-top:6px;font-size:12px}
@@ -1367,22 +1367,27 @@ async function replicateSubmoduleDates(moduleIndex){
  const moduleName=moduleEntry[0],submodules=Array.isArray(moduleEntry[1])?moduleEntry[1]:[];
  if(!submodules.length)return alert('Este módulo não possui submódulos para atualizar.');
  const latestFor=sub=>{let found=null;for(let i=0;i<(cur.t||[]).length;i++){const t=taskObj(cur.t[i]);if(t.module===moduleName&&t.submodule===sub)found={...t,index:i};}return found};
- const source=latestFor(submodules[0])||{};
- const body='<div class="task-form"><p class="hint">Marque somente os campos que deseja replicar. Cada campo é independente: você pode aplicar apenas início, apenas conclusão, apenas homologação ou combinar os campos selecionados para todos os submódulos de <b>'+esc(moduleName)+'</b>.</p><label><input type="checkbox" id="repStartOn"> Replicar data de início</label>'+dateFieldHtml('repStartDate','Data de início',source.trainingStartDate||source.trainingDate||'')+'<label><input type="checkbox" id="repEndOn"> Replicar data de conclusão</label>'+dateFieldHtml('repEndDate','Data de conclusão',source.trainingEndDate||'')+'<label><input type="checkbox" id="repHomOn"> Replicar data de homologação</label>'+dateFieldHtml('repHomDate','Data de homologação',source.homologationDate||'')+'<label><input type="checkbox" id="repRespOn"> Replicar responsável pela homologação</label><input id="repHomResp" placeholder="Nome do responsável" value="'+escAttr(source.homologationResponsible||'')+'"><p class="hint">As datas são digitáveis em DD/MM/AAAA ou podem ser escolhidas pelo calendário ao lado.</p></div>';
- openSimpleModal('Replicar datas — '+moduleName,body,async()=>{
+ const sourceOptions=submodules.map((s,i)=>'<option value="'+escAttr(s)+'" '+(i===0?'selected':'')+'>'+esc(s)+'</option>').join('');
+ const body='<div class="task-form"><p class="hint">Escolha o submódulo de origem. Somente os campos marcados serão copiados para os demais submódulos deste módulo; os campos desmarcados permanecem como estão.</p><label>Copiar datas de qual submódulo?</label><select id="repSourceSub">'+sourceOptions+'</select><label><input type="checkbox" id="repStartOn"> Replicar data de início</label>'+dateFieldHtml('repStartDate','Data de início', '')+'<label><input type="checkbox" id="repEndOn"> Replicar data de conclusão</label>'+dateFieldHtml('repEndDate','Data de conclusão', '')+'<label><input type="checkbox" id="repHomOn"> Replicar data de homologação</label>'+dateFieldHtml('repHomDate','Data de homologação', '')+'<label><input type="checkbox" id="repRespOn"> Replicar responsável pela homologação</label><input id="repHomResp" placeholder="Nome do responsável" value=""><p class="hint">As datas aceitam digitação em DD/MM/AAAA ou seleção pelo calendário. O submódulo escolhido como origem não será alterado.</p></div>';
+ openSimpleModal('Replicar datas entre submódulos — '+moduleName,body,async()=>{
   syncAllDateTextFields(document.getElementById('modalbox'));
   const useStart=document.getElementById('repStartOn').checked,useEnd=document.getElementById('repEndOn').checked,useHom=document.getElementById('repHomOn').checked,useResp=document.getElementById('repRespOn').checked;
   if(!useStart&&!useEnd&&!useHom&&!useResp)return alert('Selecione pelo menos um campo para replicar.');
-  const start=document.getElementById('repStartDate').value,end=document.getElementById('repEndDate').value,hom=document.getElementById('repHomDate').value,resp=document.getElementById('repHomResp').value.trim();
-  if((useStart&&!isValidISODate(start))||(useEnd&&!isValidISODate(end))||(useHom&&!isValidISODate(hom)))return alert('Confira as datas digitadas. Use DD/MM/AAAA ou escolha no calendário.');
-  if(useStart&&useEnd&&start&&end&&end<start)return alert('A conclusão não pode ser anterior ao início.');
-  if((useHom&&!hom&&!resp)||(useHom&&hom&&!resp)||(useResp&&!resp))return alert('Para replicar a homologação, informe a data e o responsável. Selecione os dois campos.');
+  const startDate=document.getElementById('repStartDate').value,end=document.getElementById('repEndDate').value,hom=document.getElementById('repHomDate').value,resp=document.getElementById('repHomResp').value.trim();
+  if((useStart&&!isValidISODate(startDate))||(useEnd&&!isValidISODate(end))||(useHom&&!isValidISODate(hom)))return alert('Confira as datas digitadas. Use DD/MM/AAAA ou escolha no calendário.');
+  if(useStart&&useEnd&&startDate&&end&&end<startDate)return alert('A conclusão não pode ser anterior ao início.');
+  if((useHom&&!hom&&!resp)||(useHom&&hom&&!resp)||(useResp&&!resp))return alert('Para replicar a homologação, informe a data e o responsável.');
   if(useHom&&!useResp)return alert('Para replicar a data de homologação, marque também o responsável pela homologação.');
   if(useResp&&!useHom)return alert('Para replicar o responsável, marque também a data de homologação.');
+  const sourceSub=document.getElementById('repSourceSub').value;
+  const targets=submodules.filter(sub=>sub!==sourceSub);
+  if(!targets.length)return alert('Este módulo tem apenas um submódulo; não há destino para replicação.');
   const before=JSON.parse(JSON.stringify(cur.t||[])),updates=[];
-  for(const sub of submodules){
-   const existing=latestFor(sub);let obj=existing?{...existing}: {name:sub,module:moduleName,submodule:sub,subject:'',month:'',week:0,plannedDate:getModulePlannedDate(moduleIndex)||'',plannedDateOriginal:getModulePlannedDate(moduleIndex)||'',trainingDate:'',trainingStartDate:'',trainingEndDate:'',status:'PENDENTE',responsible:'HPRO',homologationDate:'',homologationResponsible:''};
-   if(useStart){obj.trainingStartDate=start;obj.trainingDate=start;obj.responsible=start?'CLIENTE':'HPRO';}
+  const currentModulePlanned=getModulePlannedDate(moduleIndex)||'';
+  for(const sub of targets){
+   const existing=latestFor(sub);let obj=existing?{...existing}: {name:sub,module:moduleName,submodule:sub,subject:'',month:'',week:0,plannedDate:currentModulePlanned,plannedDateOriginal:currentModulePlanned,trainingDate:'',trainingStartDate:'',trainingEndDate:'',status:'PENDENTE',responsible:'HPRO',homologationDate:'',homologationResponsible:''};
+   delete obj.index;
+   if(useStart){obj.trainingStartDate=startDate;obj.trainingDate=startDate;obj.responsible=startDate?'CLIENTE':'HPRO';}
    if(useEnd)obj.trainingEndDate=end;
    if(useHom)obj.homologationDate=hom;
    if(useResp)obj.homologationResponsible=resp;
@@ -1392,9 +1397,19 @@ async function replicateSubmoduleDates(moduleIndex){
   try{
    for(const item of updates)await syncTrainingToSupabase(item.obj,item.index==null?null:taskObj(before[item.index]));
    for(const item of updates){if(item.index==null)cur.t.push(item.obj);else cur.t[item.index]=item.obj;}
-   persistState();closeModal();mapView();alert('Datas replicadas nos '+updates.length+' submódulos do módulo '+moduleName+'.');
+   persistState();closeModal();mapView();alert('Datas replicadas para '+updates.length+' submódulo(s) de '+moduleName+'. O submódulo de origem foi preservado.');
   }catch(e){console.error(e);cur.t=before;persistState();alert('Não foi possível concluir a replicação no Supabase. Verifique o módulo antes de tentar novamente.\n\n'+(e?.message||e));}
  });
+ const loadSource=()=>{
+  const src=latestFor(document.getElementById('repSourceSub')?.value)||{};
+  const setDate=(id,value)=>{const d=document.getElementById(id);if(d)d.value=value||'';syncISOToDateText(id,id+'Text')};
+  setDate('repStartDate',src.trainingStartDate||src.trainingDate||'');
+  setDate('repEndDate',src.trainingEndDate||'');
+  setDate('repHomDate',src.homologationDate||'');
+  const r=document.getElementById('repHomResp');if(r)r.value=src.homologationResponsible||'';
+ };
+ document.getElementById('repSourceSub').onchange=loadSource;
+ loadSource();
 }
 function planModuleDate(i){
  if(!canEdit())return;
