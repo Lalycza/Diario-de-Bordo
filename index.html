@@ -2542,9 +2542,10 @@ async function syncClientToSupabase(c){
   for(const row of productRows){const {error:ue}=await supabaseClient.from('client_products').upsert({client_id:data.id,product_id:row.product_id,status:row.status,analyst_id:row.analyst_id||null},{onConflict:'client_id,product_id'});if(ue)throw new Error('Vínculo de produto do cliente: '+ue.message);}
   c.productIds=selectedLocalProductIds.map(v=>Number(v));
 
-  // Grava primeiro todos os contatos como não responsáveis. Só depois
-  // define o único responsável. Assim a constraint parcial de responsável
-  // nunca é violada durante a sincronização.
+  // Limpa primeiro a marca de responsável já existente. Isso evita colisão
+  // com a constraint única ao incluir ou atualizar contatos no mesmo cliente.
+  const {error:clearResponsibleError}=await supabaseClient.from('client_contacts').update({is_project_responsible:false}).eq('client_id',data.id).eq('is_project_responsible',true);
+  if(clearResponsibleError)throw new Error('Responsável do cliente '+c.name+': '+clearResponsibleError.message);
   const contactRows=clientContacts(c).map(ct=>({
     legacy_id:localLegacy('contact',c.id+'-'+ct.id),
     client_id:data.id,
@@ -2559,8 +2560,6 @@ async function syncClientToSupabase(c){
   }
   const responsible=clientContacts(c).find(ct=>ct.projectResponsible);
   if(responsible){
-    const {error:clearError}=await supabaseClient.from('client_contacts').update({is_project_responsible:false}).eq('client_id',data.id);
-    if(clearError)throw new Error('Responsável do cliente '+c.name+': '+clearError.message);
     const responsibleLegacyId=localLegacy('contact',c.id+'-'+responsible.id);
     const {error:setError}=await supabaseClient.from('client_contacts').update({is_project_responsible:true}).eq('client_id',data.id).eq('legacy_id',responsibleLegacyId);
     if(setError)throw new Error('Responsável do cliente '+c.name+': '+setError.message);
@@ -2608,9 +2607,10 @@ async function syncClientToSupabase(c){
  const contacts=clientContacts(c);
  const wanted=new Set(contacts.map(ct=>localLegacy('contact',c.id+'-'+ct.id)));
 
- // Primeiro todos os contatos ficam como não responsáveis. Depois,
- // em uma segunda etapa, apenas um contato recebe a marca de responsável.
- // Isso permite incluir contatos adicionais sem colidir com a constraint única.
+ // Limpa a responsabilidade atual antes de gravar contatos, para evitar
+ // violação da constraint única durante inclusões/edições sucessivas.
+ const {error:clearResponsibleError}=await supabaseClient.from('client_contacts').update({is_project_responsible:false}).eq('client_id',c.dbId).eq('is_project_responsible',true);
+ if(clearResponsibleError)throw clearResponsibleError;
  for(const ct of contacts){
   const legacyId=localLegacy('contact',c.id+'-'+ct.id);
   const {error}=await supabaseClient.from('client_contacts').upsert({
@@ -2625,8 +2625,6 @@ async function syncClientToSupabase(c){
  }
  const responsible=contacts.find(ct=>ct.projectResponsible);
  if(responsible){
-  const {error:clearError}=await supabaseClient.from('client_contacts').update({is_project_responsible:false}).eq('client_id',c.dbId);
-  if(clearError)throw clearError;
   const responsibleLegacyId=localLegacy('contact',c.id+'-'+responsible.id);
   const {error:setError}=await supabaseClient.from('client_contacts').update({is_project_responsible:true}).eq('client_id',c.dbId).eq('legacy_id',responsibleLegacyId);
   if(setError)throw setError;
