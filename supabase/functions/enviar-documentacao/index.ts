@@ -79,8 +79,14 @@ Deno.serve(async(req)=>{
     const {data:{user},error:userError}=await userClient.auth.getUser();if(userError||!user)return json({ok:false,message:"Sessão inválida."},401);
     const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const {data:project,error:projectError}=await admin.from("projects").select("*").eq("id",projectId).single();if(projectError||!project)return json({ok:false,message:"Projeto não encontrado."},404);
-    const {data:contacts,error:contactsError}=await admin.from("client_contacts").select("id,name,email,is_project_responsible,client_id").in("id",contactIds).eq("client_id",project.client_id).not("email","is",null);if(contactsError||!contacts?.length)return json({ok:false,message:"Nenhum contato válido foi encontrado para o cliente."},400);
-    const recipients=contacts.map(c=>c.email).filter(Boolean);
+    const {data:projectAssignments,error:assignmentError}=await admin.from("project_client_contacts").select("client_contact_id,is_responsible,receives_emails").eq("project_id",projectId).eq("receives_emails",true);if(assignmentError)throw assignmentError;
+    const allowedIds=new Set((projectAssignments||[]).map((x:any)=>String(x.client_contact_id)));
+    const responsibleIds=(projectAssignments||[]).filter((x:any)=>x.is_responsible).map((x:any)=>String(x.client_contact_id));
+    const requestedIds=contactIds.filter((id:string)=>allowedIds.has(String(id)));
+    const finalContactIds=[...new Set([...requestedIds,...responsibleIds])];
+    if(!finalContactIds.length)return json({ok:false,message:"Configure os responsáveis e destinatários deste projeto antes de enviar e-mails."},400);
+    const {data:contacts,error:contactsError}=await admin.from("client_contacts").select("id,name,email,client_id").in("id",finalContactIds).eq("client_id",project.client_id).not("email","is",null);if(contactsError||!contacts?.length)return json({ok:false,message:"Nenhum contato válido foi encontrado para este projeto."},400);
+    const recipients=[...new Set(contacts.map((c:any)=>clean(c.email)).filter(Boolean))];
     const {data:trainings}=await admin.from("trainings").select("*,module:modules!trainings_module_id_fkey(name),submodule:submodules!trainings_submodule_id_fkey(name)").eq("project_id",projectId).order("planned_date",{ascending:true});
     const {data:stages}=await admin.from("project_stages").select("*").eq("project_id",projectId).order("data_prevista",{ascending:true});
     const {data:logs}=await admin.from("log_entries").select("*").eq("project_id",projectId).order("data_reuniao",{ascending:false});
