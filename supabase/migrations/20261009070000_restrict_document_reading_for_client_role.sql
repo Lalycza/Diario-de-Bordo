@@ -7,11 +7,14 @@ ON public.client_documents
 FOR SELECT
 TO authenticated
 USING (
+  NOT has_role(auth.uid(), 'cliente'::app_role)
+  AND (
   is_admin()
   OR has_role(auth.uid(), 'supervisor'::app_role)
   OR has_role(auth.uid(), 'comercial'::app_role)
   OR has_role(auth.uid(), 'analista'::app_role)
   OR has_role(auth.uid(), 'operador'::app_role)
+  )
 );
 
 DROP POLICY IF EXISTS project_documents_select ON public.project_documents;
