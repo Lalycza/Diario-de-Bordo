@@ -824,7 +824,7 @@ async function hydrateFromSupabase(){
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
-      supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,city,state,legacy_id,status,hpro_central_code,implementation_value,consulting_value').order('created_at'),
+      supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,phone,ie,im,cep,address,number,complement,neighborhood,city,state,contact_name,notes,legacy_id,status,hpro_central_code,implementation_value,consulting_value').order('created_at'),
       supabaseClient.from('client_products').select('client_id,product_id,status,analyst_id'),
       supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope').order('created_at'),
       supabaseClient.from('project_products').select('project_id,product_id'),
@@ -956,7 +956,7 @@ async function hydrateFromSupabase(){
       const linkedProducts=clientProductsByDb.get(x.id)||[];
       const dbProductIds=linkedProducts.map(v=>productByDb.get(v.product_id)).filter(v=>v!=null);
       const dbProductStatus={}; linkedProducts.forEach(v=>{const pid=productByDb.get(v.product_id);if(pid!=null)dbProductStatus[String(pid)]=v.status||'implantacao';});
-      return {...(old||{}),id,dbId:x.id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',hproCentralCode:x.hpro_central_code||'',implementationValue:x.implementation_value??null,consultingValue:x.consulting_value??null,email:x.email||'',city:x.city||'',state:x.state||'',status:x.status||'Ativo',productIds:dbProductIds.length?dbProductIds:(Array.isArray(old?.productIds)?old.productIds:[]),productStatus:Object.keys(dbProductStatus).length?dbProductStatus:(old?.productStatus||{}),productAnalystIds:Object.fromEntries(linkedProducts.map(v=>{const pid=productByDb.get(v.product_id);return pid!=null?[String(pid),v.analyst_id||'']:null}).filter(Boolean)),contacts:(contactsByClientDb.get(x.id)||[]).map(d=>({id:d.id,dbId:d.id,name:d.name||'',email:d.email||'',phone:d.phone||'',projectResponsible:!!d.is_project_responsible,legacyId:d.legacy_id||''})),documents:(clientDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description}))};
+      return {...(old||{}),id,dbId:x.id,name:x.razao_social||x.nome_fantasia||'Cliente sem nome',fantasy:x.nome_fantasia||'',cnpj:x.cnpj||'',hproCentralCode:x.hpro_central_code||'',implementationValue:x.implementation_value??null,consultingValue:x.consulting_value??null,ie:x.ie||'',im:x.im||'',email:x.email||'',phone:x.phone||'',zip:x.cep||'',address:x.address||'',number:x.number||'',complement:x.complement||'',neighborhood:x.neighborhood||'',city:x.city||'',state:x.state||'',contact:x.contact_name||'',notes:x.notes||'',status:x.status||'Ativo',productIds:dbProductIds.length?dbProductIds:(Array.isArray(old?.productIds)?old.productIds:[]),productStatus:Object.keys(dbProductStatus).length?dbProductStatus:(old?.productStatus||{}),productAnalystIds:Object.fromEntries(linkedProducts.map(v=>{const pid=productByDb.get(v.product_id);return pid!=null?[String(pid),v.analyst_id||'']:null}).filter(Boolean)),contacts:(contactsByClientDb.get(x.id)||[]).map(d=>({id:d.id,dbId:d.id,name:d.name||'',email:d.email||'',phone:d.phone||'',projectResponsible:!!d.is_project_responsible,legacyId:d.legacy_id||''})),documents:(clientDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description}))};
     });
 
     const monthNames=cronMonths;
@@ -2990,7 +2990,76 @@ function autoLookupClientCep(){
  if(v.replace(/\D/g,'').length===8)fillClientFromCepAsync(v);
 }
 function fillClientFromCnpj(cnpj,formMode){return fillClientFromCnpjAsync(cnpj,formMode)}
-async function fillClientFromCnpjAsync(cnpj,formMode){let clean=(cnpj||'').replace(/\D/g,'');let status=document.getElementById('cnpjStatus');if(clean.length!==14){if(status)status.textContent='Informe um CNPJ válido com 14 dígitos.';return false}if(status)status.textContent='Consultando dados cadastrais...';try{let d=null,lastError='';for(const url of ['https://brasilapi.com.br/cnpj/v1/'+clean,'https://brasilapi.com.br/api/cnpj/v1/'+clean]){try{let r=await fetch(url,{headers:{Accept:'application/json'}});if(!r.ok){lastError='HTTP '+r.status;continue}let json=await r.json();if(json&&typeof json==='object'&&(json.razao_social||json.nome_fantasia||json.cnpj)){d=json;break}}catch(e){lastError=e?.message||'falha de rede'}}if(!d)throw new Error(lastError||'Serviço de consulta indisponível');if(formMode){let map={clientName:d.razao_social||d.nome_fantasia,clientFantasy:d.nome_fantasia,clientZip:d.cep,clientState:d.uf,clientAddress:d.logradouro,clientNumber:d.numero,clientComplement:d.complemento,clientNeighborhood:d.bairro,clientCity:d.municipio};Object.entries(map).forEach(([id,v])=>{let el=document.getElementById(id);if(el&&v)el.value=v});let ie=document.getElementById('clientIe');if(ie&&d.inscricao_estadual)ie.value=d.inscricao_estadual}else{let c=clientsData.find(x=>x.cnpj.replace(/\D/g,'')===clean);if(c){Object.assign(c,{name:d.razao_social||d.nome_fantasia||c.name,fantasy:d.nome_fantasia||c.fantasy,zip:d.cep||c.zip,state:d.uf||c.state,address:d.logradouro||c.address,number:d.numero||c.number,complement:d.complemento||c.complement,neighborhood:d.bairro||c.neighborhood,city:d.municipio||c.city});persistState();renderClients()}}if(status)status.textContent='Dados preenchidos pela consulta pública do CNPJ.';return true}catch(e){if(status)status.textContent='Não foi possível consultar o CNPJ agora. '+(e?.message||'');return false}}
+async function fillClientFromCnpjAsync(cnpj,formMode){
+ const clean=(cnpj||'').replace(/\D/g,'');
+ const status=document.getElementById('cnpjStatus');
+ if(clean.length!==14){if(status)status.textContent='Informe um CNPJ válido com 14 dígitos.';return false}
+ if(status)status.textContent='Consultando dados cadastrais...';
+ try{
+  let d=null,lastError='';
+  const urls=[
+   'https://brasilapi.com.br/api/cnpj/v1/'+clean,
+   'https://api-publica.speedio.com.br/buscarcnpj?cnpj='+clean
+  ];
+  for(const url of urls){
+   try{
+    const r=await fetch(url,{headers:{Accept:'application/json'}});
+    if(!r.ok){lastError='HTTP '+r.status;continue}
+    const json=await r.json();
+    if(json&&typeof json==='object'&&(json.razao_social||json.nome_fantasia||json.cnpj||json['RAZAO SOCIAL'])){d=json;break}
+    lastError='A consulta não retornou dados para esse CNPJ';
+   }catch(e){lastError=e?.message||'falha de rede'}
+  }
+  if(!d)throw new Error(lastError||'Serviço de consulta indisponível');
+  const pick=(...values)=>values.find(v=>v!=null&&String(v).trim()!=='');
+  const data={
+   name:pick(d.razao_social,d['RAZAO SOCIAL'],d.nome,d.name),
+   fantasy:pick(d.nome_fantasia,d['NOME FANTASIA'],d.fantasia),
+   zip:pick(d.cep,d.CEP),
+   state:pick(d.uf,d.UF,d.estado),
+   address:pick(d.logradouro,d.LOGRADOURO,d.endereco),
+   number:pick(d.numero,d.NUMERO),
+   complement:pick(d.complemento,d.COMPLEMENTO),
+   neighborhood:pick(d.bairro,d.BAIRRO),
+   city:pick(d.municipio,d.MUNICIPIO,d.cidade,d.CIDADE),
+   ie:pick(d.inscricao_estadual,d.atividade_estadual)
+  };
+  if(formMode){
+   const direct={clientName:data.name,clientFantasy:data.fantasy,clientZip:data.zip,clientState:data.state,clientAddress:data.address,clientNumber:data.number,clientComplement:data.complement,clientNeighborhood:data.neighborhood,clientCity:data.city};
+   Object.entries(direct).forEach(([id,value])=>{
+    const el=document.getElementById(id);
+    if(!el||value==null||String(value).trim()==='')return;
+    const isAddressField=['clientZip','clientState','clientAddress','clientNumber','clientComplement','clientNeighborhood','clientCity'].includes(id);
+    // A consulta nunca apaga nem substitui endereço já preenchido; completa apenas campos vazios.
+    if(isAddressField&&String(el.value||'').trim()!=='')return;
+    el.value=String(value).trim();
+   });
+   const ie=document.getElementById('clientIe');
+   if(ie&&data.ie!=null&&!String(ie.value||'').trim())ie.value=String(data.ie).trim();
+  }else{
+   const c=clientsData.find(x=>String(x.cnpj||'').replace(/\D/g,'')===clean);
+   if(c){
+    if(data.name)c.name=data.name;
+    if(data.fantasy)c.fantasy=data.fantasy;
+    if(data.zip&&!c.zip)c.zip=data.zip;
+    if(data.state&&!c.state)c.state=data.state;
+    if(data.address&&!c.address)c.address=data.address;
+    if(data.number&&!c.number)c.number=data.number;
+    if(data.complement&&!c.complement)c.complement=data.complement;
+    if(data.neighborhood&&!c.neighborhood)c.neighborhood=data.neighborhood;
+    if(data.city&&!c.city)c.city=data.city;
+    if(data.ie&&!c.ie)c.ie=data.ie;
+    persistState();
+    renderClients();
+   }
+  }
+  if(status)status.textContent='Dados cadastrais consultados. Endereços já preenchidos foram preservados.';
+  return true;
+ }catch(e){
+  if(status)status.textContent='Não foi possível consultar o CNPJ agora. '+(e?.message||'Tente novamente em instantes.');
+  return false;
+ }
+}
 function autoLookupClientCnpj(){let v=document.getElementById('clientCnpj')?.value||'';if(v.replace(/\D/g,'').length===14)fillClientFromCnpj(v,true)}
 async function lookupCnpj(id){if(!canEditClient())return;let c=clientsData.find(x=>x.id===id);if(!c||!c.cnpj)return alert('Informe o CNPJ no cadastro do cliente.');await fillClientFromCnpj(c.cnpj,false);alert('Consulta cadastral realizada.');}
 function usuarios(){if(!hasAdminAccess())return;hideSections();document.getElementById('users').classList.remove('hidden');renderUsers()}
