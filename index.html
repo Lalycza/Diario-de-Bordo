@@ -1055,6 +1055,8 @@ async function hydrateFromSupabase(){
   })();
   return window._dbHydrationPromise;
 }
+/* Inicializa o tema antes de restaurar a sessão: evita mostrar a interface sem o tema aplicado. */
+initTheme();
 restoreState();
 setInterval(persistState,800);
 window.addEventListener('beforeunload',persistState);
