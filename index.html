@@ -1549,7 +1549,7 @@ function planModuleDate(i){
    const metaOriginal=meta.plannedDateOriginal||current?.plannedDateOriginal||meta.plannedDate||current?.plannedDate||v;
    try{
     if(supabaseSession&&cur?.dbId){
-     const refs=await resolveTrainingRefs(m[0],'');
+     const refs=await resolveTrainingRefs(m[0],'',meta.dbId||null);
      if(!refs?.moduleId)throw new Error('Módulo não encontrado no Supabase.');
      const {error:pm}=await supabaseClient.from('project_modules').upsert({project_id:refs.projectId,module_id:refs.moduleId,planned_training_date:v},{onConflict:'project_id,module_id'});
      if(pm)throw pm;
@@ -1558,10 +1558,12 @@ function planModuleDate(i){
      const tp={project_id:refs.projectId,module_id:refs.moduleId,submodule_id:null,subject:null,planned_date:v,planned_month:x.month?cronMonths.indexOf(x.month)+1:null,planned_week:x.week,realization_date:current?.trainingDate||null,responsible:current?.trainingDate?'CLIENTE':'HPRO',status:'Pendente',original_planned_date:current?.plannedDateOriginal||metaOriginal,created_by:currentUser.id};
      if(tr?.id){const {error}=await supabaseClient.from('trainings').update(tp).eq('id',tr.id);if(error)throw error}
      else{const {error}=await supabaseClient.from('trainings').insert(tp);if(error)throw error}
-     const {data:stage}=await supabaseClient.from('project_stages').select('id').eq('project_id',refs.projectId).eq('modulo',m[0]).maybeSingle();
+     const {data:stages,error:stageErr}=await supabaseClient.from('project_stages').select('id').eq('project_id',refs.projectId).eq('modulo',m[0]).limit(2);
+     if(stageErr)throw stageErr;
      const sp={project_id:refs.projectId,nome:m[0],modulo:m[0],responsavel:'HPRO',data_prevista:v,status:'nao_iniciada',created_by:currentUser.id};
-     if(stage?.id){const {error}=await supabaseClient.from('project_stages').update(sp).eq('id',stage.id);if(error)throw error}
-     else{const {error}=await supabaseClient.from('project_stages').insert(sp);if(error)throw error}
+     if((stages||[]).length===1){const {error}=await supabaseClient.from('project_stages').update(sp).eq('id',stages[0].id);if(error)throw error}
+     else if(!(stages||[]).length){const {error}=await supabaseClient.from('project_stages').insert(sp);if(error)throw error}
+     else console.warn('Cronograma legado: existem etapas com o mesmo nome; atualização por nome ignorada para evitar alterar a etapa errada.',m[0]);
     }
     m[2]={...(m[2]||{}),plannedDate:v,plannedDateOriginal:metaOriginal,month:x.month,week:x.week};
     const obj={name:m[0],module:m[0],submodule:'',subject:'',month:x.month,week:x.week,plannedDate:v,plannedDateOriginal:metaOriginal,trainingDate:current?.trainingDate||'',trainingStartDate:current?.trainingStartDate||'',trainingEndDate:current?.trainingEndDate||'',status:current?.status||'PENDENTE',responsible:current?.responsible||'HPRO',homologationDate:current?.homologationDate||'',homologationResponsible:current?.homologationResponsible||''};
@@ -1581,14 +1583,16 @@ async function removeModuleDate(i){
  const moduleName=m[0];
  try{
    if(supabaseSession&&cur?.dbId){
-     const refs=await resolveTrainingRefs(moduleName,'');
+     const refs=await resolveTrainingRefs(moduleName,'',meta.dbId||null);
      if(refs){
        const {error:te}=await supabaseClient.from('trainings').delete().eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
        if(te)throw te;
        const {error:pm}=await supabaseClient.from('project_modules').update({planned_training_date:null}).eq('project_id',refs.projectId).eq('module_id',refs.moduleId);
        if(pm)throw pm;
-       const {error:st}=await supabaseClient.from('project_stages').update({data_prevista:null,data_prevista_original:null}).eq('project_id',refs.projectId).eq('modulo',moduleName);
-       if(st)throw st;
+       const {data:stages,error:stageErr}=await supabaseClient.from('project_stages').select('id').eq('project_id',refs.projectId).eq('modulo',moduleName).limit(2);
+       if(stageErr)throw stageErr;
+       if((stages||[]).length===1){const {error:st}=await supabaseClient.from('project_stages').update({data_prevista:null,data_prevista_original:null}).eq('id',stages[0].id);if(st)throw st}
+       else if((stages||[]).length>1)console.warn('Cronograma legado: existem etapas com o mesmo nome; remoção por nome ignorada para evitar alterar a etapa errada.',moduleName);
      }
    }
    m[2]={...(m[2]||{})};
