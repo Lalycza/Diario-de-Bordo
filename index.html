@@ -2287,7 +2287,7 @@ async function syncLocalToSupabase(){
    // CLIENTES + CONTATOS
    for(const c0 of clientsData){
      const c=normalizeClient(c0);
-     const payload={legacy_id:localLegacy('client',c.id),razao_social:c.name||'Cliente sem nome',nome_fantasia:c.fantasy||null,cnpj:c.cnpj||null,ie:c.ie||null,im:c.im||null,email:c.email||null,phone:c.phone||null,cep:c.zip||null,address:c.address||null,number:c.number||null,complement:c.complement||null,neighborhood:c.neighborhood||null,city:c.city||null,state:c.state||null,contact_name:clientResponsible(c).name||null,status:c.status||'Ativo',notes:c.notes||null};
+     const payload={legacy_id:localLegacy('client',c.id),razao_social:c.name||'Cliente sem nome',nome_fantasia:c.fantasy||null,cnpj:c.cnpj||null,implementation_value:c.implementationValue==null?null:Number(c.implementationValue),consulting_value:c.consultingValue==null?null:Number(c.consultingValue),ie:c.ie||null,im:c.im||null,email:c.email||null,phone:c.phone||null,cep:c.zip||null,address:c.address||null,number:c.number||null,complement:c.complement||null,neighborhood:c.neighborhood||null,city:c.city||null,state:c.state||null,contact_name:clientResponsible(c).name||null,status:c.status||'Ativo',notes:c.notes||null};
      const {data,error}=await supabaseClient.from('clients').upsert(payload,{onConflict:'legacy_id'}).select('id,legacy_id').single();
      if(error)throw new Error('Clientes: '+error.message); clientMap[c.id]=data.id;
      for(const ct of clientContacts(c)){
