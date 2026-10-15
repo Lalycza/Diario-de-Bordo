@@ -2080,12 +2080,20 @@ function printCurrentPdf(){
  const printEl=document.getElementById('printDoc');
  printEl.innerHTML=pdfPreviewBody;
  const styles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
+ const links=[...document.querySelectorAll('link[rel="stylesheet"]')].map(l=>l.outerHTML).join('');
+ const printFix='<style id="pdf-print-preserve-format">html,body{background:#fff!important;color:#111!important}#printDoc,#printDoc *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;box-sizing:border-box}#printDoc{display:block!important;width:100%!important;max-width:none!important;margin:0!important;overflow:visible!important}#printDoc table{border-collapse:collapse!important}#printDoc th,#printDoc td{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}#printDoc img{max-width:100%;height:auto} @media print{@page{margin:10mm}html,body{background:#fff!important;margin:0!important;padding:0!important;width:100%!important;overflow:visible!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body>*{display:none!important}#printDoc{display:block!important;position:static!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow:visible!important}#printDoc,#printDoc *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}#printDoc th,#printDoc td,#printDoc .pdf-official-status,#printDoc .status-pendente,#printDoc .status-andamento,#printDoc .status-concluido,#printDoc .status-homologado,#printDoc .status-replanejado{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}tr,.item,.diary-entry{break-inside:avoid}}</style>';
  const win=window.open('','_blank');
  if(win){
   win.document.open();
-  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+styles+'</head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div></body></html>');
+  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+links+styles+printFix+'</head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div></body></html>');
   win.document.close();
-  const doPrint=()=>setTimeout(()=>{try{win.focus();win.print()}catch(e){console.error('Impressão PDF:',e)}},250);
+  const doPrint=async()=>{
+   try{
+    if(win.document.fonts&&win.document.fonts.ready)await win.document.fonts.ready;
+    await Promise.all([...win.document.images].map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve;setTimeout(resolve,3000)})));
+    setTimeout(()=>{try{win.focus();win.print()}catch(e){console.error('Impressão PDF:',e)}},350);
+   }catch(e){console.error('Preparação do PDF:',e);setTimeout(()=>{try{win.focus();win.print()}catch(err){console.error('Impressão PDF:',err)}},350)}
+  };
   if(win.document.readyState==='complete')doPrint();else win.addEventListener('load',doPrint,{once:true});
   closeModal();
   printEl.innerHTML='';
