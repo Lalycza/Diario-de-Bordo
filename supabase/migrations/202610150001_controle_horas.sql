@@ -32,7 +32,7 @@ alter table public.project_hour_credits enable row level security;
 drop policy if exists "project_hour_settings_select_accessible" on public.project_hour_settings;
 create policy "project_hour_settings_select_accessible"
   on public.project_hour_settings for select to authenticated
-  using (public.can_access_project(project_id));
+  using (public.is_admin() or public.has_role(auth.uid(), 'supervisor') or (public.has_role(auth.uid(), 'analista') and public.can_access_project(project_id)));
 
 drop policy if exists "project_hour_settings_insert_editors" on public.project_hour_settings;
 create policy "project_hour_settings_insert_editors"
@@ -60,7 +60,7 @@ create policy "project_hour_settings_update_editors"
 drop policy if exists "project_hour_credits_select_accessible" on public.project_hour_credits;
 create policy "project_hour_credits_select_accessible"
   on public.project_hour_credits for select to authenticated
-  using (public.can_access_project(project_id));
+  using (public.is_admin() or public.has_role(auth.uid(), 'supervisor') or (public.has_role(auth.uid(), 'analista') and public.can_access_project(project_id)));
 
 drop policy if exists "project_hour_credits_insert_editors" on public.project_hour_credits;
 create policy "project_hour_credits_insert_editors"
