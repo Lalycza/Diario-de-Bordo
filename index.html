@@ -2461,7 +2461,7 @@ function renderBI(){
 
  const commercialByMonth={};
  const commercialAssignments=new Map();
- arr.filter(p=>p.startDate&&/^\d{4}-\d{2}-\d{2}$/.test(String(p.startDate))).forEach(p=>{
+ visibleProjects().filter(p=>p.startDate&&/^\d{4}-\d{2}-\d{2}$/.test(String(p.startDate))).forEach(p=>{
    const client=(clientsData||[]).find(c=>String(c.id)===String(p.clientId)||String(c.dbId||'')===String(p.clientId||''));
    if(!client)return;
    const type=p.projectType==='consultoria'?'consultoria':'implantacao';
