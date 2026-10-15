@@ -2464,7 +2464,7 @@ function renderBI(){
  const brl=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value||0);
  const billingFilter=oldFilters.billing||'all';
  const billingByMonth={};
- const toMinutes=v=>{const m=/^(\\d{1,2}):(\\d{2})$/.exec(String(v||''));return m?Number(m[1])*60+Number(m[2]):null};
+ const toMinutes=v=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(v||''));return m?Number(m[1])*60+Number(m[2]):null};
  visibleProjects().forEach(p=>{
    const client=(clientsData||[]).find(c=>String(c.id)===String(p.clientId)||String(c.dbId||'')===String(p.clientId||''));
    const type=p.projectType==='consultoria'?'consultoria':'implantacao';
@@ -2472,7 +2472,7 @@ function renderBI(){
    const rate=raw==null||raw===''?null:Number(raw);
    (Array.isArray(p.d)?p.d:[]).forEach(entry=>{
      const iso=parseBRDate(entry?.date||'');
-     if(!iso||!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(iso)))return;
+     if(!iso||!/^\d{4}-\d{2}-\d{2}$/.test(String(iso)))return;
      const bill=norm(entry?.billing)==='SIM'?'Sim':'Não bilhetado';
      if(billingFilter!=='all'&&bill!==billingFilter)return;
      const start=toMinutes(entry?.time),end=toMinutes(entry?.timeEnd);
