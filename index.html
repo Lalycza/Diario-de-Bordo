@@ -845,6 +845,16 @@ async function hydrateFromSupabase(){
       supabaseClient.from('project_go_live').select('id,project_id,module_id,status,go_live_date,support_active,notes')
     ]);
     for(const q of [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,cc,profilesQ,cd,pd,diaryQ,emailQ,kickoffQ,handoffQ,homQ,surveyQ,goLiveQ])if(q.error)throw q.error;
+    let excludedProjectModuleKeys=new Set();
+    let moduleExclusionsReady=false;
+    const exclusionsQ=await supabaseClient.from('project_module_exclusions').select('project_id,module_id');
+    if(exclusionsQ.error){
+      console.warn('Exclusão persistente de módulos indisponível. Aplique a migration 20261015100000_project_module_exclusions.sql no banco de preview antes de validar esta função.',exclusionsQ.error.message);
+    }else{
+      moduleExclusionsReady=true;
+      excludedProjectModuleKeys=new Set((exclusionsQ.data||[]).map(x=>String(x.project_id)+'::'+String(x.module_id)));
+    }
+    window._projectModuleExclusionsReady=moduleExclusionsReady;
     if(pcc.error)console.warn('Vínculos de contatos por projeto indisponíveis; aplique a migration project_client_contact_assignments.',pcc.error.message);
     const lid=(v,prefix)=>{const s=String(v||'');return s.startsWith(prefix+'-')?Number(s.slice(prefix.length+1))||s:s};
     const productByDb=new Map((pr.data||[]).map(x=>[x.id,lid(x.legacy_id,'product')]));
@@ -923,7 +933,7 @@ async function hydrateFromSupabase(){
       for(const moduleRow of (mo.data||[])){
         if(moduleRow.active===false||!allowedProducts.has(String(moduleRow.product_id)))continue;
         const key=projectId+'::'+String(moduleRow.id);
-        if(existingProjectModuleKeys.has(key))continue;
+        if(excludedProjectModuleKeys.has(key)||existingProjectModuleKeys.has(key))continue;
         existingProjectModuleKeys.add(key);
         autoProjectModules.push({
           project_id:projectRow.id,
@@ -1004,6 +1014,7 @@ async function hydrateFromSupabase(){
       clientProductsByClientDb.set(String(cpRow.client_id),arr);
     }
     for(const x of (pm.data||[])){
+      if(excludedProjectModuleKeys.has(String(x.project_id)+'::'+String(x.module_id)))continue;
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
       const rawModule=(mo.data||[]).find(v=>String(v.id)===String(x.module_id));
       const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
@@ -1025,6 +1036,7 @@ async function hydrateFromSupabase(){
     }
     const grouped={};
     for(const x of (tr.data||[])){
+      if(x.module_id&&excludedProjectModuleKeys.has(String(x.project_id)+'::'+String(x.module_id)))continue;
       const pid=projectByDb.get(x.project_id);
       if(!grouped[pid])grouped[pid]=[];
       const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
@@ -1878,15 +1890,16 @@ async function addMod(){
        savedSubs.push(sub.name);
       }
 
+      const unexclude=await supabaseClient.from('project_module_exclusions').delete().eq('project_id',cur.dbId).eq('module_id',mod.id);
+      if(unexclude.error)throw new Error('Não foi possível reativar o módulo neste projeto. Verifique se a migration de exclusões foi aplicada no banco de preview. '+unexclude.error.message);
       const pm=await supabaseClient.from('project_modules').upsert({
         project_id:cur.dbId,
-        module_id:mod.id,
-        planned_training_date:null
-      },{onConflict:'project_id,module_id'});
+        module_id:mod.id
+      },{onConflict:'project_id,module_id'}).select('planned_training_date').single();
       if(pm.error)throw pm.error;
 
       cur.m=Array.isArray(cur.m)?cur.m:[];
-      cur.m.push([mod.name,savedSubs,{dbId:mod.id,productId:mod.product_id,submoduleRefs:savedSubs.map(name=>({id:(su.data||[]).find(x=>String(x.module_id)===String(mod.id)&&x.name===name)?.id||null,name}))}]);
+      cur.m.push([mod.name,savedSubs,{plannedDate:pm.data?.planned_training_date||null,dbId:mod.id,productId:mod.product_id,submoduleRefs:savedSubs.map(name=>({id:(su.data||[]).find(x=>String(x.module_id)===String(mod.id)&&x.name===name)?.id||null,name}))}]);
       audit('Módulo criado no Mapa','Módulo '+mod.name+' criado no produto atribuído ao cliente com '+savedSubs.length+' submódulo(s).');
       persistState();closeModal();mapView();
     }catch(e){
@@ -1901,7 +1914,7 @@ async function addMod(){
  }
 }
 
-async function delMod(i){if(!canEdit())return;const m=cur?.m?.[i];if(!m)return;if(!confirm('Excluir módulo?'))return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A exclusão foi bloqueada.');try{const refs=await resolveProjectStructureModule(m[0]);if(!refs?.id)throw new Error('Módulo não encontrado no Supabase.');const tr=await supabaseClient.from('trainings').delete().eq('project_id',cur.dbId).eq('module_id',refs.id);if(tr.error)throw tr.error;const pm=await supabaseClient.from('project_modules').delete().eq('project_id',cur.dbId).eq('module_id',refs.id);if(pm.error)throw pm.error;cur.m.splice(i,1);cur.t=(cur.t||[]).filter(t=>String(t.module||'').trim().toUpperCase()!==String(m[0]).trim().toUpperCase());audit('Módulo excluído',m[0]);persistState();mapView();}catch(e){console.error(e);alert('Não foi possível excluir o módulo do Supabase. O módulo foi mantido.\n\n'+(e?.message||e));}}
+async function delMod(i){if(!canEdit())return;const m=cur?.m?.[i];if(!m)return;if(!confirm('Retirar este módulo do Mapa deste projeto? As datas e o histórico serão preservados, e o módulo continuará disponível no produto.'))return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A exclusão foi bloqueada.');try{if(window._projectModuleExclusionsReady!==true)throw new Error('A exclusão persistente ainda não está disponível neste preview. É necessário aplicar a migration 20261015100000_project_module_exclusions.sql ao banco de testes antes de remover módulos.');const refs=m[2]?.dbId?{id:m[2].dbId}:await resolveProjectStructureModule(m[0]);if(!refs?.id)throw new Error('Módulo não encontrado no Supabase.');const excluded=await supabaseClient.from('project_module_exclusions').upsert({project_id:cur.dbId,module_id:refs.id,excluded_by:supabaseSession?.user?.id||null},{onConflict:'project_id,module_id'});if(excluded.error)throw excluded.error;cur.m.splice(i,1);cur.t=(cur.t||[]).filter(t=>t.moduleDbId?String(t.moduleDbId)!==String(refs.id):String(t.module||'').trim().toUpperCase()!==String(m[0]).trim().toUpperCase());audit('Módulo retirado do Mapa do projeto',m[0]+' — vínculo e histórico preservados; exclusão restrita a este projeto.');persistState();mapView();}catch(e){console.error(e);alert('Não foi possível retirar o módulo do Mapa. Nenhuma data ou registro de treinamento foi apagado.\n\n'+(e?.message||e));}}
 async function addSub(i){if(!canEdit())return;const m=cur?.m?.[i];if(!m)return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. O submódulo não pode ser incluído com segurança.');openSimpleModal('Novo submódulo','<label>Módulo</label><input value="'+escAttr(m[0])+'" disabled><label>Nome do submódulo</label><input id="simpleName" placeholder="Ex.: Pessoas">',async()=>{const n=document.getElementById('simpleName').value.trim();if(!n)return alert('Informe o nome do submódulo.');if((m[1]||[]).some(x=>String(x).trim().toUpperCase()===n.toUpperCase()))return alert('Este submódulo já está cadastrado no módulo.');try{const mod=await resolveProjectStructureModule(m[0]);if(!mod?.id)throw new Error('Módulo não encontrado no Supabase.');let sub=await supabaseClient.from('submodules').select('id,name,module_id,legacy_id').eq('module_id',mod.id).ilike('name',n).limit(1).maybeSingle();if(sub.error)throw sub.error;if(!sub.data){sub=await supabaseClient.from('submodules').insert({name:n,module_id:mod.id,legacy_id:localLegacy('project-submodule',cur.id+'-'+mod.id+'-'+Date.now()),active:true}).select('id,name,module_id,legacy_id').single();if(sub.error)throw sub.error;}m[1]=Array.isArray(m[1])?m[1]:[];m[1].push(n);persistState();closeModal();mapView();}catch(e){console.error(e);alert('Não foi possível incluir o submódulo no Supabase. O submódulo não foi alterado localmente.\n\n'+(e?.message||e));}});}
 async function editSub(i,j){if(!canEdit())return;const m=cur?.m?.[i],oldName=m?.[1]?.[j];if(!m||!oldName)return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A edição foi bloqueada.');openSimpleModal('Editar submódulo','<label>Nome</label><input id="simpleName" value="'+escAttr(oldName)+'">',async()=>{const n=document.getElementById('simpleName').value.trim();if(!n)return;if(n.toUpperCase()!==String(oldName).toUpperCase()&&(m[1]||[]).some((x,k)=>k!==j&&String(x).trim().toUpperCase()===n.toUpperCase()))return alert('Este submódulo já existe no módulo.');try{const mod=await resolveProjectStructureModule(m[0]);if(!mod?.id)throw new Error('Módulo não encontrado no Supabase.');const sub=await supabaseClient.from('submodules').select('id,name').eq('module_id',mod.id).eq('name',oldName).maybeSingle();if(sub.error)throw sub.error;if(!sub.data)throw new Error('Submódulo não encontrado no Supabase.');const up=await supabaseClient.from('submodules').update({name:n}).eq('id',sub.data.id);if(up.error)throw up.error;m[1][j]=n;persistState();closeModal();mapView();}catch(e){console.error(e);alert('Não foi possível editar o submódulo no Supabase. A alteração foi bloqueada localmente.\n\n'+(e?.message||e));}});}
 async function delSub(i,j){if(!canEdit())return;const m=cur?.m?.[i],name=m?.[1]?.[j];if(!m||!name)return;if(!confirm('Excluir submódulo?'))return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A exclusão foi bloqueada.');try{const mod=await resolveProjectStructureModule(m[0]);if(!mod?.id)throw new Error('Módulo não encontrado no Supabase.');const sub=await supabaseClient.from('submodules').select('id').eq('module_id',mod.id).eq('name',name).maybeSingle();if(sub.error)throw sub.error;if(sub.data){const tr=await supabaseClient.from('trainings').delete().eq('project_id',cur.dbId).eq('module_id',mod.id).eq('submodule_id',sub.data.id);if(tr.error)throw tr.error;const su=await supabaseClient.from('submodules').delete().eq('id',sub.data.id);if(su.error)throw su.error;}m[1].splice(j,1);cur.t=(cur.t||[]).filter(t=>!(String(t.module||'').trim().toUpperCase()===String(m[0]).trim().toUpperCase()&&String(t.submodule||'').trim().toUpperCase()===String(name).trim().toUpperCase()));audit('Submódulo excluído',m[0]+' · '+name);persistState();mapView();}catch(e){console.error(e);alert('Não foi possível excluir o submódulo do Supabase. O submódulo foi mantido.\n\n'+(e?.message||e));}}
