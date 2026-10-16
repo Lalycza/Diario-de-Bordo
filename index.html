@@ -2819,6 +2819,8 @@ async function syncClientToSupabase(c){
     status:c.status||'Ativo',
     notes:c.notes||null
   };
+  // Registra o criador somente na inclusão; nunca transfere a autoria de um cliente existente.
+  if(!c.dbId) payload.created_by=supabaseSession.user.id;
   const {data,error}=await supabaseClient.from('clients').upsert(payload,{onConflict:'legacy_id'}).select('id,legacy_id').single();
   if(error) throw new Error('Cliente: '+error.message);
   c.dbId=data.id;
