@@ -1820,8 +1820,10 @@ async function addMod(){
     if(existingModule.error)throw existingModule.error;
     if(existingModule.data)created=existingModule.data;
     else{const ins=await supabaseClient.from('modules').insert({name,legacy_id:localLegacy('pi-module',cur.id+'-'+Date.now()),product_id:null,project_id:cur.dbId,active:true}).select('id,name,product_id,project_id,legacy_id').single();if(ins.error)throw ins.error;created=ins.data;createdNew=true;}
-    const savedSubs=[];
-    for(let i=0;i<subs.length;i++){const subName=subs[i];let sub=await supabaseClient.from('submodules').select('id,name,module_id,legacy_id').eq('module_id',created.id).ilike('name',subName).maybeSingle();if(sub.error)throw sub.error;if(!sub.data){sub=await supabaseClient.from('submodules').insert({name:subName,module_id:created.id,legacy_id:localLegacy('pi-submodule',cur.id+'-'+created.id+'-'+i+'-'+Date.now()),active:true}).select('id,name,module_id,legacy_id').single();if(sub.error)throw sub.error;newSubIds.push(sub.data.id);}savedSubs.push(sub.data);}
+    const existingSubsQ=await supabaseClient.from('submodules').select('id,name,module_id,legacy_id').eq('module_id',created.id).order('created_at');
+    if(existingSubsQ.error)throw existingSubsQ.error;
+    const savedSubs=[...(existingSubsQ.data||[])];
+    for(let i=0;i<subs.length;i++){const subName=subs[i];let sub=savedSubs.find(x=>String(x.name||'').trim().toUpperCase()===subName.toUpperCase());if(!sub){const subQ=await supabaseClient.from('submodules').insert({name:subName,module_id:created.id,legacy_id:localLegacy('pi-submodule',cur.id+'-'+created.id+'-'+i+'-'+Date.now()),active:true}).select('id,name,module_id,legacy_id').single();if(subQ.error)throw subQ.error;sub=subQ.data;newSubIds.push(sub.id);savedSubs.push(sub);}}
     const unexclude=await supabaseClient.from('project_module_exclusions').delete().eq('project_id',cur.dbId).eq('module_id',created.id);if(unexclude.error)throw unexclude.error;
     const pm=await supabaseClient.from('project_modules').upsert({project_id:cur.dbId,module_id:created.id,planned_training_date:null},{onConflict:'project_id,module_id'}).select('planned_training_date').single();
     if(pm.error)throw pm.error;
