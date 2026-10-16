@@ -2475,7 +2475,7 @@ function gerencial(){dashboard()}
 function dashboard(){if(!currentUser||!(hasAdminAccess()||currentUser.role==='cs'))return;hideSections();document.getElementById('dashboard').classList.remove('hidden');renderDashboardGerencial()}
 function bi(){if(!currentUser||!(hasAdminAccess()||currentUser.role==='cs'))return;hideSections();document.getElementById('bi').classList.remove('hidden');renderBI()}
 
-function renderBI(){
+async function renderBI(){
  const oldFilters={client:document.getElementById('biClientFilter')?.value||'',analyst:document.getElementById('biAnalystFilter')?.value||'',status:document.getElementById('biStatusFilter')?.value||'',period:document.getElementById('biPeriodFilter')?.value||'all',billing:document.getElementById('biBillingFilter')?.value||'all',billingStart:document.getElementById('biBillingStart')?.value||'',billingEnd:document.getElementById('biBillingEnd')?.value||''};
  const all=visibleProjects().filter(p=>!p.finalizado);
  const users=Array.isArray(usersData)?usersData:[];
@@ -2495,14 +2495,14 @@ function renderBI(){
 
  const brl=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value||0);
  const billingFilter=oldFilters.billing||'all';
- const billingByMonth={};
+ const billingByMonth={};  const billingDiaryByProject=new Map();  try{const {data,error}=await supabaseClient.from('diary_entries').select('project_id,entry_date,entry_time,entry_time_end,billing,notes').order('entry_date',{ascending:false});if(error)throw error;for(const row of (data||[])){const key=String(row.project_id||'');const list=billingDiaryByProject.get(key)||[];list.push({date:row.entry_date?new Date(row.entry_date+'T00:00:00').toLocaleDateString('pt-BR'):'',time:row.entry_time||'',timeEnd:row.entry_time_end||'',billing:row.billing||'',notes:row.notes||''});billingDiaryByProject.set(key,list)}}catch(e){console.warn('BI: não foi possível consultar os registros persistidos do Diário; usando os dados carregados.',e)}
  const toMinutes=v=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(v||''));return m?Number(m[1])*60+Number(m[2]):null};
  visibleProjects().forEach(p=>{
    const client=(clientsData||[]).find(c=>String(c.id)===String(p.clientId)||String(c.dbId||'')===String(p.clientId||''));
    const type=p.projectType==='consultoria'?'consultoria':'implantacao';
    const raw=type==='consultoria'?client?.consultingValue:client?.implementationValue;
    const rate=raw==null||raw===''?null:Number(raw);
-   (Array.isArray(p.d)?p.d:[]).forEach(entry=>{
+   const persistedEntries=billingDiaryByProject.get(String(p.dbId||''))||[];const billingEntries=persistedEntries.length?persistedEntries:(Array.isArray(p.d)?p.d:[]);billingEntries.forEach(entry=>{
      const iso=parseBRDate(entry?.date||'');
      if(!iso||!/^\d{4}-\d{2}-\d{2}$/.test(String(iso)))return;
      const bill=norm(entry?.billing)==='SIM'?'Sim':'Não bilhetado';
