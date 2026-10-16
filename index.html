@@ -925,6 +925,7 @@ async function hydrateFromSupabase(){
     );
     const autoProjectModules=[];
     for(const projectRow of (pg.data||[])){
+      if(projectRow.project_type==='pi')continue;
       const projectId=String(projectRow.id);
       const projectProducts=projectProductIdsByProject.get(projectId)||[];
       const productIds=projectProducts.length
@@ -1468,7 +1469,7 @@ async function editModuleGoLive(i){if(!canEdit())return;let name=cur.m[i][0],d=m
 function projectGoLiveSummary(){let mods=(cur.m||[]).map(m=>m[0]);return mods.map(name=>({name,...moduleGoLive(name)}));}
 function goLiveHandoffHtml(){let rows=projectGoLiveSummary();if(!rows.length)return '<div class="empty">Nenhum módulo vinculado.</div>';return '<div class="table-wrap"><table><thead><tr><th>Módulo</th><th>Status operacional</th><th>Go Live</th><th>Suporte</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.status)+'</td><td>'+esc(formatDateBR(x.date)||'—')+'</td><td>'+(x.support?'Sim':'Não')+'</td></tr>').join('')+'</tbody></table></div>'}
 
-function mapView(){let h='<div class="top"><div><b>Mapa do projeto</b><p class="muted">Planejamento → realização → homologação. A previsão é do módulo; a realização e a homologação são registradas individualmente.</p></div><div>'+(canEdit()?'<button class="primary" onclick="addMod()">＋ Novo módulo</button> <button class="secondary" onclick="importModule()">⇩ Importar módulo</button>':'<span class="badge">Somente leitura</span>')+' <button class="secondary" onclick="generateMapFile()">📄 Ver / gerar PDF</button></div></div><input id="mapSearch" class="search" placeholder="Pesquisar módulo ou submódulo..." oninput="renderMap()"><div id="mapRows"></div>';document.getElementById('map').innerHTML=h;renderMap()}
+function mapView(){let actions=canEdit()?(cur.projectType==='pi'?'<button class="primary" onclick="addMod()">＋ Novo módulo</button>':'<button class="primary" onclick="addMod()">＋ Novo módulo</button> <button class="secondary" onclick="importModule()">⇩ Importar módulo</button>'):'<span class="badge">Somente leitura</span>';let h='<div class="top"><div><b>Mapa do projeto</b><p class="muted">Planejamento → realização → homologação. A previsão é do módulo; a realização e a homologação são registradas individualmente.</p></div><div>'+actions+' <button class="secondary" onclick="generateMapFile()">📄 Ver / gerar PDF</button></div></div><input id="mapSearch" class="search" placeholder="Pesquisar módulo ou submódulo..." oninput="renderMap()"><div id="mapRows"></div>';document.getElementById('map').innerHTML=h;renderMap()}
 function moduleTrainingSummary(moduleName){
  const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ').replace(/\s+/g,' ');
  const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&norm(m[0])===norm(moduleName));
