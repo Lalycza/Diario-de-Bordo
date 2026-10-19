@@ -2,7 +2,7 @@
 
 ## O que este fluxo faz
 
-O workflow manual `Supabase backup` exporta schema, roles e dados PostgreSQL e, quando habilitado, baixa os objetos de todos os buckets do Supabase Storage. Cria manifesto e checksums, compacta e **criptografa o pacote antes de enviá-lo ao GitHub Actions**. Isso é obrigatório porque o repositório é público: nenhum dado do cliente pode ser enviado em texto aberto como artefato.
+O workflow manual `Supabase backup` exporta schema, roles e dados PostgreSQL, exporta metadados/identidades de usuários do Supabase Auth e, quando habilitado, baixa os objetos de todos os buckets do Supabase Storage. Senhas e tokens de recuperação não são exportados pela API Auth e precisarão de redefinição se houver uma recuperação. Cria manifesto e checksums, compacta e **criptografa o pacote antes de enviá-lo ao GitHub Actions**. Isso é obrigatório porque o repositório é público: nenhum dado do cliente pode ser enviado em texto aberto como artefato.
 
 O artefato criptografado fica disponível por 30 dias. Embora o conteúdo seja criptografado, o artefato ainda depende da conta/repositório GitHub e expira. Guarde uma cópia em local independente e configure retenção externa antes de tratar o processo como política definitiva. O backup ainda não foi testado como restauração; não considere a estratégia validada até uma restauração isolada concluir com sucesso.
 
@@ -12,7 +12,7 @@ No GitHub, abra **Settings → Secrets and variables → Actions → New reposit
 
 - `SUPABASE_DB_URL`: connection string PostgreSQL do projeto oficial. Prefira Session Pooler se a conexão direta não estiver disponível. Nunca coloque a string em arquivos do repositório.
 - `SUPABASE_URL`: URL do projeto oficial.
-- `SUPABASE_SERVICE_ROLE_KEY`: service-role/secret key necessária para ler os objetos do Storage. Necessária se a opção de Storage estiver habilitada.
+- `SUPABASE_SERVICE_ROLE_KEY`: service-role/secret key necessária para exportar metadados dos usuários Auth e ler os objetos do Storage.
 - `BACKUP_ENCRYPTION_PASSPHRASE`: frase-senha longa e exclusiva para criptografar o pacote. Guarde-a em um gerenciador de senhas fora do GitHub; sem ela, o backup não pode ser aberto.
 
 Depois, abra **Actions → Supabase backup → Run workflow** e execute com Storage habilitado. Se o banco tiver tabelas ou extensões que exijam exclusões adicionais, corrija o comando com base nos logs sem alterar dados de produção.
