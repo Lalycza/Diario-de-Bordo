@@ -3324,8 +3324,12 @@ function editUser(id){
  },0);
 }
 function renderUsers(){
- let list=usersData.filter(u=>{const email=String(u.email||'').trim().toLowerCase();const isPrimaryAdmin=email===SUPERADMIN_EMAIL||String(u.id||'')==='883addca-422c-4266-955e-823df31ec404';return !isPrimaryAdmin&&u.email&&u.role;});
- document.getElementById('usersBody').innerHTML=list.map(u=>{let c=clientsData.find(x=>String(x.id)===String(u.clientId));return '<tr><td>'+esc(u.name)+'</td><td><b>'+esc(u.sigla||'—')+'</b></td><td>'+esc(u.email)+'</td><td><span class="badge '+(u.role==='commercial'?'role-commercial':u.role==='client'?'role-client':'')+'">'+esc(roleNames[u.role]||u.role)+'</span></td><td>'+esc(c?.name||'—')+'</td><td><button class="secondary" onclick="editUser(\\''+escAttr(u.id)+'\\')">Editar</button> <button class="secondary" onclick="editUserPermissions(\\''+escAttr(u.id)+'\\')">Permissões</button> '+(u.id!==currentUser.id?'<button class="danger" onclick="deleteUser('+JSON.stringify(u.id)+')">Desativar</button>':'<span class="muted">Usuário atual</span>')+'</td></tr>'}).join('')||'<tr><td colspan="6" class="muted">Nenhum usuário cadastrado.</td></tr>';
+ const list=usersData.filter(u=>{const email=String(u.email||'').trim().toLowerCase();const isPrimaryAdmin=email===SUPERADMIN_EMAIL||String(u.id||'')==='883addca-422c-4266-955e-823df31ec404';return !isPrimaryAdmin&&u.email&&u.role;});
+ document.getElementById('usersBody').innerHTML=list.map(u=>{
+  const c=clientsData.find(x=>String(x.id)===String(u.clientId));
+  const uid=JSON.stringify(String(u.id));
+  return `<tr><td>${esc(u.name)}</td><td><b>${esc(u.sigla||'—')}</b></td><td>${esc(u.email)}</td><td><span class="badge ${u.role==='commercial'?'role-commercial':u.role==='client'?'role-client':''}">${esc(roleNames[u.role]||u.role)}</span></td><td>${esc(c?.name||'—')}</td><td><button class="secondary" onclick='editUser(${uid})'>Editar</button> <button class="secondary" onclick='editUserPermissions(${uid})'>Permissões</button> ${String(u.id)!==String(currentUser.id)?`<button class="danger" onclick='deleteUser(${uid})'>Desativar</button>`:'<span class="muted">Usuário atual</span>'}</td></tr>`;
+ }).join('')||'<tr><td colspan="6" class="muted">Nenhum usuário cadastrado.</td></tr>';
 }
 function editUserPermissions(id){
  if(!canManageUsers())return;
