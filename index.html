@@ -2150,7 +2150,9 @@ function permissionGate(key,baseValue,user=currentUser){
   return value===true?true:value===false?false:!!baseValue;
 }
 function canManageUsers(){
-  return isSuperAdmin()||permissionGate('menu_usuarios',currentUser?.role==='supervisor');
+  if(isSuperAdmin())return true;
+  if(currentUser?.role!=='supervisor')return false;
+  return permissionGate('menu_usuarios',true);
 }
 async function loadUserPermissionOverrides(){
   if(!currentUser)return;
@@ -2739,8 +2741,6 @@ function editUserPermissions(id){
   ['menu_gerencial','Gerencial / Dashboards','admin|supervisor|cs'],
   ['menu_projetos','Projetos','admin|supervisor|analyst|operator|cs'],
   ['menu_clientes','Clientes','admin|supervisor|cs|commercial|analyst'],
-  ['menu_produtos','Produtos e módulos','admin|supervisor'],
-  ['menu_usuarios','Cadastro de usuários','supervisor']
  ];
  const perms=u.permissions&&typeof u.permissions==='object'?u.permissions:{};
  const selectOptions=value=>'<option value="default" '+(value!==true&&value!==false?'selected':'')+'>Padrão do perfil</option><option value="allow" '+(value===true?'selected':'')+'>Liberado</option><option value="deny" '+(value===false?'selected':'')+'>Bloqueado</option>';
