@@ -2587,6 +2587,7 @@ function lzChartColor(label){
  const n=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  if(n.includes('NAO BILHETAD')||n.includes('NAO-BILHETAD')||raw.includes('NÃO BILHETAD')||raw.includes('NÃO-BILHETAD'))return '#22c1c3';
  if(n.includes('BILHETAD'))return '#a78bfa';
+ if(n.includes('PRECISAM DE ATENCAO'))return '#f2b84b';
  if(n.includes('PRODUCAO')||n.includes('CONCLUIDO'))return '#35c58a';
  if(n.includes('ATRAS')||n.includes('PENDENTE')||n.includes('ATENCAO'))return '#f06b72';
  if(n.includes('EM DIA'))return '#35c58a';
