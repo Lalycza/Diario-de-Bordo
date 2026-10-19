@@ -1,0 +1,101 @@
+name: Supabase backup
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_storage:
+        description: "Incluir arquivos do Supabase Storage"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Exportar e criptografar banco e arquivos
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      BACKUP_INCLUDE_STORAGE: ${{ inputs.include_storage }}
+    steps:
+      - name: Validar segredos obrigatórios
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in SUPABASE_DB_URL SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY BACKUP_ENCRYPTION_PASSPHRASE; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Configure o secret $key nas configurações do repositório."
+              exit 1
+            fi
+          done
+
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Criar exportação lógica do banco
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p backup
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/data.sql --use-copy --data-only \
+            -x "storage.buckets_vectors" -x "storage.vector_indexes"
+          test -s backup/schema.sql
+          test -s backup/data.sql
+          test -s backup/roles.sql
+
+      - name: Exportar metadados de usuários do Supabase Auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/backup-deps
+          npm install --prefix /tmp/backup-deps --no-save --no-package-lock --ignore-scripts @supabase/supabase-js
+          ln -s /tmp/backup-deps/node_modules node_modules
+          node scripts/backup-auth-users.mjs
+
+      - name: Incluir objetos do Storage
+        if: inputs.include_storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/backup-supabase-storage.mjs
+
+      - name: Gerar manifesto e checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/backup-manifest.mjs
+
+      - name: Criptografar pacote completo antes de publicar
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf implanta-backup.tar.gz backup/
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
+            -pass env:BACKUP_ENCRYPTION_PASSPHRASE \
+            -in implanta-backup.tar.gz -out implanta-backup.enc
+          test -s implanta-backup.enc
+          rm -rf backup implanta-backup.tar.gz
+
+      - name: Publicar somente o arquivo criptografado
+        uses: actions/upload-artifact@v4
+        with:
+          name: implanta-supabase-backup-${{ github.run_number }}-${{ github.run_attempt }}
+          path: implanta-backup.enc
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
