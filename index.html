@@ -2187,7 +2187,17 @@ function printCurrentPdf(){
  const win=window.open('','_blank');
  if(win){
   win.document.open();
-  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+styles+pageRule+'</head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div></body></html>');
+  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+styles+pageRule+'</head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div><style id="cronograma-pdf-semanas-fit">
+@media print {
+  .cron-quarter { width:100%!important; table-layout:fixed!important; }
+  .cron-quarter th:first-child,.cron-quarter td:first-child { width:17%!important; }
+  .cron-quarter th:nth-child(2),.cron-quarter td:nth-child(2) { width:7%!important; }
+  .cron-quarter .cron-week-head,.cron-quarter .cron-week { width:5%!important; }
+  .cron-quarter th[colspan="5"] { width:25%!important; }
+  .cron-quarter .cron-week-head { font-size:4.7px!important; letter-spacing:-.25px!important; padding-left:0!important; padding-right:0!important; }
+  .cron-quarter .cron-week { padding-left:0!important; padding-right:0!important; }
+}
+</style></body></html>');
   win.document.close();
   const doPrint=()=>setTimeout(()=>{try{win.focus();win.print()}catch(e){console.error('Impressão PDF:',e)}},250);
   if(win.document.readyState==='complete')doPrint();else win.addEventListener('load',doPrint,{once:true});
