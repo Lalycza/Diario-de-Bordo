@@ -67,7 +67,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm install --no-save --no-package-lock @supabase/supabase-js
+          mkdir -p /tmp/backup-deps
+          npm install --prefix /tmp/backup-deps --no-save --no-package-lock --ignore-scripts @supabase/supabase-js
+          ln -s /tmp/backup-deps/node_modules node_modules
           node scripts/backup-supabase-storage.mjs
 
       - name: Gerar manifesto e checksums
