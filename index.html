@@ -1234,20 +1234,22 @@ function render(){
  const arr=base.filter(p=>{const client=clientsData.find(c=>String(c.id)===String(p.clientId));const clientText=normalizeProjectStatus((client?.name||p.c||'')+' '+(client?.fantasy||''));const modules=projectModuleStatuses(p);const implantation=normalizeProjectStatus(projectImplantationStatus(p));const analysts=(p.operatorIds||[]).map(v=>String(v));const ownerMatch=selectedAnalyst&&String(p.owner||'').toLowerCase()===String(selectedAnalyst.email||'').toLowerCase();return (!cq||clientText.includes(cq))&&(!ms||modules.includes(ms))&&(!ins||implantation===ins)&&(!aid||analysts.includes(String(aid))||ownerMatch)});
  document.getElementById('homeSub').textContent=hasAdminAccess()?'Todos os projetos de todos os usuários':currentUser.role==='analyst'?'Somente projetos em sua posse':'Consulta aos projetos disponíveis';
  const total=arr.length,closed=arr.filter(p=>p.homologacao?.status==='Homologado').length,inImpl=arr.filter(p=>projectImplantationStatus(p)==='Em implantação').length,pending=arr.reduce((n,p)=>n+projectModuleStatuses(p).filter(s=>s==='PENDENTE').length,0),partial=arr.filter(p=>{const g=projectGoLiveFor(p);return g.some(x=>x.status==='Em produção')&&g.some(x=>x.status!=='Em produção')}).length;
- const todayIso=new Date().toISOString().slice(0,10);
+ const localToday=new Date();localToday.setHours(0,0,0,0);const todayIso=localToday.getFullYear()+'-'+String(localToday.getMonth()+1).padStart(2,'0')+'-'+String(localToday.getDate()).padStart(2,'0');const nextWeek=new Date(localToday.getTime()+7*86400000);const nextWeekIso=nextWeek.getFullYear()+'-'+String(nextWeek.getMonth()+1).padStart(2,'0')+'-'+String(nextWeek.getDate()).padStart(2,'0');
  const projectHealth=p=>{
    const tasks=(Array.isArray(p.t)?p.t:[]).map(taskObj);
    const dated=tasks.map(t=>({task:t,date:parseBRDate(t.rescheduledDate||t.plannedDate||t.plannedDateOriginal||'')})).filter(x=>x.date&&/^\d{4}-\d{2}-\d{2}$/.test(String(x.date)));
    const active=dated.filter(x=>!['CONCLUIDO','HOMOLOGADO','CANCELADO'].includes(normalizeProjectStatus(x.task.status)));
    const overdue=active.filter(x=>x.date<todayIso);
-   const soon=active.filter(x=>x.date>=todayIso&&x.date<=new Date(Date.now()+7*86400000).toISOString().slice(0,10));
+   const soon=active.filter(x=>x.date>=todayIso&&x.date<=nextWeekIso);
+   if(p.finalizado||p.homologacao?.status==='Homologado'||projectImplantationStatus(p)==='Concluído')return {status:'Concluído',overdue:0,soon:0};
    if(overdue.length)return {status:'Atrasado',overdue:overdue.length,soon:soon.length};
    if(soon.length||tasks.some(t=>normalizeProjectStatus(t.status)==='REPLANEJADO'))return {status:'Precisa de atenção',overdue:0,soon:soon.length};
-   if(dated.length)return {status:'Em dia',overdue:0,soon:0};
+   if(active.length)return {status:'Em dia',overdue:0,soon:0};
+   if(dated.length)return {status:'Concluído',overdue:0,soon:0};
    return {status:'Sem prazo definido',overdue:0,soon:0};
  };
  const healthRows=arr.map(p=>({p,health:projectHealth(p)}));
- const healthCounts={'Atrasados':healthRows.filter(x=>x.health.status==='Atrasado').length,'Precisam de atenção':healthRows.filter(x=>x.health.status==='Precisa de atenção').length,'Em dia':healthRows.filter(x=>x.health.status==='Em dia').length,'Sem prazo definido':healthRows.filter(x=>x.health.status==='Sem prazo definido').length};
+ const healthCounts={'Atrasados':healthRows.filter(x=>x.health.status==='Atrasado').length,'Precisam de atenção':healthRows.filter(x=>x.health.status==='Precisa de atenção').length,'Em dia':healthRows.filter(x=>x.health.status==='Em dia').length,'Concluídos':healthRows.filter(x=>x.health.status==='Concluído').length,'Sem prazo definido':healthRows.filter(x=>x.health.status==='Sem prazo definido').length};
  const attentionProjects=healthRows.filter(x=>['Atrasado','Precisa de atenção'].includes(x.health.status)).sort((a,b)=>(a.health.status==='Atrasado'?-1:1)-(b.health.status==='Atrasado'?-1:1)||b.health.overdue-a.health.overdue).slice(0,6);
  const analystOverview=currentUser?.role==='analyst'?'<div class="bi-grid" style="margin:14px 0">'+lzDonutHtml('Saúde dos meus projetos',healthCounts)+'<div class="card lz-chart-card"><h3>Projetos que precisam de atenção</h3>'+(attentionProjects.length?attentionProjects.map(x=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border,#333)"><div><b>'+esc(x.p.n||x.p.c||'Projeto')+'</b><p class="muted" style="margin:4px 0">'+(x.health.status==='Atrasado'?'Atrasado em '+x.health.overdue+' atividade(s)':x.health.soon+' atividade(s) com prazo nos próximos 7 dias')+'</p></div><button type="button" class="secondary" onclick="openP('+x.p.id+')">Ver projeto</button></div>').join(''):'<p class="muted">Nenhum projeto com alerta por prazo nesta seleção.</p>')+'<p class="muted" style="margin-top:10px;font-size:12px">Classificação baseada nos prazos das atividades do cronograma; projetos sem datas ficam separados para revisão.</p></div></div>':'';
  const cards=arr.map(p=>{const owner=usersData.find(u=>String(u.id)===String((p.operatorIds||[])[0]))||usersData.find(u=>String(u.email||'').toLowerCase()===String(p.owner||'').toLowerCase()),gs=projectGoLiveFor(p),prod=gs.filter(x=>x.status==='Em produção').length,del=hasAdminAccess()?' <button type="button" class="danger" onclick="excluirProjeto('+p.id+')">Excluir projeto</button>':'',lifecycle=p.projectStatus||'Ativo',lc=lifecycle.toLowerCase(),implant=projectImplantationStatus(p);return '<div class="card"><div class="row"><b>'+esc(p.n)+'</b><span><span class="badge">'+(owner?esc(owner.name):'Sem responsável')+'</span> <span class="project-lifecycle-badge project-lifecycle-'+lc+'">'+esc(lifecycle)+'</span></span></div><p class="muted">'+esc(p.c)+'<br>Etapas: '+(p.t||[]).length+' · Módulos: '+(p.m||[]).length+(prod?' · Em produção: '+prod:'')+'</p><p class="owner">Responsável: '+esc(p.owner)+' · '+esc(implant)+'</p><button type="button" class="primary" onclick="openP('+p.id+')">Abrir projeto</button>'+del+'</div>'}).join('');
@@ -2588,6 +2590,7 @@ function lzChartColor(label){
  if(n.includes('PRODUCAO')||n.includes('CONCLUIDO'))return '#35c58a';
  if(n.includes('ATRAS')||n.includes('PENDENTE')||n.includes('ATENCAO'))return '#f06b72';
  if(n.includes('EM DIA'))return '#35c58a';
+ if(n.includes('CONCLUID'))return '#a78bfa';
  if(n.includes('SEM PRAZO'))return '#94a3b8';
  if(n.includes('ANDAMENTO')||n.includes('REPLANEJ'))return '#f2b84b';
  if(n.includes('HOMOLOG'))return '#a78bfa';
