@@ -29,7 +29,7 @@ const manifest = {
   created_at: new Date().toISOString(),
   repository: process.env.GITHUB_REPOSITORY ?? "unknown",
   workflow_run_id: process.env.GITHUB_RUN_ID ?? null,
-  includes_storage: files.some((f) => f.path.startsWith("storage/")),
+  includes_storage: process.env.BACKUP_INCLUDE_STORAGE === "true",
   file_count: files.length,
   total_bytes: files.reduce((sum, file) => sum + file.size_bytes, 0),
   files,
