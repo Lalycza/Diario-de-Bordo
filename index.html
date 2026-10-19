@@ -1911,6 +1911,24 @@ async function importModule(){
 
     try{
      const sourceSubs=subsByModule.get(String(source.id))||[];
+     // Garanta que o produto do módulo importado esteja vinculado a ESTE projeto.
+     // O carregamento do Mapa valida project_modules contra project_products;
+     // sem este vínculo, o módulo pode ser gravado e depois ficar oculto ao reabrir.
+     // A operação é restrita ao projeto atual e não altera o catálogo nem outros projetos.
+     const {data:projectProductLink,error:projectProductLinkError}=await supabaseClient
+       .from('project_products')
+       .select('project_id,product_id')
+       .eq('project_id',cur.dbId)
+       .eq('product_id',source.product_id)
+       .maybeSingle();
+     if(projectProductLinkError)throw projectProductLinkError;
+     if(!projectProductLink){
+       const {error:projectProductInsertError}=await supabaseClient
+         .from('project_products')
+         .insert({project_id:cur.dbId,product_id:source.product_id});
+       if(projectProductInsertError)throw projectProductInsertError;
+     }
+
      // Um vínculo pode existir no Supabase e estar oculto no Mapa por uma
      // exclusão anterior restrita a este projeto. Importar explicitamente deve
      // restaurar o módulo no Mapa, sem duplicar o vínculo nem alterar o produto.
