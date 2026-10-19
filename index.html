@@ -957,7 +957,7 @@ async function hydrateFromSupabase(){
       supabaseClient.from('profiles').select('id,name,email,role,active,sigla').eq('active',true),
       supabaseClient.from('client_documents').select('id,client_id,name,storage_path,mime_type,size_bytes,description,uploaded_by,created_at').order('created_at',{ascending:false}),
       supabaseClient.from('project_documents').select('id,project_id,name,storage_path,mime_type,size_bytes,description,uploaded_by,created_at').order('created_at',{ascending:false}),
-      supabaseClient.from('diary_entries').select('id,project_id,entry_date,entry_time,participants,pauta,hpro_tasks,client_tasks,next_visit,billing,notes,legacy_id,created_by,created_at').order('entry_date',{ascending:false}),
+      supabaseClient.from('diary_entries').select('id,project_id,entry_date,entry_time,entry_time_end,participants,pauta,hpro_tasks,client_tasks,next_visit,billing,notes,legacy_id,created_by,created_at').order('entry_date',{ascending:false}),
       supabaseClient.from('project_emails').select('id,project_id,client_id,sent_at,recipients,subject,body,attachment_names,sent_by,legacy_id,status').order('sent_at',{ascending:false}),
       supabaseClient.from('kickoffs').select('id,project_id,status,content,created_by,created_at,updated_at'),
       supabaseClient.from('handoffs').select('id,project_id,status,context,processes,parameters,integrations,responsibilities,contacts,attention,pending,customizations,scenarios,legacy_id,created_at,updated_at'),
@@ -2567,8 +2567,8 @@ function bi(){if(!currentUser||!(hasAdminAccess()||currentUser.role==='cs'))retu
 function lzChartColor(label){
  const raw=String(label||'').toUpperCase();
  const n=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
- if(n.includes('NAO BILHETAD')||n.includes('NAO-BILHETAD')||raw.includes('NÃO BILHETAD')||raw.includes('NÃO-BILHETAD'))return '#a78bfa';
- if(n.includes('BILHETAD'))return '#4299f5';
+ if(n.includes('NAO BILHETAD')||n.includes('NAO-BILHETAD')||raw.includes('NÃO BILHETAD')||raw.includes('NÃO-BILHETAD'))return '#22c1c3';
+ if(n.includes('BILHETAD'))return '#a78bfa';
  if(n.includes('PRODUCAO')||n.includes('CONCLUIDO'))return '#35c58a';
  if(n.includes('ATRAS')||n.includes('PENDENTE')||n.includes('ATENCAO'))return '#f06b72';
  if(n.includes('ANDAMENTO')||n.includes('REPLANEJ'))return '#f2b84b';
