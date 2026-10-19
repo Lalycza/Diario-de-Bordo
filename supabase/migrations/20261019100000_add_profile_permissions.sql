@@ -9,6 +9,9 @@ create table if not exists public.profile_permissions (
 
 alter table public.profile_permissions enable row level security;
 
+revoke all on public.profile_permissions from anon;
+grant select, insert, update, delete on public.profile_permissions to authenticated;
+
 drop policy if exists profile_permissions_read_self_or_admin on public.profile_permissions;
 create policy profile_permissions_read_self_or_admin
   on public.profile_permissions
