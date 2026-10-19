@@ -1246,7 +1246,7 @@ function audit(action,detail){if(!cur||!currentUser)return;cur.audit=cur.audit||
 function auditHtml(){let a=(cur&&cur.audit)||[];return a.length?a.slice(0,12).map(x=>'<div class="audit-row"><b>'+esc(x.action)+'</b><span>'+esc(x.detail||'')+'</span><small>'+esc(x.user)+' · '+esc(new Date(x.at).toLocaleString('pt-BR'))+'</small></div>').join(''):'<div class="empty">Nenhuma alteração registrada ainda.</div>'}
 function visibleProjects(){return ps.filter(canAccess)}
 function hideSections(){['home','proj','users','catalog','clients','gerencial','dashboard','bi','productDetail','supabase'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
-const workspaceTabState=new Map();let workspaceActiveKey='';function workspaceTabAllowed(key){if(key==='dashboard')return !!currentUser&&permissionGate('menu_dashboard',hasAdminAccess()||currentUser.role==='cs');if(key==='bi')return !!currentUser&&permissionGate('menu_bi',hasAdminAccess()||currentUser.role==='cs');return !!currentUser}function resetWorkspaceTabs(){workspaceTabState.clear();workspaceActiveKey='';renderWorkspaceTabs();hideSections()}function renderWorkspaceTabs(){const el=document.getElementById('workspaceTabs');if(!el)return;for(const key of [...workspaceTabState.keys()])if(!workspaceTabAllowed(key))workspaceTabState.delete(key);if(!workspaceTabState.has(workspaceActiveKey))workspaceActiveKey=[...workspaceTabState.keys()].pop()||'';el.innerHTML=[...workspaceTabState.entries()].map(([key,t])=>'<button type="button" class="workspace-tab '+(key===workspaceActiveKey?'active':'')+'" onclick="activateWorkspaceTab(\''+escAttr(key)+'\')"><span>'+esc(t.label)+'</span><span class="workspace-tab-close" title="Fechar" onclick="event.stopPropagation();closeWorkspaceTab(\''+escAttr(key)+'\')">×</span></button>').join('');el.classList.toggle('hidden',workspaceTabState.size===0)}function openWorkspaceTab(key,label,action){if(!workspaceTabAllowed(String(key)))return;if(!currentUser)return;workspaceTabState.set(String(key),{label:String(label),action});workspaceActiveKey=String(key);renderWorkspaceTabs();action();renderWorkspaceTabs()}function activateWorkspaceTab(key){const t=workspaceTabState.get(String(key));if(!t||!workspaceTabAllowed(String(key))){workspaceTabState.delete(String(key));renderWorkspaceTabs();return}workspaceActiveKey=String(key);renderWorkspaceTabs();t.action();renderWorkspaceTabs()}function closeWorkspaceTab(key){key=String(key);workspaceTabState.delete(key);if(workspaceActiveKey===key){const next=[...workspaceTabState.keys()].reverse().find(k=>workspaceTabAllowed(k));if(next){workspaceActiveKey=next;const t=workspaceTabState.get(next);renderWorkspaceTabs();t.action();return}workspaceActiveKey='';home()}renderWorkspaceTabs()}
+const workspaceTabState=new Map();let workspaceActiveKey='';function workspaceTabAllowed(key){if(key==='dashboard')return !!currentUser&&permissionGate('menu_dashboard',hasAdminAccess()||currentUser.role==='cs');if(key==='bi')return !!currentUser&&permissionGate('menu_bi',hasAdminAccess()||currentUser.role==='cs');return !!currentUser}function resetWorkspaceTabs(){workspaceTabState.clear();workspaceActiveKey='';renderWorkspaceTabs();document.querySelectorAll('.menu-children').forEach(el=>el.classList.add('hidden'));document.querySelectorAll('.menu-toggle').forEach(el=>el.setAttribute('aria-expanded','false'));hideSections()}function renderWorkspaceTabs(){const el=document.getElementById('workspaceTabs');if(!el)return;for(const key of [...workspaceTabState.keys()])if(!workspaceTabAllowed(key))workspaceTabState.delete(key);if(!workspaceTabState.has(workspaceActiveKey))workspaceActiveKey=[...workspaceTabState.keys()].pop()||'';el.innerHTML=[...workspaceTabState.entries()].map(([key,t])=>'<button type="button" class="workspace-tab '+(key===workspaceActiveKey?'active':'')+'" onclick="activateWorkspaceTab(\''+escAttr(key)+'\')"><span>'+esc(t.label)+'</span><span class="workspace-tab-close" title="Fechar" onclick="event.stopPropagation();closeWorkspaceTab(\''+escAttr(key)+'\')">×</span></button>').join('');el.classList.toggle('hidden',workspaceTabState.size===0)}function openWorkspaceTab(key,label,action){if(!workspaceTabAllowed(String(key)))return;if(!currentUser)return;workspaceTabState.set(String(key),{label:String(label),action});workspaceActiveKey=String(key);renderWorkspaceTabs();action();renderWorkspaceTabs()}function activateWorkspaceTab(key){const t=workspaceTabState.get(String(key));if(!t||!workspaceTabAllowed(String(key))){workspaceTabState.delete(String(key));renderWorkspaceTabs();return}workspaceActiveKey=String(key);renderWorkspaceTabs();t.action();renderWorkspaceTabs()}function closeWorkspaceTab(key){key=String(key);workspaceTabState.delete(key);if(workspaceActiveKey===key){const next=[...workspaceTabState.keys()].reverse().find(k=>workspaceTabAllowed(k));if(next){workspaceActiveKey=next;const t=workspaceTabState.get(next);renderWorkspaceTabs();t.action();return}workspaceActiveKey='';home()}renderWorkspaceTabs()}
 function home(){hideSections();document.getElementById('home').classList.remove('hidden');render()}
 function normalizeProjectStatus(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim()}
 function projectModuleStatuses(p){return [...new Set((p.t||[]).map(t=>normalizeProjectStatus(taskObj(t).status||'PENDENTE')).filter(Boolean))]}
@@ -2642,7 +2642,15 @@ function applyRoleVisibility(){
   };
   Object.entries(menus).forEach(([id,show])=>{
     const wrap=document.getElementById(id+'Menu')?.closest('.menu-accordion');
-    if(wrap)wrap.classList.toggle('hidden',!show);
+    if(wrap){
+      wrap.classList.toggle('hidden',!show);
+      wrap.style.display=show?'':'none';
+      if(!show){
+        const submenu=document.getElementById(id+'Menu');
+        submenu?.classList.add('hidden');
+        wrap.querySelector('.menu-toggle')?.setAttribute('aria-expanded','false');
+      }
+    }
   });
   document.querySelectorAll('.side .menu-accordion').forEach(el=>{
     if(role==='client')el.classList.add('hidden');
@@ -2652,10 +2660,35 @@ function applyRoleVisibility(){
   if(side)side.classList.toggle('client-only',role==='client');
   const canSeeDashboard=permissionGate('menu_dashboard',role==='admin'||role==='supervisor'||role==='cs');
   const canSeeBI=permissionGate('menu_bi',role==='admin'||role==='supervisor'||role==='cs');
-  document.getElementById('gerencialBtn')?.classList.toggle('hidden',!canSeeDashboard);
-  document.getElementById('gerencialBtn')?.setAttribute('aria-hidden',String(!canSeeDashboard));
-  document.getElementById('biBtn')?.classList.toggle('hidden',!canSeeBI);
-  document.getElementById('biBtn')?.setAttribute('aria-hidden',String(!canSeeBI));
+  const dashboardBtn=document.getElementById('gerencialBtn');
+  const biBtn=document.getElementById('biBtn');
+  if(dashboardBtn){
+    dashboardBtn.classList.toggle('hidden',!canSeeDashboard);
+    dashboardBtn.style.display=canSeeDashboard?'':'none';
+    dashboardBtn.setAttribute('aria-hidden',String(!canSeeDashboard));
+  }
+  if(biBtn){
+    biBtn.classList.toggle('hidden',!canSeeBI);
+    biBtn.style.display=canSeeBI?'':'none';
+    biBtn.setAttribute('aria-hidden',String(!canSeeBI));
+  }
+  const gerencialWrap=document.getElementById('gerencialMenu')?.closest('.menu-accordion');
+  const canSeeGerencial=canSeeDashboard||canSeeBI;
+  if(gerencialWrap){
+    gerencialWrap.classList.toggle('hidden',!canSeeGerencial);
+    gerencialWrap.style.display=canSeeGerencial?'':'none';
+    if(!canSeeGerencial){
+      document.getElementById('gerencialMenu')?.classList.add('hidden');
+      gerencialWrap.querySelector('.menu-toggle')?.setAttribute('aria-expanded','false');
+    }
+  }
+  // Revalida e redesenha as abas já abertas sempre que as permissões mudam.
+  renderWorkspaceTabs();
+  if((document.getElementById('dashboard')&&!document.getElementById('dashboard').classList.contains('hidden')&&!canSeeDashboard)||
+     (document.getElementById('bi')&&!document.getElementById('bi').classList.contains('hidden')&&!canSeeBI)){
+    hideSections();
+    document.getElementById('home')?.classList.remove('hidden');
+  }
   document.getElementById('clientsBtn')?.classList.toggle('hidden',!permissionGate('menu_clientes',role==='admin'||role==='supervisor'||role==='cs'||role==='commercial'||role==='analyst'));
   document.getElementById('newClientBtn')?.classList.toggle('hidden',!(role==='admin'||role==='supervisor'||role==='commercial'||role==='analyst'));
   document.getElementById('newBtn')?.classList.toggle('hidden',!(role==='admin'||role==='supervisor'||role==='analyst'));
