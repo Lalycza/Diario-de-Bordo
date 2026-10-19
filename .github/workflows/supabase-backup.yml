@@ -18,25 +18,27 @@ concurrency:
 
 jobs:
   backup:
-    name: Exportar banco e arquivos
+    name: Exportar e criptografar banco e arquivos
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      BACKUP_INCLUDE_STORAGE: ${{ inputs.include_storage }}
     steps:
       - name: Validar segredos obrigatórios
         shell: bash
         run: |
           set -euo pipefail
-          for key in SUPABASE_DB_URL SUPABASE_URL; do
+          for key in SUPABASE_DB_URL SUPABASE_URL BACKUP_ENCRYPTION_PASSPHRASE; do
             if [ -z "${!key:-}" ]; then
               echo "::error::Configure o secret $key nas configurações do repositório."
               exit 1
             fi
           done
-          if [ "${{ inputs.include_storage }}" = "true" ] && [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+          if [ "${BACKUP_INCLUDE_STORAGE}" = "true" ] && [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
             echo "::error::Configure SUPABASE_SERVICE_ROLE_KEY para incluir arquivos do Storage."
             exit 1
           fi
@@ -74,11 +76,22 @@ jobs:
           set -euo pipefail
           node scripts/backup-manifest.mjs
 
-      - name: Publicar pacote de backup como artefato privado da execução
+      - name: Criptografar pacote completo antes de publicar
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf implanta-backup.tar.gz backup/
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
+            -pass env:BACKUP_ENCRYPTION_PASSPHRASE \
+            -in implanta-backup.tar.gz -out implanta-backup.enc
+          test -s implanta-backup.enc
+          rm -rf backup implanta-backup.tar.gz
+
+      - name: Publicar somente o arquivo criptografado
         uses: actions/upload-artifact@v4
         with:
           name: implanta-supabase-backup-${{ github.run_number }}-${{ github.run_attempt }}
-          path: backup/
+          path: implanta-backup.enc
           if-no-files-found: error
           retention-days: 30
-          compression-level: 6
+          compression-level: 0
