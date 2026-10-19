@@ -2612,7 +2612,7 @@ function renderBI(){
  const brl=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value||0);
  const billingFilter=oldFilters.billing||'all';
  const billingByMonth={};
- const toMinutes=v=>{const m=/^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(String(v||'').trim());return m?Number(m[1])*60+Number(m[2]):null};return m?Number(m[1])*60+Number(m[2]):null};
+ const toMinutes=v=>{const m=/^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(String(v||'').trim());return m?Number(m[1])*60+Number(m[2]):null};
  arr.forEach(p=>{
    const client=(clientsData||[]).find(c=>String(c.id)===String(p.clientId)||String(c.dbId||'')===String(p.clientId||''));
    const type=p.projectType==='consultoria'?'consultoria':'implantacao';
