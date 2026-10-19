@@ -2812,7 +2812,7 @@ function renderDashboardGerencial(){
      }
      if(reasons.length) moduleReasons.push({module:moduleName,reasons});
    });
-   if(moduleReasons.length) projectAlerts.push({projectId:p.id,project:p.n||p.c||'Projeto',client:p.c||'',modules:moduleReasons});
+   if(moduleReasons.length) projectAlerts.push({projectId:p.id,project:p.n||p.c||'Projeto',client:p.c||'',projectData:p,modules:moduleReasons});
  });
  const production=arr.reduce((n,p)=>n+projectGoLiveFor(p).filter(x=>x.status==='Em produção').length,0);
  const upcomingProjects=arr.map(p=>{let raw=p.endDate??p.deliveryDate??p.delivery_date??p.terminoPrevisto??'';raw=String(raw||'').trim();const br=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(raw);const date=br?br[3]+'-'+br[2]+'-'+br[1]:raw.slice(0,10);return {project:p,date}}).filter(x=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(x.date))return false;const d=new Date(x.date+'T00:00:00');const diff=Math.round((d-today)/86400000);return !isNaN(d)&&diff>=0&&diff<=30}).sort((a,b)=>a.date.localeCompare(b.date));
@@ -2822,8 +2822,9 @@ function renderDashboardGerencial(){
    const counts={};
    x.modules.forEach(m=>m.reasons.forEach(r=>counts[r]=(counts[r]||0)+1));
    const reasons=Object.entries(counts).map(([reason,count])=>count+'× '+reason).join(' · ');
-   const modules=x.modules.map(m=>m.module).join(', ');
-   return '<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.projectId)+')"><div><b>'+esc(x.project)+'</b><div class="muted">'+esc(x.client)+(modules?' · '+esc(modules):'')+'</div></div><div class="small">'+esc(reasons)+' <span class="badge">Abrir projeto</span></div></div>';
+   const owner=usersData.find(u=>String(u.id)===String((x.projectData?.operatorIds||[])[0]))||usersData.find(u=>String(u.email||'').toLowerCase()===String(x.projectData?.owner||'').toLowerCase());
+   const moduleCount=x.modules.length;
+   return '<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.projectId)+')"><div><b>'+esc(x.project)+'</b><div class="muted">'+esc(x.client)+' · '+esc(owner?.name||'Sem responsável')+' · '+moduleCount+' módulo(s) com atenção</div></div><div class="small">'+esc(reasons)+' <span class="badge">Abrir projeto</span></div></div>';
  }).join('');
  document.getElementById('dashboardBody').innerHTML='<div class="overview-grid"><div class="metric"><b>'+arr.length+'</b><span>Projetos ativos</span></div><div class="metric"><b>'+production+'</b><span>Módulos em produção</span></div><div class="metric"><b>'+upcomingProjects.length+'</b><span>Próximos Go Live</span></div><div class="metric"><b>'+attention+'</b><span>Projetos que precisam de atenção</span></div></div><div class="cards"><div class="card"><h3>📅 Próximos Go Live</h3>'+(upcomingRows||'<p class="muted">Nenhum projeto com término previsto nos próximos 30 dias.</p>')+'</div><div class="card"><h3>🔴 Precisam de atenção</h3>'+(attention?rows:'<p class="muted">Nenhum prazo vencido.</p>')+'</div></div>';const managementStatus={};arr.forEach(p=>{const st=projectImplantationStatus(p)||'Sem status';managementStatus[st]=(managementStatus[st]||0)+1});const managementGoLives=arr.flatMap(p=>projectGoLiveFor(p).map(g=>({date:g.date})));document.getElementById('dashboardBody').querySelector('.overview-grid')?.insertAdjacentHTML('afterend','<div class="bi-grid lz-dashboard-charts">'+lzDonutHtml('Projetos por status',managementStatus)+lzMonthlyHtml('Evolução dos Go Lives',managementGoLives)+'</div>');
 }
