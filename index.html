@@ -1210,7 +1210,7 @@ document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;const
 async function login(){const e=document.getElementById('email').value.trim().toLowerCase();const pw=document.getElementById('password').value;const msg=document.getElementById('msg');msg.textContent='Entrando...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:e,password:pw});if(error)throw error;supabaseSession=data.session;await finishSupabaseLogin(data.user)}catch(err){console.error(err);msg.textContent=err?.message?.includes('Invalid login credentials')?'E-mail ou senha inválidos.':('Não foi possível entrar: '+(err?.message||'erro de autenticação'));}}
 function toggleMenu(id,btn){const target=document.getElementById(id);if(!target)return;const opening=target.classList.contains('hidden');document.querySelectorAll('.menu-children').forEach(el=>el.classList.add('hidden'));document.querySelectorAll('.menu-toggle').forEach(el=>{el.setAttribute('aria-expanded','false')});if(opening){target.classList.remove('hidden');if(btn)btn.setAttribute('aria-expanded','true')}}
 let currentProductDetailId=null;const productMenuOpen=new Set();
-function openProduct(id){const p=productsData.find(x=>String(x.id)===String(id));if(!p)return;openWorkspaceTab('product-'+p.id,p.name||'Produto',()=>{currentProductDetailId=p.id;hideSections();document.getElementById('productDetail').classList.remove('hidden');renderProductDetail(p.id)})}
+function openProduct(id){if(!currentUser||!permissionGate('menu_produtos',currentUser.role==='admin'||currentUser.role==='supervisor'))return;const p=productsData.find(x=>String(x.id)===String(id));if(!p)return;openWorkspaceTab('product-'+p.id,p.name||'Produto',()=>{currentProductDetailId=p.id;hideSections();document.getElementById('productDetail').classList.remove('hidden');renderProductDetail(p.id)})}
 function renderProductMenu(){const el=document.getElementById('productMenu');if(!el)return;const menuOrder=['HPro Fiscal','HPro Radar','HPro BI','PH2 Gestão','PH2 Gestão Customizado','PH2 Jurídico','PH2 Logística','Hiron Gestão','Hiron Pessoas','RHID'];const list=(Array.isArray(productsData)?productsData.filter(p=>p&&p.active!==false):[]).sort((a,b)=>{const ai=menuOrder.indexOf(a.name),bi=menuOrder.indexOf(b.name);return (ai<0?999:ai)-(bi<0?999:bi)||String(a.name||'').localeCompare(String(b.name||''));});const items=list.map(p=>{const pid=String(p.id);return '<button type="button" class="product-menu-item" onclick="openProduct(\''+escAttr(pid)+'\')">▸ '+esc(p.name||p.title||'Produto')+'</button>';}).join('');const maintenance=hasAdminAccess()?'<button type="button" class="product-menu-item product-menu-maintenance" onclick="openProductAdmin()">⚙ Manutenção</button>':'';el.innerHTML=items+maintenance||'<div class="product-menu-sub muted">Nenhum produto cadastrado.</div>';}
 
 function renderProductDetail(id){
@@ -2635,7 +2635,7 @@ function applyRoleVisibility(){
   const menus={
     gerencial: permissionGate('menu_dashboard',role==='admin'||role==='supervisor'||role==='cs')||permissionGate('menu_bi',role==='admin'||role==='supervisor'||role==='cs'),
     projetos: permissionGate('menu_projetos',role==='admin'||role==='supervisor'||role==='analyst'||role==='operator'||role==='cs'),
-    produtos: role==='admin'||role==='supervisor',
+    produtos: permissionGate('menu_produtos',role==='admin'||role==='supervisor'),
     clientes: permissionGate('menu_clientes',role==='admin'||role==='supervisor'||role==='cs'||role==='commercial'||role==='analyst'),
     usuarios: canManageUsers(),
     sistema: superadmin
@@ -2650,8 +2650,12 @@ function applyRoleVisibility(){
   document.querySelector('.side [onclick="perfil()"]')?.classList.toggle('hidden',role==='client');
   const side=document.querySelector('.side');
   if(side)side.classList.toggle('client-only',role==='client');
-  document.getElementById('gerencialBtn')?.classList.toggle('hidden',!permissionGate('menu_dashboard',role==='admin'||role==='supervisor'||role==='cs'));
-  document.getElementById('biBtn')?.classList.toggle('hidden',!permissionGate('menu_bi',role==='admin'||role==='supervisor'||role==='cs'));
+  const canSeeDashboard=permissionGate('menu_dashboard',role==='admin'||role==='supervisor'||role==='cs');
+  const canSeeBI=permissionGate('menu_bi',role==='admin'||role==='supervisor'||role==='cs');
+  document.getElementById('gerencialBtn')?.classList.toggle('hidden',!canSeeDashboard);
+  document.getElementById('gerencialBtn')?.setAttribute('aria-hidden',String(!canSeeDashboard));
+  document.getElementById('biBtn')?.classList.toggle('hidden',!canSeeBI);
+  document.getElementById('biBtn')?.setAttribute('aria-hidden',String(!canSeeBI));
   document.getElementById('clientsBtn')?.classList.toggle('hidden',!permissionGate('menu_clientes',role==='admin'||role==='supervisor'||role==='cs'||role==='commercial'||role==='analyst'));
   document.getElementById('newClientBtn')?.classList.toggle('hidden',!(role==='admin'||role==='supervisor'||role==='commercial'||role==='analyst'));
   document.getElementById('newBtn')?.classList.toggle('hidden',!(role==='admin'||role==='supervisor'||role==='analyst'));
@@ -3341,7 +3345,8 @@ function editUserPermissions(id){
   ['menu_dashboard','Dashboard Gerencial','admin|supervisor|cs'],
   ['menu_bi','BI','admin|supervisor|cs'],
   ['menu_projetos','Projetos','admin|supervisor|analyst|operator|cs'],
-  ['menu_clientes','Clientes','admin|supervisor|cs|commercial|analyst']
+  ['menu_clientes','Clientes','admin|supervisor|cs|commercial|analyst'],
+  ['menu_produtos','Produtos e módulos','admin|supervisor']
  ];
  const perms=u.permissions&&typeof u.permissions==='object'?u.permissions:{};
  const selectOptions=value=>'<option value="default" '+(value!==true&&value!==false?'selected':'')+'>Padrão do perfil</option><option value="allow" '+(value===true?'selected':'')+'>Liberado</option><option value="deny" '+(value===false?'selected':'')+'>Bloqueado</option>';
