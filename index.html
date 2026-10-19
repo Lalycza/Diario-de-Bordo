@@ -2696,7 +2696,7 @@ function renderDashboardGerencial(){
    if(moduleReasons.length) projectAlerts.push({projectId:p.id,project:p.n||p.c||'Projeto',client:p.c||'',modules:moduleReasons});
  });
  const production=arr.reduce((n,p)=>n+projectGoLiveFor(p).filter(x=>x.status==='Em produção').length,0);
- const upcomingProjects=arr.map(p=>({project:p,date:String(p.endDate||'').slice(0,10)})).filter(x=>{if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(x.date))return false;const d=new Date(x.date+'T00:00:00');const diff=Math.round((d-today)/86400000);return !isNaN(d)&&diff>=0&&diff<=30}).sort((a,b)=>a.date.localeCompare(b.date));
+ const upcomingProjects=arr.map(p=>({project:p,date:String(p.endDate||'').slice(0,10)})).filter(x=>{if(!x.date||x.date.length!==10)return false;const d=new Date(x.date+'T00:00:00');const diff=Math.round((d-today)/86400000);return !isNaN(d)&&diff>=0&&diff<=30}).sort((a,b)=>a.date.localeCompare(b.date));
  const upcomingRows=upcomingProjects.map(x=>'<div class="listitem row" style="cursor:pointer" onclick="openP('+JSON.stringify(x.project.id)+')"><div><b>'+esc(x.project.c||'Cliente não informado')+'</b><div class="muted">'+esc(x.project.n||'Projeto sem nome')+'</div></div><div class="small"><b>'+esc(formatDateBR(x.date))+'</b><div class="muted">Término previsto</div></div></div>').join('');
  const attention=projectAlerts.length;
  const rows=projectAlerts.slice(0,24).map(x=>{
