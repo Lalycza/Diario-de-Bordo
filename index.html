@@ -2207,7 +2207,7 @@ function applyRoleVisibility(){
  if(sync)sync.textContent=window._syncing?'Sincronização em andamento...':'Pronto para sincronizar.';
  if(status)status.innerHTML=supabaseSession?'● Sessão Supabase ativa — '+esc(currentUser?.email||'Administrador'):'○ Sessão Supabase não identificada. Faça login novamente.';
 }
-function gerencial(){if(!currentUser||!(hasAdminAccess()||currentUser.role==='cs'))return;hideSections();document.getElementById('gerencial').classList.remove('hidden');renderGerencial()}
+function gerencial(){if(!currentUser||!permissionGate('menu_gerencial',hasAdminAccess()||currentUser.role==='cs'))return;hideSections();document.getElementById('gerencial').classList.remove('hidden');renderGerencial()}
 function renderGerencial(){
  const arr=visibleProjects().filter(p=>!p.finalizado);
  const today=new Date();today.setHours(0,0,0,0);
