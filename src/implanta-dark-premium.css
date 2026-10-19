@@ -1,0 +1,17 @@
+/* IMPLANTA Dark Premium + Modular Futurista */
+.app.theme-dark{background:#090e16;color:#e6edf8}
+.app.theme-dark .side{background:linear-gradient(180deg,#0b111b,#101827 52%,#0b1118)!important;background-image:none!important;border-right:1px solid rgba(76,163,255,.22)!important;box-shadow:8px 0 30px rgba(0,0,0,.18)}
+.app.theme-dark .side .menu-section{border-top-color:rgba(89,163,255,.19);color:#7898bd;letter-spacing:.13em;font-size:10px}
+.app.theme-dark .side button{border:1px solid transparent;border-radius:10px;color:#b9c8dc;transition:background .18s ease,border-color .18s ease,color .18s ease}
+.app.theme-dark .side button:hover{background:linear-gradient(100deg,rgba(43,117,194,.20),rgba(43,117,194,.06))!important;border-color:rgba(76,163,255,.16);color:#f5f9ff!important}
+.app.theme-dark .side button:focus-visible{outline:2px solid #55b5ff;outline-offset:2px}
+.app.theme-dark .side button.active,.app.theme-dark .side button[aria-current="page"]{background:linear-gradient(100deg,rgba(42,133,222,.24),rgba(42,133,222,.08))!important;border-color:rgba(76,163,255,.28);color:#f7fbff!important;box-shadow:inset 2px 0 0 #4bb4ff}
+.app.theme-dark .sidebar-collapse-toggle{border-color:rgba(85,181,255,.42)!important;background:#142338!important;color:#a9d9ff!important;box-shadow:0 6px 18px rgba(0,0,0,.34)}
+.app.theme-dark .main{background-color:#080d16!important;background-image:radial-gradient(ellipse at 88% 0%,rgba(25,101,174,.16),transparent 34%),linear-gradient(rgba(83,139,199,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(83,139,199,.035) 1px,transparent 1px)!important;background-size:auto,34px 34px,34px 34px!important}
+.app.theme-dark .main:before{display:none}
+.app.theme-dark .card,.app.theme-dark .grid,.app.theme-dark .cron-grid,.app.theme-dark .cron-table{border-color:rgba(105,139,181,.22)!important;border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.18)!important}
+.app.theme-dark .card{background:linear-gradient(145deg,#151e2c,#121a27)!important}
+.app.theme-dark .tabs button.active,.app.theme-dark .tab.active{color:#8bd0ff!important;border-color:#48b4ff!important}
+.app.theme-dark input:focus,.app.theme-dark select:focus,.app.theme-dark textarea:focus{outline:none!important;border-color:#4aaeff!important;box-shadow:0 0 0 3px rgba(74,174,255,.13)!important}
+.app.theme-dark .primary{background:linear-gradient(135deg,#2879d4,#3a9be8)!important;border:1px solid rgba(132,204,255,.32)!important}
+@media(max-width:760px){.app.theme-dark .main{padding:16px!important}.app.theme-dark .card{border-radius:13px}}
