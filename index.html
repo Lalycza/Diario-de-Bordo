@@ -336,8 +336,8 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 .cron-week small{display:block;font-size:5px;font-weight:400;margin-top:2px}
 .cron-quarter{width:100%;table-layout:fixed;border-collapse:collapse;font-size:5.5px;}
 .cron-quarter th,.cron-quarter td{padding:1px!important;line-height:1.1;min-width:0;box-sizing:border-box;}
-.cron-quarter th:first-child,.cron-quarter td:first-child{width:14%;white-space:nowrap;word-break:normal;overflow-wrap:normal;overflow:hidden;text-overflow:ellipsis;}
-.cron-quarter th:nth-child(2),.cron-quarter td:nth-child(2){width:8%;white-space:nowrap;word-break:normal;overflow-wrap:normal;overflow:hidden;text-overflow:ellipsis;}
+.cron-quarter th:first-child,.cron-quarter td:first-child{width:17%;white-space:normal;word-break:normal;overflow-wrap:normal;overflow:visible;text-overflow:clip;line-height:1.15;padding:2px!important;vertical-align:middle;}
+.cron-quarter th:nth-child(2),.cron-quarter td:nth-child(2){width:7%;white-space:normal;word-break:normal;overflow-wrap:normal;overflow:hidden;text-overflow:clip;}
 .cron-quarter .cron-week-head{font-size:5px;white-space:nowrap;padding:1px 0!important;letter-spacing:-.2px;}
 .cron-quarter .cron-week{width:5.2%;white-space:nowrap;word-break:normal;overflow-wrap:normal;font-size:5px;padding:1px 0!important;overflow:hidden;}
 .cron-quarter .cron-week b{display:block;white-space:nowrap;word-break:normal;overflow-wrap:normal;font-size:5px;letter-spacing:-.2px;}
@@ -2183,7 +2183,7 @@ function printCurrentPdf(){
  const printEl=document.getElementById('printDoc');
  printEl.innerHTML=pdfPreviewBody;
  const styles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
- const pageRule=pdfPreviewTitle==='Cronograma'?'<style>@page{size:A4 landscape;margin:5mm}</style>':'';
+ const pageRule=pdfPreviewTitle==='Cronograma'?'<style>@page{size:297mm 210mm!important;margin:5mm!important}@media print{html,body{width:287mm!important;min-width:287mm!important;margin:0!important;padding:0!important}.print-doc,.pdf-cron-page{width:100%!important;max-width:none!important;box-sizing:border-box!important}}</style>':'';
  const win=window.open('','_blank');
  if(win){
   win.document.open();
