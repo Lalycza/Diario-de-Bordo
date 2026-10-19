@@ -2573,8 +2573,8 @@ function lzChartColor(label){
  if(n.includes('ANDAMENTO')||n.includes('REPLANEJ'))return '#f2b84b';
  if(n.includes('HOMOLOG'))return '#a78bfa';
  if(n.includes('CONSULT'))return '#c084fc';
- if(n.includes('IMPLANT'))return '#4299f5';
- return ['#4299f5','#35c58a','#f2b84b','#a78bfa','#f06b72','#22c1c3'][Math.abs(String(label||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0))%6];
+ if(n.includes('IMPLANT'))return '#f97316';
+ return ['#f97316','#35c58a','#f2b84b','#a78bfa','#f06b72','#22c1c3'][Math.abs(String(label||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0))%6];
 }
 function lzDonutHtml(title,counts){
  const entries=Object.entries(counts||{}).filter(x=>Number(x[1])>0);
