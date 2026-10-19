@@ -1543,7 +1543,7 @@ function goLiveData(){
 function moduleGoLive(name){return goLiveData()[name]||{status:'Não entrou em produção',date:'',support:false};}
 function projectGoLiveDate(){
   const dates=Object.values(goLiveData()).map(v=>v?.date).filter(Boolean).sort();
-  return dates[0]||cur?.endDate||'';
+  return cur?.endDate||dates[0]||'';
 }
 function projectGoLiveCountdown(){
   const date=projectGoLiveDate();
