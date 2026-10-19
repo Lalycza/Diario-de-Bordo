@@ -1908,26 +1908,47 @@ async function importModule(){
 
     try{
      const sourceSubs=subsByModule.get(String(source.id))||[];
+     // Um vínculo pode existir no Supabase e estar oculto no Mapa por uma
+     // exclusão anterior restrita a este projeto. Importar explicitamente deve
+     // restaurar o módulo no Mapa, sem duplicar o vínculo nem alterar o produto.
      const {data:exists,error:ee}=await supabaseClient
        .from('project_modules')
-       .select('module_id')
+       .select('module_id,planned_training_date')
        .eq('project_id',cur.dbId)
        .eq('module_id',source.id)
        .maybeSingle();
      if(ee)throw ee;
-     if(exists?.module_id)throw new Error('Este módulo já está vinculado ao projeto.');
 
-     const {error:pmErr}=await supabaseClient
-       .from('project_modules')
-       .insert({
-         project_id:cur.dbId,
-         module_id:source.id,
-         planned_training_date:null
-       });
-     if(pmErr)throw pmErr;
+     if(!exists?.module_id){
+       const {error:pmErr}=await supabaseClient
+         .from('project_modules')
+         .insert({
+           project_id:cur.dbId,
+           module_id:source.id,
+           planned_training_date:null
+         });
+       if(pmErr)throw pmErr;
+     }
+
+     // Reimportação intencional remove somente a exclusão deste módulo neste projeto.
+     const {error:exclusionErr}=await supabaseClient
+       .from('project_module_exclusions')
+       .delete()
+       .eq('project_id',cur.dbId)
+       .eq('module_id',source.id);
+     if(exclusionErr)throw exclusionErr;
 
      cur.m=Array.isArray(cur.m)?cur.m:[];
-     cur.m.push([source.name,sourceSubs.map(s=>s.name),{dbId:source.id,productId:source.product_id,submoduleRefs:sourceSubs.map(s=>({id:s.id,name:s.name}))}]);
+     const alreadyInMap=cur.m.some(m=>String(m?.[2]?.dbId||'')===String(source.id)||
+       String(m?.[0]||'').trim().toUpperCase()===String(source.name||'').trim().toUpperCase());
+     if(!alreadyInMap){
+       cur.m.push([source.name,sourceSubs.map(s=>s.name),{
+         plannedDate:exists?.planned_training_date||null,
+         dbId:source.id,
+         productId:source.product_id,
+         submoduleRefs:sourceSubs.map(s=>({id:s.id,name:s.name}))
+       }]);
+     }
      audit('Módulo importado','Módulo '+source.name+' e '+sourceSubs.length+' submódulo(s) importados do produto vinculado ao cliente.');
      persistState();closeModal();mapView();
     }catch(e){
