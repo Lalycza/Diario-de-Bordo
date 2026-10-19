@@ -2,9 +2,9 @@
 
 ## O que este fluxo faz
 
-O workflow manual `Supabase backup` exporta schema, roles e dados PostgreSQL e, quando habilitado, baixa os objetos de todos os buckets do Supabase Storage. O pacote é publicado como artefato privado da execução do GitHub Actions por 30 dias. O manifesto contém horário, caminhos, tamanhos e SHA-256 para verificação de integridade.
+O workflow manual `Supabase backup` exporta schema, roles e dados PostgreSQL e, quando habilitado, baixa os objetos de todos os buckets do Supabase Storage. Cria manifesto e checksums, compacta e **criptografa o pacote antes de enviá-lo ao GitHub Actions**. Isso é obrigatório porque o repositório é público: nenhum dado do cliente pode ser enviado em texto aberto como artefato.
 
-**Importante:** este é um backup externo ao banco, mas o artefato ainda depende do acesso à conta/repositório GitHub e expira após 30 dias. Para retenção longa, configure uma cópia adicional em armazenamento independente antes de tratar o processo como política definitiva. O backup não foi testado como restauração até que uma restauração isolada seja executada com sucesso.
+O artefato criptografado fica disponível por 30 dias. Embora o conteúdo seja criptografado, o artefato ainda depende da conta/repositório GitHub e expira. Guarde uma cópia em local independente e configure retenção externa antes de tratar o processo como política definitiva. O backup ainda não foi testado como restauração; não considere a estratégia validada até uma restauração isolada concluir com sucesso.
 
 ## Configuração inicial (uma vez)
 
@@ -12,13 +12,23 @@ No GitHub, abra **Settings → Secrets and variables → Actions → New reposit
 
 - `SUPABASE_DB_URL`: connection string PostgreSQL do projeto oficial. Prefira Session Pooler se a conexão direta não estiver disponível. Nunca coloque a string em arquivos do repositório.
 - `SUPABASE_URL`: URL do projeto oficial.
-- `SUPABASE_SERVICE_ROLE_KEY`: service-role/secret key necessária para ler os objetos do Storage. Dê acesso somente ao repositório privado/conta confiável e nunca a exponha no frontend, em logs ou no código.
+- `SUPABASE_SERVICE_ROLE_KEY`: service-role/secret key necessária para ler os objetos do Storage. Necessária se a opção de Storage estiver habilitada.
+- `BACKUP_ENCRYPTION_PASSPHRASE`: frase-senha longa e exclusiva para criptografar o pacote. Guarde-a em um gerenciador de senhas fora do GitHub; sem ela, o backup não pode ser aberto.
 
 Depois, abra **Actions → Supabase backup → Run workflow** e execute com Storage habilitado. Se o banco tiver tabelas ou extensões que exijam exclusões adicionais, corrija o comando com base nos logs sem alterar dados de produção.
 
-## Onde baixar
+## Onde baixar e descriptografar
 
-Na execução concluída, abra o artefato `implanta-supabase-backup-...` e baixe o ZIP. Guarde uma cópia em local independente do GitHub. O pacote deve conter `schema.sql`, `roles.sql`, `data.sql`, `manifest.json`, `SHA256SUMS.txt` e, se habilitado, a pasta `storage/`.
+Na execução concluída, baixe o artefato `implanta-supabase-backup-...` e guarde uma cópia fora do GitHub. O ZIP contém o arquivo `implanta-backup.enc`. Em um ambiente confiável com OpenSSL, use a mesma frase-senha para descriptografar:
+
+```sh
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+  -pass env:BACKUP_ENCRYPTION_PASSPHRASE \
+  -in implanta-backup.enc -out implanta-backup.tar.gz
+tar -xzf implanta-backup.tar.gz
+```
+
+A pasta extraída contém `schema.sql`, `roles.sql`, `data.sql`, `manifest.json`, `SHA256SUMS.txt` e, se habilitado, `storage/`.
 
 ## Restauração (somente em ambiente separado)
 
@@ -26,4 +36,4 @@ Não restaure sobre produção para testar. Crie um projeto Supabase isolado e s
 
 ## Próxima etapa: botão dentro do IMPLANTA
 
-O botão em **Sistema → Central de backups** precisa de uma camada de servidor autenticada para disparar o workflow e consultar o estado da execução. Não deve conter token do GitHub, service-role key ou senha de banco no `index.html`. Antes de conectar o botão, configure um segredo de servidor para a integração e valide que a conta logada tem o papel de administradora no backend. Até essa integração ser feita, o disparo é manual pela aba Actions do GitHub.
+O botão em **Sistema → Backup** pode abrir a tela de execução do GitHub Actions, mas o disparo realmente integrado dentro do sistema exige uma camada de servidor autenticada para iniciar o workflow e consultar seu estado. Ela precisa guardar um token do GitHub como segredo de servidor; nunca deve conter token do GitHub, service-role key ou senha do banco no `index.html`. Até essa integração ser configurada, o disparo é manual pela aba Actions do GitHub.
