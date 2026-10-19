@@ -1329,10 +1329,10 @@ function dashboardTrainingRecords(){
    const matches=rows.filter(t=>norm(t.submodule)===norm(sub));
    if(!matches.length)continue;
    const latest=matches[matches.length-1];
-   // Datas de conclusão/homologação são evidência mais forte que um status legado desatualizado.
-   // Não altera registros nem substitui status de atividades que seguem em andamento.
-   const completed=matches.slice().reverse().find(t=>t.trainingEndDate);
-   const homologated=matches.slice().reverse().find(t=>t.homologationDate&&t.homologationResponsible);
+   // Usar a evidência de conclusão/homologação do registro mais recente evita que uma data antiga
+   // de um treinamento anterior transforme uma nova ocorrência pendente em concluída no dashboard.
+   const completed=latest.trainingEndDate?latest:null;
+   const homologated=latest.homologationDate&&latest.homologationResponsible?latest:null;
    const effective={...latest};
    if(homologated){
     effective.status='HOMOLOGADO';
@@ -2620,6 +2620,7 @@ function lzChartColor(label){
  if(n.includes('EM DIA'))return '#35c58a';
  if(n.includes('CONCLUID'))return '#a78bfa';
  if(n.includes('SEM PRAZO'))return '#94a3b8';
+ if(n.includes('PENDENT'))return '#f06b72';
  if(n.includes('ANDAMENTO')||n.includes('REPLANEJ'))return '#f2b84b';
  if(n.includes('HOMOLOG'))return '#a78bfa';
  if(n.includes('CONSULT'))return '#c084fc';
