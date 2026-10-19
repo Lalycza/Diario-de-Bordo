@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
+import { useRole } from "@/lib/useRole";
 import { DocumentationSendCard } from "@/components/DocumentationSendCard";
 import { ArrowLeft, BookOpen, CalendarRange, LayoutGrid, ClipboardList, Mail, FileText } from "lucide-react";
 
@@ -22,10 +23,14 @@ export function ProjectHeader({
   subtitle?: string | null | undefined;
 }) {
   const projectQuery = useProject(projectId);
+  const { isCliente } = useRole();
   const documentationScope = projectQuery.data?.documentation_scope ?? "all";
-  const visibleTabs = documentationScope === "diario"
+  const scopedTabs = documentationScope === "diario"
     ? tabs.filter((tab) => ["/projeto/$projectId/diario", "/projeto/$projectId/demandas", "/projeto/$projectId/documentos", "/projeto/$projectId/emails"].includes(tab.to))
     : tabs;
+  const visibleTabs = isCliente
+    ? scopedTabs.filter((tab) => tab.to !== "/projeto/$projectId/documentos")
+    : scopedTabs;
 
   return (
     <div className="mb-6 space-y-4">
@@ -56,7 +61,7 @@ export function ProjectHeader({
           </Link>
         ))}
       </nav>
-      <DocumentationSendCard projectId={projectId} compact />
+      {!isCliente ? <DocumentationSendCard projectId={projectId} compact /> : null}
     </div>
   );
 }

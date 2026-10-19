@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/status";
 import { useProject } from "@/lib/useProject";
 import { AppShell } from "@/components/AppShell";
 import { ProjectHeader } from "@/components/ProjectTabs";
+import { useRole } from "@/lib/useRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,7 @@ function DocumentosPage() {
   const { projectId } = Route.useParams();
   const { user } = Route.useRouteContext();
   const project = useProject(projectId);
+  const { isCliente, isLoading: roleLoading } = useRole();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [descricao, setDescricao] = useState("");
@@ -110,6 +112,18 @@ function DocumentosPage() {
   }
 
   const docs = documentsQuery.data ?? [];
+
+  if (roleLoading || isCliente) {
+    return (
+      <AppShell userLabel={user.email}>
+        {!roleLoading && isCliente ? (
+          <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
+            Este perfil não tem acesso aos documentos.
+          </div>
+        ) : null}
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell userLabel={user.email}>

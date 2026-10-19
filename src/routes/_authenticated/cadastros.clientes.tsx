@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRole } from "@/lib/useRole";
 
 export const Route = createFileRoute("/_authenticated/cadastros/clientes")({
   head: () => ({
@@ -88,6 +89,7 @@ const emptyClient: ClientForm = {
 
 function ClientesPage() {
   const { user } = Route.useRouteContext();
+  const { isCliente } = useRole();
   const queryClient = useQueryClient();
   const buscarCnpj = useServerFn(lookupCnpj);
   const [form, setForm] = useState<ClientForm | null>(null);
@@ -398,14 +400,14 @@ function ClientesPage() {
         <DialogContent className="w-[calc(100vw-2rem)] max-w-6xl max-h-[94vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{clienteDetalhe?.razao_social ?? "Cliente"}</DialogTitle>
-            <DialogDescription>Cadastro, contatos, documentos e histórico de projetos deste cliente.</DialogDescription>
+            <DialogDescription>Cadastro, contatos e histórico de projetos deste cliente.</DialogDescription>
           </DialogHeader>
           {clienteDetalhe ? (
             <Tabs defaultValue="cadastro" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className={`grid w-full ${isCliente ? "grid-cols-4" : "grid-cols-5"}`}>
                 <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
                 <TabsTrigger value="contato">Contato</TabsTrigger>
-                <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                {!isCliente ? <TabsTrigger value="documentos">Documentos</TabsTrigger> : null}
                 <TabsTrigger value="produtos">Produtos</TabsTrigger>
                 <TabsTrigger value="projetos">Projetos/Histórico</TabsTrigger>
               </TabsList>
@@ -428,7 +430,7 @@ function ClientesPage() {
                 </div>
                 {clienteDetalhe.observacoes ? <div><Label>Observações</Label><p className="text-sm whitespace-pre-wrap">{clienteDetalhe.observacoes}</p></div> : null}
               </TabsContent>
-              <TabsContent value="documentos" className="mt-4 space-y-3">
+              {!isCliente ? <TabsContent value="documentos" className="mt-4 space-y-3">
                 <div className="rounded-lg border p-4">
                   <p className="text-sm font-medium">Documentos vinculados aos projetos</p>
                   {(documentsQuery.data ?? []).length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Nenhum documento anexado.</p> : (
@@ -437,7 +439,7 @@ function ClientesPage() {
                     </ul>
                   )}
                 </div>
-              </TabsContent>
+              </TabsContent> : null}
               <TabsContent value="produtos" className="mt-4 space-y-4">
                 <div className="rounded-lg border p-4">
                   <p className="font-medium">Produtos em andamento</p>
