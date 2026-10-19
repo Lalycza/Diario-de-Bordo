@@ -25,20 +25,23 @@ async function downloadFile(bucket, objectPath) {
 }
 
 async function walk(bucket, prefix = "") {
-  const { data, error } = await supabase.storage.from(bucket).list(prefix, {
-    limit: 1000,
-    offset: 0,
-    sortBy: { column: "name", order: "asc" },
-  });
-  if (error) throw new Error(`Falha ao listar ${bucket}/${prefix}: ${error.message}`);
-  for (const item of data ?? []) {
-    if (item.name === "." || item.name === "..") continue;
-    const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
-    if (item.id === null) {
-      await walk(bucket, itemPath);
-    } else {
-      await downloadFile(bucket, itemPath);
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase.storage.from(bucket).list(prefix, {
+      limit: 1000,
+      offset,
+      sortBy: { column: "name", order: "asc" },
+    });
+    if (error) throw new Error(`Falha ao listar ${bucket}/${prefix}: ${error.message}`);
+    const items = data ?? [];
+    for (const item of items) {
+      if (item.name === "." || item.name === "..") continue;
+      const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
+      if (item.id === null) await walk(bucket, itemPath);
+      else await downloadFile(bucket, itemPath);
     }
+    if (items.length < 1000) break;
+    offset += items.length;
   }
 }
 
