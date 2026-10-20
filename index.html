@@ -1010,6 +1010,26 @@ async function hydrateFromSupabase(){
     const grouped={};
     for(const x of (tr.data||[])){
       const pid=projectByDb.get(x.project_id);
+      const projectRow=(pg.data||[]).find(v=>String(v.id)===String(x.project_id));
+      if(!pid||!projectRow)continue;
+      // O Cronograma só pode consumir treinamentos de módulos pertencentes
+      // aos produtos efetivamente vinculados a este projeto.
+      const allowedProducts=new Set((pp.data||[])
+        .filter(v=>String(v.project_id)===String(x.project_id))
+        .map(v=>String(v.product_id)));
+      if(!allowedProducts.size){
+        (clientProductsByClientDb.get(String(projectRow.client_id||''))||[])
+          .forEach(id=>allowedProducts.add(String(id)));
+      }
+      const rawModule=(mo.data||[]).find(v=>String(v.id)===String(x.module_id));
+      if(!rawModule?.product_id||!allowedProducts.has(String(rawModule.product_id)))continue;
+      // Para o módulo principal, a data do Mapa é a fonte oficial.
+      // Não exibir registros antigos órfãos com data de realização se a
+      // previsão do módulo estiver vazia no Mapa.
+      if(!x.submodule_id){
+        const moduleLink=(pm.data||[]).find(v=>String(v.project_id)===String(x.project_id)&&String(v.module_id)===String(x.module_id));
+        if(!moduleLink?.planned_training_date)continue;
+      }
       if(!grouped[pid])grouped[pid]=[];
       const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
       const sm=(su.data||[]).find(v=>v.id===x.submodule_id);
