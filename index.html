@@ -3717,10 +3717,14 @@ document.addEventListener('click',function(e){
 #app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) :is(h1,h2,h3,h4,h5,h6,p,small,strong,b,label,span,li,td,th,.muted,.owner,.description){
   color:#182236!important;
 }
-/* Não neutralizar estados coloridos nem badges dentro de cartões claros. */
-#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) :is(.badge,.tag,.status-pendente,.status-andamento,.status-concluido,.status-homologado,.status-replanejado){
-  color:inherit;
-}
+/* Preservar cores semânticas de status e badges nesses cartões. */
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .badge{background:#edf1f7!important;color:#44546b!important}
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .tag{background:#eef3ff!important;color:#31548e!important}
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .status-pendente{background:#f9d8d5!important;color:#9f3d38!important}
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .status-andamento{background:#f7e5bd!important;color:#8a6825!important}
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .status-concluido{background:#dcefdc!important;color:#47734a!important}
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .status-homologado{background:#e5dcf4!important;color:#6b4c8f!important}
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .status-replanejado{background:#f6e3b5!important;color:#8a6825!important}
 </style>
 </body></html>
 
