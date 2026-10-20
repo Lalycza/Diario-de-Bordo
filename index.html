@@ -3707,6 +3707,20 @@ document.addEventListener('click',function(e){
   color:#b8c4d5!important;
   opacity:1!important;
 }
+
+/* Contraste por superfície: cartões claros mantêm texto escuro dentro dos modais. */
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card){
+  background:#f7f9fc!important;
+  color:#182236!important;
+  border-color:#dce3ed!important;
+}
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) :is(h1,h2,h3,h4,h5,h6,p,small,strong,b,label,span,li,td,th,.muted,.owner,.description){
+  color:#182236!important;
+}
+/* Não neutralizar estados coloridos nem badges dentro de cartões claros. */
+#app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) :is(.badge,.tag,.status-pendente,.status-andamento,.status-concluido,.status-homologado,.status-replanejado){
+  color:inherit;
+}
 </style>
 </body></html>
 
