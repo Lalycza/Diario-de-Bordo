@@ -1021,7 +1021,17 @@ async function hydrateFromSupabase(){
       );
       if(!moduleLink)continue;
       const rawModule=(mo.data||[]).find(v=>String(v.id)===String(x.module_id));
-      if(!rawModule)continue;
+      if(!rawModule?.product_id)continue;
+      // Além do vínculo explícito no Mapa, o produto do módulo precisa estar
+      // vinculado ao projeto (ou atribuído ao cliente, no legado sem project_products).
+      const allowedProducts=new Set((pp.data||[])
+        .filter(v=>String(v.project_id)===String(x.project_id))
+        .map(v=>String(v.product_id)));
+      if(!allowedProducts.size){
+        (clientProductsByClientDb.get(String(projectRow.client_id||''))||[])
+          .forEach(id=>allowedProducts.add(String(id)));
+      }
+      if(!allowedProducts.has(String(rawModule.product_id)))continue;
       // A previsão do módulo principal no Mapa habilita a entrada do
       // módulo inteiro no Cronograma. Datas antigas dos submódulos não podem
       // recriar o cronograma se essa previsão estiver vazia/removida.
