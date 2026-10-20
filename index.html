@@ -1816,7 +1816,7 @@ function addTrainingForSub(i,j){if(!canEdit())return;const moduleName=cur?.m?.[i
 function editTraining(i){if(!canEdit())return;openTaskModal(i)}
 async function resolveProjectStructureModule(moduleName,moduleIdHint){
  if(!cur?.dbId||!moduleName)return null;
- const norm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ').trim().toUpperCase();
+ const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
  const wanted=norm(moduleName);
  const projectProductQ=await supabaseClient.from('project_products').select('product_id').eq('project_id',cur.dbId);
  if(projectProductQ.error)throw projectProductQ.error;
