@@ -3663,6 +3663,50 @@ document.addEventListener('click',function(e){
 .app:not(.theme-dark) .side .sidebar-collapse-toggle{background:#172337!important;color:#dbe4f3!important;border-color:rgba(22,140,255,.48)!important}
 .app:not(.theme-dark) .side .sidebar-collapse-toggle:hover{background:#24344d!important;color:#fff!important}
 .app:not(.theme-dark) .side .sidebar-collapse-icon{color:inherit!important}
+
+/* Correção cirúrgica de contraste dos modais no tema escuro.
+   #modal é irmão de #app, não descendente; por isso o escopo usa ~. */
+#app.theme-dark ~ #modal:not(.hidden) .box{
+  color:#e8eef8!important;
+  background:linear-gradient(145deg,#111c2b,#0b121e)!important;
+  border-color:rgba(105,166,255,.28)!important;
+}
+#app.theme-dark ~ #modal .box :is(h1,h2,h3,h4,h5,h6,label,legend,p,small,strong,b,li,dt,dd,th,td,.muted,.hint,.help,.field-label,.form-label,.subtitle,.description){
+  color:#e8eef8!important;
+}
+#app.theme-dark ~ #modal .box :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea){
+  background:#172436!important;
+  color:#f2f6fc!important;
+  border:1px solid #40516b!important;
+  caret-color:#f2f6fc!important;
+}
+#app.theme-dark ~ #modal .box :is(input,select,textarea)::placeholder{
+  color:#a8b7ca!important;
+  opacity:1!important;
+}
+#app.theme-dark ~ #modal .box select option,
+#app.theme-dark ~ #modal .box optgroup{
+  background:#172436!important;
+  color:#f2f6fc!important;
+}
+#app.theme-dark ~ #modal .box input[type="checkbox"],
+#app.theme-dark ~ #modal .box input[type="radio"]{
+  accent-color:#60a5fa!important;
+}
+#app.theme-dark ~ #modal .box button.secondary{
+  background:#243449!important;
+  color:#e8eef8!important;
+  border-color:#40516b!important;
+}
+#app.theme-dark ~ #modal .box button.danger,
+#app.theme-dark ~ #modal .box button.btn-danger{
+  color:#fff!important;
+}
+#app.theme-dark ~ #modal .box :is(input,select,textarea):disabled{
+  background:#202c3c!important;
+  color:#b8c4d5!important;
+  opacity:1!important;
+}
 </style>
 </body></html>
 
