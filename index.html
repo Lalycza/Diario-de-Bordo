@@ -1029,15 +1029,39 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
 #app:not(.theme-dark) .main .catalog-product .danger{color:#fff!important}
 </style>
 <style id="light-theme-white-text-emergency-fix-2026-10-20">
-/* Corrige texto branco herdado por componentes legados no tema claro.
-   O escopo fica restrito ao conteúdo principal; sidebar e tema escuro não são afetados. */
+/* Tema claro: contraste padrão no conteúdo; preservar texto claro nos cards escuros. */
 #app:not(.theme-dark) .main,
-#app:not(.theme-dark) .main *{color:#182236!important}
+#app:not(.theme-dark) .main p,
+#app:not(.theme-dark) .main span,
+#app:not(.theme-dark) .main b,
+#app:not(.theme-dark) .main strong,
+#app:not(.theme-dark) .main label,
+#app:not(.theme-dark) .main h1,
+#app:not(.theme-dark) .main h2,
+#app:not(.theme-dark) .main h3,
+#app:not(.theme-dark) .main h4,
+#app:not(.theme-dark) .main h5,
+#app:not(.theme-dark) .main h6,
+#app:not(.theme-dark) .main li,
+#app:not(.theme-dark) .main td,
+#app:not(.theme-dark) .main th,
+#app:not(.theme-dark) .main small,
+#app:not(.theme-dark) .main .title,
+#app:not(.theme-dark) .main .value,
+#app:not(.theme-dark) .main .field-label{color:#182236!important}
 #app:not(.theme-dark) .main .muted,
 #app:not(.theme-dark) .main .owner,
 #app:not(.theme-dark) .main .doc-meta,
 #app:not(.theme-dark) .main .secondary,
 #app:not(.theme-dark) .main .hint{color:#526176!important}
+/* Cards que mantêm fundo escuro no tema claro precisam de tipografia clara. */
+#app:not(.theme-dark) .main .card,
+#app:not(.theme-dark) .main .card *,
+#app:not(.theme-dark) .main .project-dashboard-card,
+#app:not(.theme-dark) .main .project-dashboard-card *{color:#e5e7eb!important}
+#app:not(.theme-dark) .main .project-dashboard-card span,
+#app:not(.theme-dark) .main .card .muted,
+#app:not(.theme-dark) .main .card .hint{color:#b8c4d5!important}
 #app:not(.theme-dark) .main .primary,
 #app:not(.theme-dark) .main button.primary,
 #app:not(.theme-dark) .main .danger,
