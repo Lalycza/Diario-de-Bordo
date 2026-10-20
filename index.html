@@ -1022,9 +1022,10 @@ async function hydrateFromSupabase(){
       if(!moduleLink)continue;
       const rawModule=(mo.data||[]).find(v=>String(v.id)===String(x.module_id));
       if(!rawModule)continue;
-      // A previsão do módulo principal sempre vem do Mapa. Um registro antigo
-      // de treinamento não pode reintroduzir data se a previsão foi removida.
-      if(!x.submodule_id&&!moduleLink.planned_training_date)continue;
+      // A previsão do módulo principal no Mapa habilita a entrada do
+      // módulo inteiro no Cronograma. Datas antigas dos submódulos não podem
+      // recriar o cronograma se essa previsão estiver vazia/removida.
+      if(!moduleLink.planned_training_date)continue;
       if(!grouped[pid])grouped[pid]=[];
       const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
       const sm=(su.data||[]).find(v=>v.id===x.submodule_id);
