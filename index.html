@@ -2368,67 +2368,7 @@ function printCurrentPdf(){
  const win=window.open('','_blank');
  if(win){
   win.document.open();
-  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+styles+pageRule+'<style id="light-content-contrast-fix-2026-10-20">
-/* Recupera contraste do conteúdo no tema claro; menu e ícones ficam fora deste ajuste */
-html:not(:has(#app.theme-dark)){color-scheme:light!important}
-body:has(#app:not(.theme-dark)){background:#f5f7fb!important;color:#182236!important}
-#app:not(.theme-dark) .main,
-#app:not(.theme-dark) .main > section,
-#app:not(.theme-dark) .main .section,
-#app:not(.theme-dark) .main .content,
-#app:not(.theme-dark) .main .page,
-#app:not(.theme-dark) .main .panel-wrap,
-#app:not(.theme-dark) .main .list-wrap,
-#app:not(.theme-dark) .main .project-list{
-  color:#182236!important;
-}
-#app:not(.theme-dark) .main .card,
-#app:not(.theme-dark) .main .box,
-#app:not(.theme-dark) .main .grid,
-#app:not(.theme-dark) .main .table,
-#app:not(.theme-dark) .main .table-wrap,
-#app:not(.theme-dark) .main .table-container,
-#app:not(.theme-dark) .main .listitem,
-#app:not(.theme-dark) .main .doc-card,
-#app:not(.theme-dark) .main .session,
-#app:not(.theme-dark) .main .empty,
-#app:not(.theme-dark) .main .modal,
-#app:not(.theme-dark) .main [role="dialog"],
-#app:not(.theme-dark) .main .audit-panel,
-#app:not(.theme-dark) .main .project-dashboard-card{
-  background-color:#fff!important;color:#182236!important;border-color:#d7e0ec!important;
-}
-#app:not(.theme-dark) .main h1,
-#app:not(.theme-dark) .main h2,
-#app:not(.theme-dark) .main h3,
-#app:not(.theme-dark) .main h4,
-#app:not(.theme-dark) .main label,
-#app:not(.theme-dark) .main p,
-#app:not(.theme-dark) .main li,
-#app:not(.theme-dark) .main td,
-#app:not(.theme-dark) .main th,
-#app:not(.theme-dark) .main .label,
-#app:not(.theme-dark) .main .title,
-#app:not(.theme-dark) .main .value,
-#app:not(.theme-dark) .main .field-label{
-  color:#182236!important;
-}
-#app:not(.theme-dark) .main input,
-#app:not(.theme-dark) .main select,
-#app:not(.theme-dark) .main textarea{
-  background:#fff!important;color:#182236!important;border-color:#cbd5e1!important;
-}
-#app:not(.theme-dark) .main table th{background:#edf2f8!important;color:#263449!important}
-#app:not(.theme-dark) .main table td{background:#fff!important;color:#182236!important}
-#app:not(.theme-dark) .main .muted,
-#app:not(.theme-dark) .main .owner,
-#app:not(.theme-dark) .main .doc-meta,
-#app:not(.theme-dark) .main .hint{color:#526176!important}
-#app:not(.theme-dark) .main button.primary,
-#app:not(.theme-dark) .main .primary{background:#2463c7!important;color:#fff!important;border-color:#2463c7!important}
-#app:not(.theme-dark) .main button.danger,
-#app:not(.theme-dark) .main .danger{color:#fff!important}
-</style></head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div></body></html>');
+  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+styles+pageRule+'</head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div></body></html>');
   win.document.close();
   const doPrint=()=>setTimeout(()=>{try{win.focus();win.print()}catch(e){console.error('Impressão PDF:',e)}},250);
   if(win.document.readyState==='complete')doPrint();else win.addEventListener('load',doPrint,{once:true});
