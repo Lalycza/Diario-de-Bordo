@@ -3578,7 +3578,7 @@ bootPublicSurvey();
   toggle.addEventListener('click',(event)=>{
     event.preventDefault();
     event.stopPropagation();
-    expand();
+    setCollapsed(!side.classList.contains('sidebar-collapsed'));
   });
   side.addEventListener('click',(event)=>{
     const target=event.target.closest?.('button,a,.product-menu-sub');
