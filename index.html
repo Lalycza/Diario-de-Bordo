@@ -1012,24 +1012,19 @@ async function hydrateFromSupabase(){
       const pid=projectByDb.get(x.project_id);
       const projectRow=(pg.data||[]).find(v=>String(v.id)===String(x.project_id));
       if(!pid||!projectRow)continue;
-      // O Cronograma só pode consumir treinamentos de módulos pertencentes
-      // aos produtos efetivamente vinculados a este projeto.
-      const allowedProducts=new Set((pp.data||[])
-        .filter(v=>String(v.project_id)===String(x.project_id))
-        .map(v=>String(v.product_id)));
-      if(!allowedProducts.size){
-        (clientProductsByClientDb.get(String(projectRow.client_id||''))||[])
-          .forEach(id=>allowedProducts.add(String(id)));
-      }
+      // O escopo do projeto é a lista exata de vínculos do Mapa.
+      // Isso inclui módulos importados, criados diretamente no projeto e
+      // exclui treinamentos de módulos removidos deste projeto.
+      const moduleLink=(pm.data||[]).find(v=>
+        String(v.project_id)===String(x.project_id)&&
+        String(v.module_id)===String(x.module_id)
+      );
+      if(!moduleLink)continue;
       const rawModule=(mo.data||[]).find(v=>String(v.id)===String(x.module_id));
-      if(!rawModule?.product_id||!allowedProducts.has(String(rawModule.product_id)))continue;
-      // Para o módulo principal, a data do Mapa é a fonte oficial.
-      // Não exibir registros antigos órfãos com data de realização se a
-      // previsão do módulo estiver vazia no Mapa.
-      if(!x.submodule_id){
-        const moduleLink=(pm.data||[]).find(v=>String(v.project_id)===String(x.project_id)&&String(v.module_id)===String(x.module_id));
-        if(!moduleLink?.planned_training_date)continue;
-      }
+      if(!rawModule)continue;
+      // A previsão do módulo principal sempre vem do Mapa. Um registro antigo
+      // de treinamento não pode reintroduzir data se a previsão foi removida.
+      if(!x.submodule_id&&!moduleLink.planned_training_date)continue;
       if(!grouped[pid])grouped[pid]=[];
       const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
       const sm=(su.data||[]).find(v=>v.id===x.submodule_id);
@@ -1153,12 +1148,16 @@ function quarterHasTraining(months){return trainingRecords().some(t=>months.incl
 function moduleCronStatus(name,records){
  const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&String(m[0]).trim().toUpperCase()===String(name).trim().toUpperCase());
  const moduleSubs=[...(entry?.[1]||[])].filter(Boolean).map(s=>String(s).trim().toUpperCase());
- const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ');
+ const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD')function moduleCronStatus(name,records){
+ const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&String(m[0]).trim().toUpperCase()===String(name).trim().toUpperCase());
+ const moduleSubs=[...(entry?.[1]||[])].filter(Boolean).map(s=>String(s).trim().toUpperCase());
+ const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/_/g,' ');
  const relevant=records.filter(t=>!moduleSubs.length||moduleSubs.includes(String(t.submodule||'').trim().toUpperCase()));
- const keys=(arr)=>new Set(arr.map(t=>String(t.submodule||'').trim().toUpperCase()).filter(Boolean));
- const started=relevant.filter(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(norm(t.status)));
- const ended=relevant.filter(t=>t.trainingEndDate||norm(t.status)==='CONCLUIDO'||norm(t.status)==='HOMOLOGADO');
- const homologated=relevant.filter(t=>t.homologationDate&&t.homologationResponsible||norm(t.status)==='HOMOLOGADO');
+ const keys=arr=>new Set(arr.map(t=>String(t.submodule||'').trim().toUpperCase()).filter(Boolean));
+ // Datas reais controlam o status; texto legado sozinho não conclui treinamentos.
+ const started=relevant.filter(t=>t.trainingStartDate||t.trainingDate);
+ const ended=relevant.filter(t=>!!t.trainingEndDate);
+ const homologated=relevant.filter(t=>!!(t.homologationDate&&t.homologationResponsible));
  const explicitlyReplanned=relevant.some(t=>norm(t.status)==='REPLANEJADO');
  const replanned=explicitlyReplanned||relevant.some(t=>t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate);
  const expected=moduleSubs.length||keys(relevant).size||relevant.length;
@@ -1169,13 +1168,7 @@ function moduleCronStatus(name,records){
  if(replanned)return 'REPLANEJADO';
  if(started.length)return 'EM ANDAMENTO';
  return 'PENDENTE';
-}
-function moduleCronCell(name,records,month,week){
- const candidates=records.filter(t=>t.month===month||true);
- if(!candidates.length)return null;
- const byActual=candidates.find(t=>{
-   const x=monthWeekFromDate(t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate);
-   return x&&x.month===month&&x.week===week;
+}==week;
  });
  const byPlanned=candidates.find(t=>{
    const x=monthWeekFromDate(t.plannedDateOriginal||t.plannedDate);
