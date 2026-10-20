@@ -1354,19 +1354,37 @@ function openTaskModal(index){let old=index==null?{name:'',month:'',week:1,plann
 function syncTaskDate(){let sub=document.getElementById('taskSubmodule')?.value;if(sub)return;let x=monthWeekFromDate(document.getElementById('taskTraining')?.value);if(!x)return;let m=document.getElementById('taskMonth'),w=document.getElementById('taskWeek');if(m)m.value=x.month;if(w)w.value=x.week}
 async function resolveTrainingRefs(moduleName,submoduleName){
  if(!cur?.dbId||!moduleName)return null;
- const localModule=modulesData.find(m=>String(m.name||'').trim().toUpperCase()===String(moduleName||'').trim().toUpperCase());
- let moduleId=null;
- if(localModule?.id){
-   const q=await supabaseClient.from('modules').select('id,name').eq('legacy_id','module-'+localModule.id).maybeSingle();
+ const normalized=String(moduleName).trim().toUpperCase();
+ // Resolver pelo módulo efetivamente vinculado a ESTE projeto/produto;
+ // nunca fazer maybeSingle() global apenas pelo nome, que pode se repetir.
+ const pp=await supabaseClient.from('project_products').select('product_id').eq('project_id',cur.dbId);
+ if(pp.error)throw pp.error;
+ const productIds=[...new Set((pp.data||[]).map(x=>x.product_id).filter(Boolean).map(String))];
+ const localCandidates=modulesData.filter(m=>String(m.name||'').trim().toUpperCase()===normalized
+   &&(!productIds.length||!Array.isArray(m.productIds)||m.productIds.some(pid=>productIds.includes(String(pid)))));
+ const ids=new Set();
+ for(const localModule of localCandidates){
+   if(!localModule?.id)continue;
+   const q=await supabaseClient.from('modules').select('id,product_id').eq('legacy_id','module-'+localModule.id);
    if(q.error)throw q.error;
-   moduleId=q.data?.id||null;
+   for(const row of q.data||[]){
+     if(!productIds.length||productIds.includes(String(row.product_id)))ids.add(String(row.id));
+   }
  }
- if(!moduleId){
-   const q=await supabaseClient.from('modules').select('id,name').eq('name',moduleName).maybeSingle();
-   if(q.error)throw q.error;
-   moduleId=q.data?.id||null;
+ if(!ids.size){
+   let q=supabaseClient.from('modules').select('id,product_id').ilike('name',moduleName);
+   if(productIds.length)q=q.in('product_id',productIds);
+   const result=await q;
+   if(result.error)throw result.error;
+   for(const row of result.data||[])ids.add(String(row.id));
  }
+ if(ids.size>1)throw new Error('Há mais de um módulo chamado "'+moduleName+'" no produto vinculado a este projeto. Nenhuma alteração foi feita para evitar excluir o módulo errado.');
+ const moduleId=[...ids][0];
  if(!moduleId)return null;
+ // Confirma que o ID resolvido está vinculado ao projeto antes de alterar dados.
+ const link=await supabaseClient.from('project_modules').select('module_id').eq('project_id',cur.dbId).eq('module_id',moduleId).maybeSingle();
+ if(link.error)throw link.error;
+ if(!link.data)throw new Error('O módulo não está vinculado a este projeto. Nenhuma alteração foi feita.');
  let submoduleId=null;
  if(submoduleName){
    const q=await supabaseClient.from('submodules').select('id,name').eq('module_id',moduleId).eq('name',submoduleName).maybeSingle();
