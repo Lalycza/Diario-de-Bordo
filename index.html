@@ -1218,11 +1218,11 @@ async function hydrateFromSupabase(){
       const pid=projectByDb.get(x.project_id);
       const project=ps.find(v=>String(v.id)===String(pid));
       const moduleId=String(x.module_id||'');
-      // O Cronograma só recebe treinamentos de módulos efetivamente vinculados
-      // a este projeto no Mapa e com previsão do módulo principal preenchida.
-      // A checagem por ID evita colisões entre módulos com nomes iguais.
-      const mapEntry=(project?.m||[]).find(v=>Array.isArray(v)&&String(v[2]?.dbId||'')===moduleId);
-      if(!pid||!project||!mapEntry||!mapEntry[2]?.plannedDate)continue;
+      // Usa o vínculo persistido do Mapa (IDs do Supabase), sem depender
+      // da representação visual/legada do módulo em project.m.
+      const moduleLink=(pm.data||[]).find(v=>String(v.project_id)===String(x.project_id)&&String(v.module_id)===moduleId);
+      const isExcluded=excludedProjectModuleKeys.has(String(x.project_id)+'::'+moduleId);
+      if(!pid||!project||!moduleLink||!moduleLink.planned_training_date||isExcluded)continue;
       const m=modulesData.find(v=>String(v.id)===moduleId);
       if(!m)continue;
       const sm=(su.data||[]).find(v=>String(v.id)===String(x.submodule_id||''));
@@ -2363,11 +2363,12 @@ function printCurrentPdf(){
  const printEl=document.getElementById('printDoc');
  printEl.innerHTML=pdfPreviewBody;
  const styles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
+ const readablePdfStyles='<style id="pdf-readable-contrast">.print-doc,.print-doc *,.pdf-map-page,.pdf-map-page *,.pdf-cron-page,.pdf-cron-page *,.pdf-diary-page,.pdf-diary-page *{color:#111!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.print-doc th,.map-official-table th,.cron-quarter th{color:#111!important}.pdf-status,.pdf-official-status{font-weight:700!important}</style>';
  const pageRule=pdfPreviewTitle==='Cronograma'?'<style>@page{size:297mm 210mm!important;margin:5mm!important}@media print{html,body{width:287mm!important;min-width:287mm!important;margin:0!important;padding:0!important}.print-doc,.pdf-cron-page{width:100%!important;max-width:none!important;box-sizing:border-box!important}.cron-quarter{width:100%!important;table-layout:fixed!important}.cron-quarter th:first-child,.cron-quarter td:first-child{width:17%!important}.cron-quarter th:nth-child(2),.cron-quarter td:nth-child(2){width:7%!important}.cron-quarter .cron-week-head,.cron-quarter .cron-week{width:5.0666667%!important}.cron-quarter thead tr:first-child th[colspan="17"]{width:100%!important}.cron-quarter th[colspan="5"]{width:auto!important}.cron-quarter .cron-week-head{font-size:4.7px!important;letter-spacing:-.25px!important;padding-left:0!important;padding-right:0!important}.cron-quarter .cron-week{padding-left:0!important;padding-right:0!important}}</style>':'';
  const win=window.open('','_blank');
  if(win){
   win.document.open();
-  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+styles+pageRule+'</head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div></body></html>');
+  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(pdfPreviewTitle)+'</title>'+styles+readablePdfStyles+pageRule+'</head><body><div id="printDoc" class="print-doc" style="display:block!important;position:static!important;width:100%!important;max-width:none!important;">'+pdfPreviewBody+'</div></body></html>');
   win.document.close();
   const doPrint=()=>setTimeout(()=>{try{win.focus();win.print()}catch(e){console.error('Impressão PDF:',e)}},250);
   if(win.document.readyState==='complete')doPrint();else win.addEventListener('load',doPrint,{once:true});
@@ -3567,7 +3568,7 @@ bootPublicSurvey();
   toggle.addEventListener('click',(event)=>{
     event.preventDefault();
     event.stopPropagation();
-    expand();
+    setCollapsed(!side.classList.contains('sidebar-collapsed'));
   });
   side.addEventListener('click',(event)=>{
     const target=event.target.closest?.('button,a,.product-menu-sub');
