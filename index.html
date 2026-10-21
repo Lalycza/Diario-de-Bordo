@@ -3988,6 +3988,21 @@ document.addEventListener('click',function(e){
 #app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .status-concluido{background:#dcefdc!important;color:#47734a!important}
 #app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .status-homologado{background:#e5dcf4!important;color:#6b4c8f!important}
 #app.theme-dark ~ #modal .box :is(.hint,.session,.listitem,.table,.doc-card,.form-card,.info-card) .status-replanejado{background:#f6e3b5!important;color:#8a6825!important}
+
+/* LZ-CONTACT-BADGE-LIGHT-FIX: legibilidade do selo no tema claro, restrito ao modal de clientes. */
+#app:not(.theme-dark) ~ #modal #clientContactsPane .contact-row .badge,
+#app:not(.theme-dark) ~ #modal #clientContactsPane .contact-row .badge.ok,
+#app:not(.theme-dark) ~ #modalbox #clientContactsPane .contact-row .badge,
+#app:not(.theme-dark) ~ #modalbox #clientContactsPane .contact-row .badge.ok,
+#app:not(.theme-dark) ~ #modal .client-full #clientContactsPane .contact-row .badge,
+#app:not(.theme-dark) ~ #modal .client-full #clientContactsPane .contact-row .badge.ok {
+  background: #e8eef7 !important;
+  background-color: #e8eef7 !important;
+  color: #243247 !important;
+  -webkit-text-fill-color: #243247 !important;
+  border: 1px solid #b8c7da !important;
+  opacity: 1 !important;
+}
 </style>
 </body></html>
 
