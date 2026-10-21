@@ -345,6 +345,117 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
   color:#ffffff!important;
   -webkit-text-fill-color:#ffffff!important;
 }
+
+/* LZ-CLIENT-CARDS-DARK: cartões de contato/documentos coerentes com o tema escuro */
+.client-full .contact-row,
+.client-full .client-doc-row{
+  background:linear-gradient(145deg,#111827 0%,#0b1220 100%)!important;
+  color:#e5edf8!important;
+  border:1px solid rgba(65,145,255,.38)!important;
+  box-shadow:inset 0 0 0 1px rgba(65,145,255,.05)!important;
+}
+.client-full .contact-row b,
+.client-full .contact-row strong,
+.client-full .contact-row label,
+.client-full .contact-row .muted,
+.client-full .contact-row p,
+.client-full .contact-row span,
+.client-full .client-doc-row b,
+.client-full .client-doc-row strong,
+.client-full .client-doc-row label,
+.client-full .client-doc-row .muted,
+.client-full .client-doc-row p,
+.client-full .client-doc-row span{
+  color:#e5edf8!important;
+  opacity:1!important;
+}
+.client-full .contact-row input,
+.client-full .contact-row select,
+.client-full .contact-row textarea,
+.client-full .client-doc-row input,
+.client-full .client-doc-row select,
+.client-full .client-doc-row textarea{
+  background-color:#151f2e!important;
+  color:#f1f5f9!important;
+  -webkit-text-fill-color:#f1f5f9!important;
+  border:1px solid #3b82f6!important;
+}
+.client-full .contact-row select option,
+.client-full .client-doc-row select option{
+  background-color:#111827!important;
+  color:#f1f5f9!important;
+}
+
+/* LZ-CLIENT-CONTACT-DOC-READABILITY: contraste para contato principal e ações de exclusão */
+.app.theme-dark .client-full .contact-row,
+.app.theme-dark .client-full .client-doc-row{
+  background:linear-gradient(145deg,#111827 0%,#0b1220 100%)!important;
+  color:#e5edf8!important;
+  border-color:rgba(65,145,255,.42)!important;
+}
+.app.theme-dark .client-full .contact-row .badge,
+.app.theme-dark .client-full .contact-row .badge.ok{
+  display:inline-flex!important;
+  align-items:center!important;
+  background:#16324f!important;
+  color:#eaf4ff!important;
+  border:1px solid #3b82f6!important;
+  -webkit-text-fill-color:#eaf4ff!important;
+}
+.app.theme-dark .client-full .contact-row button.danger,
+.app.theme-dark .client-full .client-doc-row button.danger{
+  background:#b91c1c!important;
+  background-color:#b91c1c!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  border:1px solid #ef4444!important;
+  opacity:1!important;
+  text-shadow:none!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.28)!important;
+}
+.app.theme-dark .client-full .contact-row button.danger:hover,
+.app.theme-dark .client-full .client-doc-row button.danger:hover{
+  background:#991b1b!important;
+  background-color:#991b1b!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+
+/* LZ-CONTACT-CONTRAST-FIX-2: seletor ancorado no modal real (#app é ID, não classe .app). */
+#app.theme-dark ~ #modal #clientContactsPane .contact-row,
+#app.theme-dark ~ #modalbox #clientContactsPane .contact-row,
+#app.theme-dark ~ #modal .client-full .contact-row,
+#app.theme-dark ~ #modalbox .client-full .contact-row,
+#app.theme-dark ~ #modal #clientDocsPane .client-doc-row,
+#app.theme-dark ~ #modalbox #clientDocsPane .client-doc-row{
+  background:#111827!important;
+  background-color:#111827!important;
+  color:#e5edf8!important;
+  border:1px solid rgba(65,145,255,.55)!important;
+}
+#app.theme-dark ~ #modal #clientContactsPane .contact-row .badge,
+#app.theme-dark ~ #modalbox #clientContactsPane .contact-row .badge,
+#app.theme-dark ~ #modal #clientContactsPane .contact-row .badge.ok,
+#app.theme-dark ~ #modalbox #clientContactsPane .contact-row .badge.ok{
+  background:#16324f!important;
+  background-color:#16324f!important;
+  color:#eaf4ff!important;
+  -webkit-text-fill-color:#eaf4ff!important;
+  border:1px solid #60a5fa!important;
+  opacity:1!important;
+}
+#app.theme-dark ~ #modal #clientContactsPane .contact-row button.danger,
+#app.theme-dark ~ #modalbox #clientContactsPane .contact-row button.danger,
+#app.theme-dark ~ #modal #clientDocsPane .client-doc-row button.danger,
+#app.theme-dark ~ #modalbox #clientDocsPane .client-doc-row button.danger{
+  background:#b91c1c!important;
+  background-color:#b91c1c!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  border:1px solid #ef4444!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
