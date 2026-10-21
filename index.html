@@ -1436,7 +1436,12 @@ function moduleCronCell(name,records,month,week){
  return {status,originalPlannedDate,currentDate};
 }
 function cronQuarterHtml(title,months,displayRecords){
- const records=(displayRecords||allTrainingRecords()).filter(t=>{if(months.includes(t.month))return true;const actual=monthWeekFromDate(t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate);return !!actual&&months.includes(actual.month)});if(!records.length)return '';
+ // O Cronograma inclui somente módulos cuja previsão principal está preenchida no Mapa.
+ // Datas/status de submódulos e meses legados nunca mantêm um módulo sem previsão na grade.
+ const normModule=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ');
+ const plannedModules=(cur?.m||[]).filter(m=>Array.isArray(m)&&m[0]&&m[2]?.plannedDate&&monthWeekFromDate(m[2].plannedDate)&&months.includes(monthWeekFromDate(m[2].plannedDate).month));
+ const plannedKeys=new Set(plannedModules.map(m=>normModule(m[0])));
+ const records=(displayRecords||allTrainingRecords()).filter(t=>plannedKeys.has(normModule(t.module||t.name)));if(!records.length)return '';
  let h='<div class="cron-grid"><table><thead><tr><th class="quarter-head" colspan="17">'+title+'</th></tr><tr><th rowspan="2" class="month-head" style="width:180px">MÓDULO</th><th rowspan="2" class="month-head" style="width:110px">RESPONSÁVEL</th>';
  months.forEach(m=>h+='<th class="month-head" colspan="6">'+m.toUpperCase()+'</th>');
  h+='</tr><tr>';months.forEach(()=>{for(let w=1;w<=5;w++)h+='<th class="week-head">S'+w+'</th>'});h+='</tr></thead><tbody>';
