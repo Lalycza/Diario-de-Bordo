@@ -60,6 +60,41 @@
  .status-legend{font-size:8px!important}
  .foot{font-size:7px!important;margin-top:10px!important;page-break-inside:avoid}
 }
+/* LZ-CLIENT-PRODUCTS-LIGHT-CONTRAST: contraste restrito à aba Produtos no modo claro */
+.app:not(.theme-dark) #clientProductsPane .client-product-row,
+.app:not(.theme-dark) #clientProductsPane .client-product-row[style]{
+  background:#fff!important;
+  color:#1f2937!important;
+  border-color:#d6dde8!important;
+}
+.app:not(.theme-dark) #clientProductsPane .client-product-label,
+.app:not(.theme-dark) #clientProductsPane .client-product-label span,
+.app:not(.theme-dark) #clientProductsPane .client-product-row label,
+.app:not(.theme-dark) #clientProductsPane .client-product-row .client-product-status-wrap{
+  color:#1f2937!important;
+}
+.app:not(.theme-dark) #clientProductsPane .client-product-row select,
+.app:not(.theme-dark) #clientProductsPane #clientProductPicker{
+  background:#fff!important;
+  color:#1f2937!important;
+  border-color:#cbd5e1!important;
+}
+.app:not(.theme-dark) #clientProductsPane .client-product-row select option,
+.app:not(.theme-dark) #clientProductsPane #clientProductPicker option{
+  background:#fff!important;
+  color:#1f2937!important;
+}
+.app:not(.theme-dark) #clientProductsPane .client-product-row .danger,
+.app:not(.theme-dark) #clientProductsPane .client-product-row .danger:hover,
+.app:not(.theme-dark) #clientProductsPane .client-product-row .danger:focus-visible{
+  background:#b91c1c!important;
+  color:#fff!important;
+  border-color:#991b1b!important;
+  opacity:1!important;
+}
+.app:not(.theme-dark) #clientProductsPane .client-product-picker .primary{
+  color:#fff!important;
+}
 .client-product-row{display:grid;grid-template-columns:minmax(0,1fr) 190px auto!important;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e5e9f0;border-radius:10px;margin:8px 0;background:#fff}.client-product-label{display:block!important;min-width:0;width:auto}.client-product-label span{display:block!important;min-width:0;width:auto;white-space:normal!important;word-break:normal!important;overflow-wrap:anywhere!important;font-weight:600;line-height:1.35}.client-product-status-wrap{min-width:0;width:100%}.client-product-status{width:100%;min-width:0}.client-product-row .danger{white-space:nowrap}@media(max-width:700px){.client-product-row{grid-template-columns:1fr!important}.client-product-status-wrap{width:100%}.client-product-row .danger{width:max-content}}
 /* LZ-CRONOGRAMA-FINAL-STATUS-FIX */
 .cron-grid table td.week-cell.status-andamento,
@@ -261,6 +296,55 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 @media(max-width:1050px){#dashboard .overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){#dashboard .top{flex-direction:column}#dashboard .overview-grid{gap:10px;margin:14px 0 16px}#dashboard .overview-grid .metric{min-height:98px;padding:16px}#dashboard .cards{grid-template-columns:1fr;gap:12px}#dashboard .card{padding:15px}#dashboard .listitem{align-items:flex-start;flex-direction:column;gap:8px}#dashboard .listitem .small{text-align:left}#dashboard .lz-dashboard-charts{grid-template-columns:1fr!important}}
 
+
+
+/* LZ-CLIENT-PRODUCTS-DARK-CARD: visual grafite consistente com o tema escuro */
+#clientProductsPane .client-product-row,
+#clientProductsPane .client-product-row[style]{
+  background:linear-gradient(145deg,#111827 0%,#0b1220 100%)!important;
+  color:#e5edf8!important;
+  border:1px solid rgba(65,145,255,.42)!important;
+  box-shadow:inset 0 0 0 1px rgba(65,145,255,.06)!important;
+}
+#clientProductsPane .client-product-row .client-product-label,
+#clientProductsPane .client-product-row .client-product-label *,
+#clientProductsPane .client-product-row .client-product-status-wrap,
+#clientProductsPane .client-product-row .client-product-status-wrap *,
+#clientProductsPane .client-product-row label,
+#clientProductsPane>div>b,
+#clientProductsPane>div>p{
+  color:#e5edf8!important;
+  opacity:1!important;
+}
+#clientProductsPane .client-product-row select,
+#clientProductsPane #clientProductPicker{
+  background-color:#151f2e!important;
+  color:#f1f5f9!important;
+  -webkit-text-fill-color:#f1f5f9!important;
+  border:1px solid #3b82f6!important;
+  border-radius:8px!important;
+  opacity:1!important;
+}
+#clientProductsPane .client-product-row select option,
+#clientProductsPane #clientProductPicker option{
+  background-color:#111827!important;
+  color:#f1f5f9!important;
+}
+#clientProductsPane .client-product-row button.danger,
+#clientProductsPane .client-product-row button.danger *,
+#clientProductsPane .client-product-row button.danger:hover,
+#clientProductsPane .client-product-row button.danger:focus-visible{
+  background-color:#991b1b!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  border:1px solid #ef4444!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+#clientProductsPane .client-product-picker .primary{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
