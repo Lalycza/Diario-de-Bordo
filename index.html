@@ -1419,7 +1419,9 @@ function moduleCronStatus(name,records){
  return 'PENDENTE';
 }
 function moduleCronCell(name,records,month,week){
- const candidates=records;
+ // A grade principal representa a previsão do módulo; datas de submódulos
+ // permanecem no histórico e não devem criar semana para o módulo sem previsão.
+ const candidates=records.filter(t=>!t.submodule);
  if(!candidates.length)return null;
  const actualOf=t=>monthWeekFromDate(t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate);
  const plannedOf=t=>monthWeekFromDate(t.plannedDateOriginal||t.plannedDate);
