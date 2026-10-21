@@ -420,6 +420,42 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
   color:#ffffff!important;
   -webkit-text-fill-color:#ffffff!important;
 }
+
+/* LZ-CONTACT-CONTRAST-FIX-2: seletor ancorado no modal real (#app é ID, não classe .app). */
+#app.theme-dark ~ #modal #clientContactsPane .contact-row,
+#app.theme-dark ~ #modalbox #clientContactsPane .contact-row,
+#app.theme-dark ~ #modal .client-full .contact-row,
+#app.theme-dark ~ #modalbox .client-full .contact-row,
+#app.theme-dark ~ #modal #clientDocsPane .client-doc-row,
+#app.theme-dark ~ #modalbox #clientDocsPane .client-doc-row{
+  background:#111827!important;
+  background-color:#111827!important;
+  color:#e5edf8!important;
+  border:1px solid rgba(65,145,255,.55)!important;
+}
+#app.theme-dark ~ #modal #clientContactsPane .contact-row .badge,
+#app.theme-dark ~ #modalbox #clientContactsPane .contact-row .badge,
+#app.theme-dark ~ #modal #clientContactsPane .contact-row .badge.ok,
+#app.theme-dark ~ #modalbox #clientContactsPane .contact-row .badge.ok{
+  background:#16324f!important;
+  background-color:#16324f!important;
+  color:#eaf4ff!important;
+  -webkit-text-fill-color:#eaf4ff!important;
+  border:1px solid #60a5fa!important;
+  opacity:1!important;
+}
+#app.theme-dark ~ #modal #clientContactsPane .contact-row button.danger,
+#app.theme-dark ~ #modalbox #clientContactsPane .contact-row button.danger,
+#app.theme-dark ~ #modal #clientDocsPane .client-doc-row button.danger,
+#app.theme-dark ~ #modalbox #clientDocsPane .client-doc-row button.danger{
+  background:#b91c1c!important;
+  background-color:#b91c1c!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  border:1px solid #ef4444!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
