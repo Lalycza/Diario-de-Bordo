@@ -297,41 +297,53 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 @media(max-width:720px){#dashboard .top{flex-direction:column}#dashboard .overview-grid{gap:10px;margin:14px 0 16px}#dashboard .overview-grid .metric{min-height:98px;padding:16px}#dashboard .cards{grid-template-columns:1fr;gap:12px}#dashboard .card{padding:15px}#dashboard .listitem{align-items:flex-start;flex-direction:column;gap:8px}#dashboard .listitem .small{text-align:left}#dashboard .lz-dashboard-charts{grid-template-columns:1fr!important}}
 
 
-/* LZ-CLIENT-PRODUCTS-LIGHT-CONTRAST-V2: seletor independente do wrapper .app */
+
+/* LZ-CLIENT-PRODUCTS-DARK-CARD: visual grafite consistente com o tema escuro */
 #clientProductsPane .client-product-row,
 #clientProductsPane .client-product-row[style]{
-  background-color:#ffffff!important;
-  color:#1f2937!important;
-  border:1px solid #cbd5e1!important;
+  background:linear-gradient(145deg,#111827 0%,#0b1220 100%)!important;
+  color:#e5edf8!important;
+  border:1px solid rgba(65,145,255,.42)!important;
+  box-shadow:inset 0 0 0 1px rgba(65,145,255,.06)!important;
 }
 #clientProductsPane .client-product-row .client-product-label,
 #clientProductsPane .client-product-row .client-product-label *,
 #clientProductsPane .client-product-row .client-product-status-wrap,
 #clientProductsPane .client-product-row .client-product-status-wrap *,
-#clientProductsPane .client-product-row label{
-  color:#1f2937!important;
+#clientProductsPane .client-product-row label,
+#clientProductsPane>div>b,
+#clientProductsPane>div>p{
+  color:#e5edf8!important;
   opacity:1!important;
 }
 #clientProductsPane .client-product-row select,
-#clientProductsPane #clientProductPicker,
-#clientProductsPane #clientProductPicker option,
-#clientProductsPane .client-product-row select option{
-  background-color:#ffffff!important;
-  color:#1f2937!important;
-  -webkit-text-fill-color:#1f2937!important;
-  border-color:#cbd5e1!important;
+#clientProductsPane #clientProductPicker{
+  background-color:#151f2e!important;
+  color:#f1f5f9!important;
+  -webkit-text-fill-color:#f1f5f9!important;
+  border:1px solid #3b82f6!important;
+  border-radius:8px!important;
   opacity:1!important;
+}
+#clientProductsPane .client-product-row select option,
+#clientProductsPane #clientProductPicker option{
+  background-color:#111827!important;
+  color:#f1f5f9!important;
 }
 #clientProductsPane .client-product-row button.danger,
 #clientProductsPane .client-product-row button.danger *,
 #clientProductsPane .client-product-row button.danger:hover,
 #clientProductsPane .client-product-row button.danger:focus-visible{
-  background-color:#b91c1c!important;
+  background-color:#991b1b!important;
   color:#ffffff!important;
   -webkit-text-fill-color:#ffffff!important;
-  border-color:#991b1b!important;
+  border:1px solid #ef4444!important;
   opacity:1!important;
   text-shadow:none!important;
+}
+#clientProductsPane .client-product-picker .primary{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
 }
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
