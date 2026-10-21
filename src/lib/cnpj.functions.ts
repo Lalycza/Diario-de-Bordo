@@ -22,7 +22,7 @@ export const lookupCnpj = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { cnpj: string }) => input)
   .handler(async ({ data }): Promise<DadosCnpj> => {
-    const cnpj = data.cnpj.replace(/\\D/g, "");
+    const cnpj = data.cnpj.replace(/[^0-9]/g, "");
     if (cnpj.length !== 14) throw new Error("Informe um CNPJ com 14 dígitos.");
 
     // Consulta no servidor para evitar dependência de CORS do navegador.
@@ -85,6 +85,10 @@ export const lookupCnpj = createServerFn({ method: "POST" })
       Array.isArray(cnaes) && cnaes[0] && typeof cnaes[0] === "object"
         ? (cnaes[0] as Record<string, unknown>)
         : null;
+    const logradouro = [
+      str("descricao_tipo_de_logradouro"),
+      str("logradouro"),
+    ].filter(Boolean).join(" ");
 
     return {
       cnpj,
@@ -92,8 +96,7 @@ export const lookupCnpj = createServerFn({ method: "POST" })
       nome_fantasia: str("nome_fantasia", "nomeFantasia"),
       email: str("email"),
       telefone: str("ddd_telefone_1", "telefone"),
-      logradouro: str("logradouro") ||
-        `${str("descricao_tipo_de_logradouro")} ${str("logradouro")}`.trim(),
+      logradouro,
       numero: str("numero"),
       complemento: str("complemento"),
       bairro: str("bairro"),
