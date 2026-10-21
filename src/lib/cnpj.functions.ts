@@ -22,62 +22,87 @@ export const lookupCnpj = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { cnpj: string }) => input)
   .handler(async ({ data }): Promise<DadosCnpj> => {
-    const cnpj = data.cnpj.replace(/\D/g, "");
+    const cnpj = data.cnpj.replace(/\\D/g, "");
     if (cnpj.length !== 14) throw new Error("Informe um CNPJ com 14 dígitos.");
 
+    // Consulta no servidor para evitar dependência de CORS do navegador.
+    // Se a fonte principal falhar, tenta um provedor alternativo.
     const endpoints = [
-      `https://brasilapi.com.br/cnpj/v1/${cnpj}`,
-      `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`,
-    ];
+      { url: `https://brasilapi.com.br/cnpj/v1/${cnpj}`, provider: "brasilapi" },
+      { url: `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, provider: "brasilapi" },
+      { url: `https://kitana.opencnpj.com/cnpj/${cnpj}`, provider: "opencnpj" },
+    ] as const;
 
-    let response: Response | null = null;
-    let lastStatus = 0;
+    let payload: Record<string, unknown> | null = null;
+    let sawNotFound = false;
 
-    for (const url of endpoints) {
+    for (const endpoint of endpoints) {
       try {
-        const candidate = await fetch(url, {
+        const response = await fetch(endpoint.url, {
           method: "GET",
           headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(8000),
           cache: "no-store",
         });
-        if (candidate.ok) {
-          response = candidate;
-          break;
+
+        if (response.status === 404) {
+          sawNotFound = true;
+          continue;
         }
-        lastStatus = candidate.status;
+        if (!response.ok) continue;
+
+        const body = (await response.json()) as Record<string, unknown>;
+        if (endpoint.provider === "opencnpj") {
+          if (body.success !== true || !body.data || typeof body.data !== "object") continue;
+          payload = body.data as Record<string, unknown>;
+        } else {
+          payload = body;
+        }
+        break;
       } catch {
-        // tenta o próximo endpoint
+        // Falha de rede/timeout em um provedor não impede tentar o próximo.
       }
     }
 
-    if (!response) {
+    if (!payload) {
       throw new Error(
-        lastStatus === 404
+        sawNotFound
           ? "CNPJ não encontrado na base de consulta."
-          : "Não foi possível consultar o CNPJ agora. Tente novamente.",
+          : "Não foi possível consultar o CNPJ agora. Tente novamente em instantes.",
       );
     }
-    const j = (await response.json()) as Record<string, unknown>;
-    const str = (key: string) => {
-      const v = j[key];
-      return typeof v === "string" ? v : typeof v === "number" ? String(v) : "";
+
+    const str = (...keys: string[]) => {
+      for (const key of keys) {
+        const value = payload?.[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+        if (typeof value === "number") return String(value);
+      }
+      return "";
     };
+    const cnaes = payload.cnaes;
+    const firstCnae =
+      Array.isArray(cnaes) && cnaes[0] && typeof cnaes[0] === "object"
+        ? (cnaes[0] as Record<string, unknown>)
+        : null;
 
     return {
       cnpj,
-      razao_social: str("razao_social"),
-      nome_fantasia: str("nome_fantasia"),
+      razao_social: str("razao_social", "razaoSocial"),
+      nome_fantasia: str("nome_fantasia", "nomeFantasia"),
       email: str("email"),
-      telefone: str("ddd_telefone_1"),
-      logradouro: `${str("descricao_tipo_de_logradouro")} ${str("logradouro")}`.trim(),
+      telefone: str("ddd_telefone_1", "telefone"),
+      logradouro: str("logradouro") ||
+        `${str("descricao_tipo_de_logradouro")} ${str("logradouro")}`.trim(),
       numero: str("numero"),
       complemento: str("complemento"),
       bairro: str("bairro"),
       municipio: str("municipio"),
       uf: str("uf"),
       cep: str("cep"),
-      situacao_cadastral: str("descricao_situacao_cadastral"),
-      atividade_principal: str("cnae_fiscal_descricao"),
+      situacao_cadastral: str("descricao_situacao_cadastral", "situacaoCadastral"),
+      atividade_principal:
+        str("cnae_fiscal_descricao") ||
+        (typeof firstCnae?.descricao === "string" ? firstCnae.descricao : ""),
     };
   });
