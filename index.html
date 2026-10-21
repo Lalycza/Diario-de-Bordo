@@ -1216,21 +1216,15 @@ async function hydrateFromSupabase(){
     const grouped={};
     for(const x of (tr.data||[])){
       const pid=projectByDb.get(x.project_id);
-      const project=ps.find(v=>String(v.id)===String(pid));
-      const moduleId=String(x.module_id||'');
-      // Usa o vínculo persistido do Mapa (IDs do Supabase), sem depender
-      // da representação visual/legada do módulo em project.m.
-      const moduleLink=(pm.data||[]).find(v=>String(v.project_id)===String(x.project_id)&&String(v.module_id)===moduleId);
-      const isExcluded=excludedProjectModuleKeys.has(String(x.project_id)+'::'+moduleId);
-      if(!pid||!project||!moduleLink||!moduleLink.planned_training_date||isExcluded)continue;
-      const m=modulesData.find(v=>String(v.id)===moduleId);
-      if(!m)continue;
-      const sm=(su.data||[]).find(v=>String(v.id)===String(x.submodule_id||''));
-      if(x.submodule_id&&!sm)continue;
+      if(!pid)continue;
+      const moduleKey=String(x.project_id)+'::'+String(x.module_id||'');
+      if(excludedProjectModuleKeys.has(moduleKey))continue;
       if(!grouped[pid])grouped[pid]=[];
-      grouped[pid].push({module:m.name||'',submodule:sm?.name||'',moduleDbId:x.module_id||null,submoduleDbId:x.submodule_id||null,subject:'',month:x.planned_month?monthNames[Number(x.planned_month)-1]:'',week:x.planned_week||null,plannedDate:x.planned_date||'',plannedDateOriginal:x.original_planned_date||x.planned_date||'',rescheduledDate:x.rescheduled_date||'',trainingDate:x.realization_date||x.training_start_date||'',trainingStartDate:x.training_start_date||x.realization_date||'',trainingEndDate:x.training_completion_date||'',status:x.status||'Pendente',responsible:x.responsible||'',homologationDate:x.homologation_date||'',homologationResponsible:x.homologation_responsible||'',plannedHistory:[]});
+      const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
+      const sm=(su.data||[]).find(v=>String(v.id)===x.submodule_id);
+      grouped[pid].push({module:m?.name||'',submodule:sm?.name||'',moduleDbId:x.module_id||null,submoduleDbId:x.submodule_id||null,subject:'',month:x.planned_month?monthNames[Number(x.planned_month)-1]:'',week:x.planned_week||null,plannedDate:x.planned_date||'',plannedDateOriginal:x.original_planned_date||x.planned_date||'',rescheduledDate:x.rescheduled_date||'',trainingDate:x.realization_date||x.training_start_date||'',trainingStartDate:x.training_start_date||x.realization_date||'',trainingEndDate:x.training_completion_date||'',status:x.status||'Pendente',responsible:x.responsible||'',homologationDate:x.homologation_date||'',homologationResponsible:x.homologation_responsible||'',plannedHistory:[]});
     }
-    ps.forEach(p=>{if(grouped[p.id]?.length)p.t=grouped[p.id];else p.t=[]});
+    ps.forEach(p=>{if(grouped[p.id]?.length)p.t=grouped[p.id]});
     persistState();
     render();
   }catch(e){
