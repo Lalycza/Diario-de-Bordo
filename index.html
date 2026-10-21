@@ -296,6 +296,43 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 @media(max-width:1050px){#dashboard .overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){#dashboard .top{flex-direction:column}#dashboard .overview-grid{gap:10px;margin:14px 0 16px}#dashboard .overview-grid .metric{min-height:98px;padding:16px}#dashboard .cards{grid-template-columns:1fr;gap:12px}#dashboard .card{padding:15px}#dashboard .listitem{align-items:flex-start;flex-direction:column;gap:8px}#dashboard .listitem .small{text-align:left}#dashboard .lz-dashboard-charts{grid-template-columns:1fr!important}}
 
+
+/* LZ-CLIENT-PRODUCTS-LIGHT-CONTRAST-V2: seletor independente do wrapper .app */
+#clientProductsPane .client-product-row,
+#clientProductsPane .client-product-row[style]{
+  background-color:#ffffff!important;
+  color:#1f2937!important;
+  border:1px solid #cbd5e1!important;
+}
+#clientProductsPane .client-product-row .client-product-label,
+#clientProductsPane .client-product-row .client-product-label *,
+#clientProductsPane .client-product-row .client-product-status-wrap,
+#clientProductsPane .client-product-row .client-product-status-wrap *,
+#clientProductsPane .client-product-row label{
+  color:#1f2937!important;
+  opacity:1!important;
+}
+#clientProductsPane .client-product-row select,
+#clientProductsPane #clientProductPicker,
+#clientProductsPane #clientProductPicker option,
+#clientProductsPane .client-product-row select option{
+  background-color:#ffffff!important;
+  color:#1f2937!important;
+  -webkit-text-fill-color:#1f2937!important;
+  border-color:#cbd5e1!important;
+  opacity:1!important;
+}
+#clientProductsPane .client-product-row button.danger,
+#clientProductsPane .client-product-row button.danger *,
+#clientProductsPane .client-product-row button.danger:hover,
+#clientProductsPane .client-product-row button.danger:focus-visible{
+  background-color:#b91c1c!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  border-color:#991b1b!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
