@@ -4225,5 +4225,190 @@ document.addEventListener('click',function(e){
 }
 </style>
 
+
+<script id="implanta-sidebar-quick-access-2026-10-22">
+/* Atalhos por ícone no menu recolhido; expande a navegação antes de abrir a seção. */
+(function(){
+  const side=document.querySelector('.side');
+  if(!side||side.dataset.quickAccessReady==='1')return;
+  side.dataset.quickAccessReady='1';
+  const icons=[
+    [/projetos/i,'▦'],
+    [/produtos/i,'◇'],
+    [/clientes/i,'♧'],
+    [/usuários|usuarios|cadastro de usuários/i,'♙'],
+    [/sistema/i,'⚙'],
+    [/gerencial/i,'◫'],
+    [/dashboard/i,'◉']
+  ];
+  function decorate(){
+    side.querySelectorAll('.menu-toggle').forEach(button=>{
+      if(button.dataset.quickIconReady==='1')return;
+      const section=button.closest('.menu-accordion');
+      const child=section?.querySelector('.menu-children');
+      const label=(button.textContent||'').replace(/[▸▾▶▼]/g,'').trim();
+      const icon=(icons.find(([pattern])=>pattern.test(label))||[])[1]||'•';
+      const span=document.createElement('span');
+      span.className='sidebar-quick-icon';
+      span.setAttribute('aria-hidden','true');
+      span.textContent=icon;
+      const arrow=button.querySelector('.menu-arrow');
+      if(arrow)button.insertBefore(span,arrow);else button.appendChild(span);
+      button.dataset.sidebarLabel=label;
+      button.title=label;
+      button.setAttribute('aria-label',label);
+      button.dataset.quickIconReady='1';
+    });
+  }
+  decorate();
+  new MutationObserver(decorate).observe(side,{childList:true,subtree:true});
+  side.addEventListener('click',event=>{
+    const button=event.target.closest?.('.menu-toggle');
+    if(button&&side.classList.contains('sidebar-collapsed')){
+      side.querySelector('.sidebar-collapse-toggle')?.click();
+    }
+  },true);
+})();
+</script>
+
 </body></html>
+
+
+
+<style id="implanta-sidebar-sticky-quick-access-2026-10-22">
+/* Navegação sempre acessível no desktop; rola internamente quando houver muitos itens. */
+@media(min-width:761px){
+  #app .side{
+    position:sticky!important;
+    top:0!important;
+    align-self:flex-start!important;
+    height:100vh!important;
+    max-height:100vh!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(105,166,255,.28) transparent;
+  }
+  #app .side:not(.sidebar-collapsed) .sidebar-collapse-toggle{
+    right:8px!important;
+  }
+  #app .side:not(.sidebar-collapsed) .brand-link{
+    padding-right:32px!important;
+  }
+  #app .side.sidebar-collapsed{
+    flex-basis:58px!important;
+    width:58px!important;
+    padding:52px 7px 14px!important;
+  }
+  #app .side.sidebar-collapsed .menu-accordion{
+    display:block!important;
+    margin:5px 0!important;
+    padding:0!important;
+  }
+  #app .side.sidebar-collapsed .menu-accordion .menu-toggle{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    position:relative!important;
+    width:42px!important;
+    min-width:42px!important;
+    height:42px!important;
+    min-height:42px!important;
+    margin:0 auto!important;
+    padding:0!important;
+    overflow:visible!important;
+    border:1px solid rgba(105,166,255,.18)!important;
+    border-radius:12px!important;
+    background:transparent!important;
+    color:transparent!important;
+    font-size:0!important;
+    text-align:center!important;
+    box-shadow:none!important;
+  }
+  #app .side.sidebar-collapsed .menu-accordion .menu-toggle:hover,
+  #app .side.sidebar-collapsed .menu-accordion .menu-toggle:focus-visible{
+    background:rgba(66,137,230,.14)!important;
+    border-color:rgba(105,166,255,.52)!important;
+    box-shadow:0 5px 16px rgba(0,0,0,.18)!important;
+    outline-offset:2px;
+  }
+  #app .side.sidebar-collapsed .menu-accordion .menu-toggle .sidebar-quick-icon{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:100%!important;
+    height:100%!important;
+    color:#cfe1fb!important;
+    font-size:19px!important;
+    font-weight:650!important;
+    line-height:1!important;
+  }
+  #app .side.sidebar-collapsed .menu-accordion .menu-toggle .menu-arrow{
+    display:none!important;
+  }
+  #app .side.sidebar-collapsed .menu-accordion .menu-children{
+    display:none!important;
+  }
+  #app .side.sidebar-collapsed .sidebar-collapse-toggle{
+    right:8px!important;
+    top:12px!important;
+  }
+  #app .side.sidebar-collapsed .sidebar-collapse-icon{
+    transform:rotate(180deg)!important;
+  }
+}
+/* O controle existente de subir/descer ganha acabamento premium sem mudar sua função. */
+#lzScrollNav{
+  gap:6px!important;
+  padding:5px!important;
+  border:1px solid rgba(105,166,255,.25)!important;
+  border-radius:999px!important;
+  background:rgba(12,19,30,.76)!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.20)!important;
+  backdrop-filter:blur(12px)!important;
+  -webkit-backdrop-filter:blur(12px)!important;
+}
+#lzScrollNav button{
+  width:34px!important;
+  height:34px!important;
+  border-radius:50%!important;
+  border:1px solid rgba(105,166,255,.28)!important;
+  background:linear-gradient(145deg,#1b2a40,#111b2b)!important;
+  color:#eaf3ff!important;
+  font-size:18px!important;
+  font-weight:700!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease!important;
+}
+#lzScrollNav button:hover{
+  transform:translateY(-1px) scale(1.04)!important;
+  border-color:rgba(105,166,255,.72)!important;
+  background:linear-gradient(145deg,#243c5d,#15243a)!important;
+}
+#lzScrollNav button:focus-visible{
+  outline:2px solid #69aaff!important;
+  outline-offset:2px!important;
+}
+.app:not(.theme-dark) #lzScrollNav{
+  background:rgba(255,255,255,.88)!important;
+  border-color:#d2deee!important;
+  box-shadow:0 8px 24px rgba(29,58,96,.15)!important;
+}
+.app:not(.theme-dark) #lzScrollNav button{
+  background:linear-gradient(145deg,#fff,#edf4fc)!important;
+  color:#24466f!important;
+  border-color:#c6d8ef!important;
+}
+.app:not(.theme-dark) #lzScrollNav button:hover{
+  background:linear-gradient(145deg,#eaf3ff,#dceaff)!important;
+  border-color:#83b3f0!important;
+}
+@media(max-width:760px){
+  #lzScrollNav{padding:4px!important;gap:5px!important}
+  #lzScrollNav button{width:32px!important;height:32px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #lzScrollNav button{transition:none!important}
+}
+</style>
 
