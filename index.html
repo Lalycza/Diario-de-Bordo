@@ -1187,8 +1187,12 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
   bottom:15px!important;
   background:linear-gradient(180deg,#087be0 0%,#5aaeff 55%,rgba(90,174,255,.18) 100%)!important;
 }
-.app:not(.theme-dark) #dashboard #dashboardBody>.overview-grid>.metric b{
+.app:not(.theme-dark) #dashboard #dashboardBody>.overview-grid>.metric b,
+.app:not(.theme-dark) #dashboard #dashboardBody .overview-grid .metric strong,
+.app:not(.theme-dark) #dashboard #dashboardBody .overview-grid .metric .value,
+.app:not(.theme-dark) #dashboard #dashboardBody .overview-grid .metric .metric-value{
   color:#152a46!important;
+  -webkit-text-fill-color:#152a46!important;
   text-shadow:0 1px 0 rgba(255,255,255,.65)!important;
 }
 .app:not(.theme-dark) #dashboard #dashboardBody>.overview-grid>.metric span{
