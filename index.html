@@ -1456,6 +1456,252 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
   .app .main .catalog-module,.app .main .contact-row,.app .main .client-product,
   .app .main input,.app .main select,.app .main textarea,.app .main button{transition:none!important}
 }
+
+/* Refinamento estrutural v2 — aproxima as telas internas do padrão do Dashboard Gerencial. */
+/* Cabeçalhos das áreas e do projeto: hierarquia, respiro e identidade sem mexer no conteúdo. */
+.app .main section:not(.hidden) > .top,
+.app .main #proj > .top{
+  position:relative;
+  gap:18px!important;
+  align-items:center!important;
+  padding:20px 22px!important;
+  margin:0 0 18px!important;
+  border:1px solid rgba(102,151,211,.22)!important;
+  border-radius:18px!important;
+  background:linear-gradient(120deg,rgba(35,105,190,.10),rgba(107,163,225,.035) 58%,transparent)!important;
+}
+.app .main section:not(.hidden) > .top h1,
+.app .main #proj > .top h1{
+  font-size:clamp(22px,2vw,29px)!important;
+  font-weight:780!important;
+  letter-spacing:-.04em!important;
+  line-height:1.15!important;
+  margin:0 0 6px!important;
+}
+.app .main section:not(.hidden) > .top p,
+.app .main #proj > .top p{
+  line-height:1.55!important;
+}
+.app .main #proj > button.secondary:first-child{
+  margin:0 0 12px!important;
+  border-radius:999px!important;
+  padding:9px 15px!important;
+}
+.app:not(.theme-dark) .main section:not(.hidden) > .top,
+.app:not(.theme-dark) .main #proj > .top{
+  background:linear-gradient(115deg,#e7f1ff 0%,#f4f8fe 52%,#fbfdff 100%)!important;
+  border-color:#c9dbf1!important;
+  box-shadow:0 9px 24px rgba(37,77,129,.075),inset 0 1px 0 #fff!important;
+}
+.app.theme-dark .main section:not(.hidden) > .top,
+.app.theme-dark .main #proj > .top{
+  background:linear-gradient(115deg,#1d3048 0%,#182332 58%,#151d29 100%)!important;
+  border-color:rgba(91,157,235,.25)!important;
+  box-shadow:0 10px 26px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+/* Navegação por abas dentro do projeto: formato de trilho premium e estados inequívocos. */
+.app .main #proj > .tabs{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:7px!important;
+  align-items:center!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:8px!important;
+  margin:0 0 18px!important;
+  border:1px solid rgba(103,151,210,.24)!important;
+  border-radius:15px!important;
+  scrollbar-width:thin;
+  -webkit-overflow-scrolling:touch;
+}
+.app .main #proj > .tabs button{
+  flex:0 0 auto!important;
+  min-height:40px!important;
+  padding:10px 14px!important;
+  border:1px solid transparent!important;
+  border-radius:10px!important;
+  font-size:12px!important;
+  font-weight:700!important;
+  letter-spacing:.005em!important;
+  white-space:nowrap!important;
+  box-shadow:none!important;
+}
+.app:not(.theme-dark) .main #proj > .tabs{
+  background:linear-gradient(180deg,#edf4fd,#e5eef9)!important;
+  border-color:#cbdcf0!important;
+}
+.app:not(.theme-dark) .main #proj > .tabs button{
+  background:transparent!important;
+  color:#4a607a!important;
+}
+.app:not(.theme-dark) .main #proj > .tabs button:hover{
+  background:#fff!important;
+  color:#1e4f87!important;
+  border-color:#c7d9ef!important;
+}
+.app:not(.theme-dark) .main #proj > .tabs button.active{
+  background:linear-gradient(135deg,#fff,#f4f8ff)!important;
+  color:#1559a4!important;
+  border-color:#a9c8ed!important;
+  box-shadow:0 3px 10px rgba(38,91,154,.12),inset 0 1px 0 #fff!important;
+}
+.app.theme-dark .main #proj > .tabs{
+  background:linear-gradient(180deg,#111a27,#151f2e)!important;
+  border-color:#2c4059!important;
+}
+.app.theme-dark .main #proj > .tabs button{
+  background:transparent!important;
+  color:#b7c7db!important;
+}
+.app.theme-dark .main #proj > .tabs button:hover{
+  background:#202f43!important;
+  color:#f3f7ff!important;
+  border-color:#354e6d!important;
+}
+.app.theme-dark .main #proj > .tabs button.active{
+  background:linear-gradient(135deg,#244b78,#1c3553)!important;
+  color:#fff!important;
+  border-color:#4b91e6!important;
+  box-shadow:0 4px 13px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+/* Cards, indicadores e painéis de conteúdo: mais próximos da profundidade do Dashboard aprovado. */
+.app .main #proj .project-dashboard-card,
+.app .main #proj .metric,
+.app .main #proj .overview-grid > *,
+.app .main #proj .dashboard-summary > span{
+  position:relative!important;
+  overflow:hidden!important;
+  border-radius:16px!important;
+  padding:17px!important;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important;
+}
+.app .main #proj .project-dashboard-card::before,
+.app .main #proj .metric::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0 auto 0 0!important;
+  width:3px!important;
+  background:linear-gradient(180deg,#62b1ff,#3478d4)!important;
+  opacity:.9!important;
+}
+.app:not(.theme-dark) .main #proj .project-dashboard-card,
+.app:not(.theme-dark) .main #proj .metric,
+.app:not(.theme-dark) .main #proj .overview-grid > *,
+.app:not(.theme-dark) .main #proj .dashboard-summary > span{
+  background:linear-gradient(145deg,#ffffff 0%,#f2f7fe 100%)!important;
+  border:1px solid #d4e2f2!important;
+  box-shadow:0 7px 20px rgba(34,76,130,.07),inset 0 1px 0 #fff!important;
+  color:#263b55!important;
+}
+.app:not(.theme-dark) .main #proj .project-dashboard-card b,
+.app:not(.theme-dark) .main #proj .metric b,
+.app:not(.theme-dark) .main #proj .dashboard-summary b{
+  color:#174f8d!important;
+  font-size:clamp(23px,2vw,30px)!important;
+  font-weight:800!important;
+  letter-spacing:-.04em!important;
+}
+.app:not(.theme-dark) .main #proj .project-dashboard-card span,
+.app:not(.theme-dark) .main #proj .metric span{
+  color:#637891!important;
+  font-weight:600!important;
+}
+.app.theme-dark .main #proj .project-dashboard-card,
+.app.theme-dark .main #proj .metric,
+.app.theme-dark .main #proj .overview-grid > *,
+.app.theme-dark .main #proj .dashboard-summary > span{
+  background:linear-gradient(145deg,#202d3e 0%,#172231 100%)!important;
+  border:1px solid #31465f!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.035)!important;
+  color:#e7f0fc!important;
+}
+.app.theme-dark .main #proj .project-dashboard-card b,
+.app.theme-dark .main #proj .metric b,
+.app.theme-dark .main #proj .dashboard-summary b{
+  color:#a9d3ff!important;
+  font-size:clamp(23px,2vw,30px)!important;
+  font-weight:800!important;
+  letter-spacing:-.04em!important;
+}
+.app.theme-dark .main #proj .project-dashboard-card span,
+.app.theme-dark .main #proj .metric span{
+  color:#b7c7da!important;
+  font-weight:600!important;
+}
+.app .main #proj .project-dashboard-card:hover,
+.app .main #proj .metric:hover{
+  transform:translateY(-2px)!important;
+}
+.app:not(.theme-dark) .main #proj .project-dashboard-card:hover,
+.app:not(.theme-dark) .main #proj .metric:hover{
+  border-color:#a8c7eb!important;
+  box-shadow:0 12px 26px rgba(34,76,130,.12)!important;
+}
+.app.theme-dark .main #proj .project-dashboard-card:hover,
+.app.theme-dark .main #proj .metric:hover{
+  border-color:#4b83c2!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.24)!important;
+}
+/* Painéis de formulário, tabelas e conteúdo em todas as abas do projeto. */
+.app:not(.theme-dark) .main #proj #cron,
+.app:not(.theme-dark) .main #proj #map,
+.app:not(.theme-dark) .main #proj #diary,
+.app:not(.theme-dark) .main #proj #docs,
+.app:not(.theme-dark) .main #proj #emails,
+.app:not(.theme-dark) .main #proj #handoff,
+.app:not(.theme-dark) .main #proj #homologacao,
+.app:not(.theme-dark) .main #proj #pesquisa,
+.app:not(.theme-dark) .main #proj #demandas,
+.app:not(.theme-dark) .main #proj #hours{
+  color:#263950;
+}
+.app:not(.theme-dark) .main #proj .section,
+.app:not(.theme-dark) .main #proj .panel,
+.app:not(.theme-dark) .main #proj .task-form,
+.app:not(.theme-dark) .main #proj .table-wrap,
+.app:not(.theme-dark) .main #proj .project-finalized{
+  border-radius:15px!important;
+  border-color:#d0deef!important;
+  box-shadow:0 7px 20px rgba(35,66,108,.055),inset 0 1px 0 rgba(255,255,255,.9)!important;
+}
+.app.theme-dark .main #proj .section,
+.app.theme-dark .main #proj .panel,
+.app.theme-dark .main #proj .task-form,
+.app.theme-dark .main #proj .table-wrap,
+.app.theme-dark .main #proj .project-finalized{
+  border-radius:15px!important;
+  border-color:#2e4057!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+/* Áreas gerais: cartões de listagem e títulos com hierarquia consistente. */
+.app .main .cards > .card,
+.app .main .cards > .listitem,
+.app .main .admin-grid > *,
+.app .main .catalog-module,
+.app .main .client-pane,
+.app .main .doc-card{
+  border-radius:15px!important;
+}
+.app:not(.theme-dark) .main .cards > .card,
+.app:not(.theme-dark) .main .cards > .listitem,
+.app:not(.theme-dark) .main .admin-grid > *{
+  box-shadow:0 7px 20px rgba(35,66,108,.07),inset 0 1px 0 rgba(255,255,255,.9)!important;
+}
+.app.theme-dark .main .cards > .card,
+.app.theme-dark .main .cards > .listitem,
+.app.theme-dark .main .admin-grid > *{
+  box-shadow:0 8px 22px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+@media(max-width:760px){
+  .app .main section:not(.hidden) > .top,
+  .app .main #proj > .top{padding:15px!important;border-radius:14px!important}
+  .app .main #proj > .tabs{margin-left:-2px!important;margin-right:-2px!important}
+  .app .main #proj > .tabs button{min-height:38px!important;padding:9px 12px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .app .main #proj .project-dashboard-card,.app .main #proj .metric{transition:none!important}
+}
+
 </style>
 
 </head><body>
