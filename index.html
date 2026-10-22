@@ -1938,6 +1938,51 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
 @media(max-width:600px){#home #list.cards{gap:12px!important}#home #list.cards>.card{min-height:0;padding:17px 15px 16px 19px!important}#home #list.cards>.card>.row>b{font-size:16px!important}}
 @media(prefers-reduced-motion:reduce){#home #list.cards>.card{transition:none!important}#home #list.cards>.card:hover{transform:none!important}}
 </style>
+<style id="lz-project-summary-metrics-v2">
+/* Indicadores da carteira de projetos: identidade própria, isolada do Dashboard Gerencial. */
+#home #list>.overview-grid{gap:13px!important;margin:18px 0 22px!important}
+#home #list>.overview-grid>.metric{
+ --project-metric:#347fe3;--project-metric-rgb:52,127,227;
+ position:relative!important;isolation:isolate;overflow:hidden!important;
+ min-height:112px;padding:19px 17px 16px 20px!important;gap:8px!important;
+ border:1px solid rgba(var(--project-metric-rgb),.28)!important;border-radius:16px!important;
+ background:linear-gradient(140deg,rgba(var(--project-metric-rgb),.12) 0%,rgba(var(--project-metric-rgb),.055) 58%,#fff 100%)!important;
+ box-shadow:0 5px 16px rgba(25,52,88,.07),inset 0 1px 0 rgba(255,255,255,.92)!important;
+ transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+#home #list>.overview-grid>.metric:before{
+ content:"";position:absolute;z-index:-1;left:0;top:0;bottom:0;width:4px;
+ background:linear-gradient(180deg,var(--project-metric),rgba(var(--project-metric-rgb),.28));
+}
+#home #list>.overview-grid>.metric:after{
+ content:"";position:absolute;z-index:-1;width:105px;height:105px;right:-34px;top:-39px;
+ border-radius:50%;background:radial-gradient(circle,rgba(var(--project-metric-rgb),.16),transparent 72%);pointer-events:none;
+}
+#home #list>.overview-grid>.metric:nth-child(1){--project-metric:#2878dc;--project-metric-rgb:40,120,220}
+#home #list>.overview-grid>.metric:nth-child(2){--project-metric:#168b70;--project-metric-rgb:22,139,112}
+#home #list>.overview-grid>.metric:nth-child(3){--project-metric:#16865d;--project-metric-rgb:22,134,93}
+#home #list>.overview-grid>.metric:nth-child(4){--project-metric:#bd8419;--project-metric-rgb:189,132,25}
+#home #list>.overview-grid>.metric:nth-child(5){--project-metric:#7960d8;--project-metric-rgb:121,96,216}
+#home #list>.overview-grid>.metric>b{
+ position:relative;z-index:1;color:var(--project-metric)!important;
+ font-size:clamp(27px,2.2vw,34px)!important;font-weight:800!important;line-height:1.05!important;letter-spacing:-.035em;
+}
+#home #list>.overview-grid>.metric>span{
+ position:relative;z-index:1;color:#43546b!important;font-size:12px!important;font-weight:650!important;line-height:1.4;
+}
+#home #list>.overview-grid>.metric:hover{transform:translateY(-3px);border-color:rgba(var(--project-metric-rgb),.52)!important;box-shadow:0 11px 24px rgba(25,52,88,.12)!important}
+.app.theme-dark #home #list>.overview-grid>.metric{
+ background:linear-gradient(140deg,rgba(var(--project-metric-rgb),.2) 0%,rgba(var(--project-metric-rgb),.09) 60%,#151d2b 100%)!important;
+ border-color:rgba(var(--project-metric-rgb),.38)!important;
+ box-shadow:0 8px 22px rgba(0,0,0,.19),inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.app.theme-dark #home #list>.overview-grid>.metric>b{color:color-mix(in srgb,var(--project-metric) 70%,#fff)!important}
+.app.theme-dark #home #list>.overview-grid>.metric>span{color:#d0dced!important}
+.app.theme-dark #home #list>.overview-grid>.metric:hover{box-shadow:0 12px 28px rgba(0,0,0,.27)!important}
+@media(max-width:600px){#home #list>.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}#home #list>.overview-grid>.metric{min-height:100px;padding:15px 12px 13px 16px!important}#home #list>.overview-grid>.metric>b{font-size:27px!important}#home #list>.overview-grid>.metric>span{font-size:11px!important}}
+@media(prefers-reduced-motion:reduce){#home #list>.overview-grid>.metric{transition:none!important}#home #list>.overview-grid>.metric:hover{transform:none!important}}
+</style>
+
 
 
 </head><body>
