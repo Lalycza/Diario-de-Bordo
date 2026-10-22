@@ -1457,6 +1457,124 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
   .app .main input,.app .main select,.app .main textarea,.app .main button{transition:none!important}
 }
 
+
+/* Dashboard operacional do projeto — refinamento exclusivo do tema claro. */
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-grid{
+  gap:13px!important;
+  margin:16px 0 20px!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card{
+  position:relative!important;
+  isolation:isolate!important;
+  min-height:118px!important;
+  padding:19px 17px 17px 20px!important;
+  gap:9px!important;
+  border:1px solid #d5e3f3!important;
+  border-radius:17px!important;
+  background:linear-gradient(145deg,#ffffff 0%,#f8fbff 54%,#edf4fd 100%)!important;
+  box-shadow:0 8px 22px rgba(34,76,130,.075),inset 0 1px 0 #fff!important;
+  color:#203650!important;
+  overflow:hidden!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card::before{
+  content:""!important;
+  position:absolute!important;
+  z-index:-1!important;
+  inset:0 auto 0 0!important;
+  width:4px!important;
+  background:linear-gradient(180deg,#5ca9f5,#2c70c4)!important;
+  opacity:1!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card::after{
+  content:""!important;
+  position:absolute!important;
+  z-index:-1!important;
+  width:100px!important;
+  height:100px!important;
+  right:-34px!important;
+  top:-43px!important;
+  border-radius:50%!important;
+  background:radial-gradient(circle,rgba(94,157,226,.14),rgba(94,157,226,0) 72%)!important;
+  pointer-events:none!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card b{
+  display:block!important;
+  font-size:clamp(27px,2.1vw,34px)!important;
+  line-height:1.08!important;
+  font-weight:820!important;
+  letter-spacing:-.045em!important;
+  color:#173f70!important;
+  font-variant-numeric:tabular-nums!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card span{
+  display:block!important;
+  max-width:25ch!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+  font-weight:650!important;
+  letter-spacing:.005em!important;
+  color:#526983!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.alert{
+  border-left:1px solid #e7c7c5!important;
+  background:linear-gradient(145deg,#fff 0%,#fff8f7 56%,#fbeeed 100%)!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.alert::before{
+  background:linear-gradient(180deg,#e68b83,#bf4c48)!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.alert b{color:#a43e3a!important}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.alert span{color:#825c5b!important}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.golive,
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.pending{
+  border-left:1px solid #eadbb8!important;
+  background:linear-gradient(145deg,#fff 0%,#fffaf0 56%,#f9f0d9 100%)!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.golive::before,
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.pending::before{
+  background:linear-gradient(180deg,#e8c56f,#bb8b2f)!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.golive b,
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.pending b{color:#79571b!important}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.golive span,
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.pending span{color:#806b45!important}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.hom{
+  border-left:1px solid #dfd1f0!important;
+  background:linear-gradient(145deg,#fff 0%,#fbf8ff 56%,#f0e9fb 100%)!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.hom::before{
+  background:linear-gradient(180deg,#b69be5,#7d5ab8)!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.hom b{color:#64448f!important}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.hom span{color:#706184!important}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.replan{
+  border-left:1px solid #d4deea!important;
+  background:linear-gradient(145deg,#fff 0%,#f8faff 56%,#eaf0f8 100%)!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.replan::before{
+  background:linear-gradient(180deg,#9aaec8,#607c9f)!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.replan b{color:#3d5879!important}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card.replan span{color:#596e87!important}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card:hover,
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card:focus-visible{
+  transform:translateY(-3px)!important;
+  border-color:#a8c8eb!important;
+  box-shadow:0 14px 28px rgba(34,76,130,.13),inset 0 1px 0 #fff!important;
+}
+.app:not(.theme-dark) .main #projectDashboard .project-dashboard-card:focus-visible{
+  outline:3px solid rgba(53,132,218,.28)!important;
+  outline-offset:2px!important;
+}
+@media(max-width:760px){
+  .app:not(.theme-dark) .main #projectDashboard .project-dashboard-card{
+    min-height:102px!important;padding:15px 14px 14px 17px!important;border-radius:14px!important;
+  }
+  .app:not(.theme-dark) .main #projectDashboard .project-dashboard-card b{font-size:26px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .app:not(.theme-dark) .main #projectDashboard .project-dashboard-card{transition:none!important}
+}
+
 /* Refinamento estrutural v2 — aproxima as telas internas do padrão do Dashboard Gerencial. */
 /* Cabeçalhos das áreas e do projeto: hierarquia, respiro e identidade sem mexer no conteúdo. */
 .app .main section:not(.hidden) > .top,
