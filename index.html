@@ -4073,5 +4073,58 @@ document.addEventListener('click',function(e){
 @media(max-width:760px){#app .main table td,#app .main table th{padding:8px 7px}}
 </style>
 
+
+<style id="implanta-premium-chart-polish-2026-10-22">
+/* Acabamento pontual guiado pelas capturas de preview. */
+#app.theme-dark .main .metric,
+#app.theme-dark .main .overview-grid>.card{
+  border-color:rgba(126,151,188,.16)!important;
+  box-shadow:0 6px 18px rgba(0,0,0,.10)!important;
+}
+#app.theme-dark .main .metric:hover{
+  border-color:rgba(111,164,245,.25)!important;
+}
+#app .main .lz-chart-card{min-width:0;overflow:hidden}
+#app .main .lz-donut-layout{
+  grid-template-columns:minmax(100px,.9fr) minmax(0,1fr)!important;
+  gap:12px!important;
+}
+#app .main .lz-donut{
+  width:clamp(100px,11vw,142px)!important;
+  max-width:100%;
+}
+#app .main .lz-chart-legend>div{
+  grid-template-columns:9px minmax(0,1fr) auto!important;
+  gap:6px!important;font-size:11px!important;
+}
+#app .main .lz-chart-legend span{overflow-wrap:anywhere;line-height:1.35}
+#app .main .lz-donut>span b{font-size:22px!important}
+#app:not(.theme-dark) .main .lz-donut:before{
+  background:#fff!important;border-color:#e1e8f2!important;
+}
+#app:not(.theme-dark) .main .lz-donut>span b{color:#20344f!important}
+#app:not(.theme-dark) .main .lz-donut>span small{color:#62738b!important}
+#app:not(.theme-dark) .main .lz-chart-legend span{color:#344761!important}
+#app:not(.theme-dark) .main .lz-chart-legend b{color:#20344f!important}
+#app:not(.theme-dark) .main .lz-chart-card{
+  border-color:#dce5f1!important;
+  box-shadow:0 6px 18px rgba(29,55,91,.05)!important;
+}
+#app:not(.theme-dark) .main .metric{
+  background:linear-gradient(145deg,#fff,#f8faff)!important;
+  border-color:#dce5f1!important;
+  box-shadow:0 5px 16px rgba(29,55,91,.045)!important;
+}
+#app:not(.theme-dark) .main .metric b{color:#20344f!important}
+@media(max-width:900px){
+  #app .main .lz-donut-layout{grid-template-columns:minmax(88px,.8fr) minmax(0,1.2fr)!important;gap:9px!important}
+  #app .main .lz-donut{width:clamp(88px,12vw,120px)!important}
+}
+@media(max-width:560px){
+  #app .main .lz-donut-layout{grid-template-columns:1fr!important}
+  #app .main .lz-donut{width:120px!important}
+}
+</style>
+
 </body></html>
 
