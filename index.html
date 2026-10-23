@@ -3379,20 +3379,21 @@ async function addMod(){
       // os que já existem para não gerar outra violação de chave única.
       const savedSubs=[];const savedSubRecords=[];
       for(const subName of subs){
-       let subQ=await supabaseClient
+       const subQ=await supabaseClient
          .from('submodules')
          .select('id,name,module_id,legacy_id')
+         .eq('project_id',cur.dbId)
          .eq('module_id',mod.id)
          .ilike('name',subName)
          .limit(1)
          .maybeSingle();
        if(subQ.error)throw subQ.error;
-
        let sub=subQ.data;
        if(!sub){
         const ins=await supabaseClient.from('submodules').insert({
           name:subName,
           module_id:mod.id,
+          project_id:cur.dbId,
           legacy_id:localLegacy('project-submodule',cur.id+'-'+mod.id+'-'+subName+'-'+Date.now()),
           active:true
         }).select('id,name,module_id,legacy_id').single();
