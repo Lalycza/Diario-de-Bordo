@@ -3050,7 +3050,9 @@ async function resolveProjectStructureModule(moduleName,moduleIdHint){
    if(q.error)throw q.error;
    if(!q.data)return null;
    if(norm(q.data.name)!==wanted)throw new Error('O ID do módulo selecionado não corresponde a "'+moduleName+'". Nenhuma alteração foi feita.');
-   if(!belongsToThisProject(q.data))throw new Error('O módulo selecionado não pertence a este projeto nem a um produto vinculado a ele. Nenhuma alteração foi feita.');
+   // Um vínculo explícito em project_modules comprova que o módulo pertence ao Mapa deste projeto,
+   // mesmo se o produto estiver ausente de project_products/client_products em cadastros legados.
+   if(!belongsToThisProject(q.data)&&!linkedIds.includes(String(q.data.id)))throw new Error('O módulo selecionado não pertence a este projeto nem a um produto vinculado a ele. Nenhuma alteração foi feita.');
    return q.data;
  };
  if(moduleIdHint){const hinted=await lookupById(moduleIdHint);if(hinted)return hinted;}
