@@ -3300,27 +3300,17 @@ async function addMod(){
       return alert('Este módulo já está cadastrado no projeto.');
 
     try{
-      // Reaproveita o módulo do catálogo do produto quando existir.
-      let modQ=await supabaseClient
-        .from('modules')
-        .select('id,name,product_id,legacy_id')
-        .eq('product_id',productId)
-        .ilike('name',name)
-        .limit(1)
-        .maybeSingle();
-      if(modQ.error)throw modQ.error;
-
-      let mod=modQ.data;
-      if(!mod){
-       const ins=await supabaseClient.from('modules').insert({
-         name,
-         legacy_id:localLegacy('project-module',cur.id+'-'+productId+'-'+name+'-'+Date.now()),
-         product_id:productId,
-         active:true
-       }).select('id,name,product_id,legacy_id').single();
-       if(ins.error)throw ins.error;
-       mod=ins.data;
-      }
+      // Módulo criado aqui é exclusivo deste projeto, não do catálogo compartilhado.
+      // product_id fica nulo para impedir que a hidratação o replique em outros projetos
+      // que utilizem o mesmo produto.
+      const ins=await supabaseClient.from('modules').insert({
+        name,
+        legacy_id:localLegacy('project-module',cur.id+'-'+productId+'-'+name+'-'+Date.now()),
+        product_id:null,
+        active:true
+      }).select('id,name,product_id,legacy_id').single();
+      if(ins.error)throw ins.error;
+      const mod=ins.data;
 
       // Garante os submódulos exatamente na ordem das linhas informadas.
       const savedSubs=[];const savedSubRecords=[];
@@ -3347,6 +3337,14 @@ async function addMod(){
        }
        savedSubs.push(sub.name);savedSubRecords.push(sub);
       }
+
+      // Ao incluir novamente um módulo removido anteriormente, limpa a exclusão
+      // persistida deste projeto antes de gravar o vínculo no MAPA.
+      const exclusion=await supabaseClient.from('project_module_exclusions')
+        .delete()
+        .eq('project_id',cur.dbId)
+        .eq('module_id',mod.id);
+      if(exclusion.error)throw exclusion.error;
 
       const pm=await supabaseClient.from('project_modules').upsert({
         project_id:cur.dbId,
