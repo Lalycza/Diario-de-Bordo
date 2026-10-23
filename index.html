@@ -359,16 +359,26 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 .client-full .contact-row label,
 .client-full .contact-row .muted,
 .client-full .contact-row p,
-.client-full .contact-row span,
+.client-full .contact-row span:not(.badge),
 .client-full .client-doc-row b,
 .client-full .client-doc-row strong,
 .client-full .client-doc-row label,
 .client-full .client-doc-row .muted,
 .client-full .client-doc-row p,
-.client-full .client-doc-row span{
+.client-full .client-doc-row span:not(.badge){
   color:#e5edf8!important;
   opacity:1!important;
 }
+.client-full .contact-row .badge{
+  background:#dbeafe!important;
+  color:#1e40af!important;
+  -webkit-text-fill-color:#1e40af!important;
+  border:1px solid #93c5fd!important;
+  white-space:nowrap;
+}
+.client-full .contact-row .top{align-items:center;gap:12px}
+.client-full .contact-row .top>div{min-width:0;flex:1}
+.client-full .contact-row .top b{display:block;overflow-wrap:anywhere}
 .client-full .contact-row input,
 .client-full .contact-row select,
 .client-full .contact-row textarea,
