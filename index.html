@@ -4537,7 +4537,11 @@ function sameLegacyId(a,b){
 }
 function projectBelongsToClient(p,c){
   if(!p||!c)return false;
-  return sameLegacyId(p.clientId,c.id)||sameLegacyId(p.clientId,c.dbId)||sameLegacyId(p.clientDbId,c.dbId);
+  if(sameLegacyId(p.clientId,c.id)||sameLegacyId(p.clientId,c.dbId)||sameLegacyId(p.clientDbId,c.dbId)||sameLegacyId(p.clientDbId,c.id))return true;
+  const normName=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+  const projectClient=normName(p.c||'');
+  const clientNames=[c.name,c.fantasy].map(normName).filter(Boolean);
+  return !!projectClient&&clientNames.includes(projectClient)&&!clientsData.some(other=>other!==c&&((p.clientId!=null&&(sameLegacyId(other.id,p.clientId)||sameLegacyId(other.dbId,p.clientId)))||(p.clientDbId!=null&&(sameLegacyId(other.id,p.clientDbId)||sameLegacyId(other.dbId,p.clientDbId)))));
 }
 function clientProjectCount(c){
   return (ps||[]).filter(p=>projectBelongsToClient(p,c)).length;
