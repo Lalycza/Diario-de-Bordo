@@ -487,6 +487,34 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 #projectHistoryList .card button.secondary:hover{background:linear-gradient(135deg,#28508a,#1b3760)!important}
 @media(max-width:600px){#projectHistory> .top{padding:20px}#projectHistory .toolbar{padding:14px}#projectHistoryList .card{padding:20px}#projectHistoryList .card .top{align-items:flex-start;gap:10px}}
 
+
+/* LZ-HISTORY-CONTRAST-FIX: cores explícitas por tema, isoladas no Histórico */
+.app:not(.theme-dark) #projectHistory> .top{background:linear-gradient(135deg,#172b49,#234a7c)!important;color:#fff!important;border:1px solid #4b8fe8!important}
+.app:not(.theme-dark) #projectHistory> .top h1,.app:not(.theme-dark) #projectHistory> .top p{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.app:not(.theme-dark) #projectHistory .toolbar{background:#e8eef7!important;border:1px solid #c3d1e3!important}
+.app:not(.theme-dark) #projectHistory .toolbar input,.app:not(.theme-dark) #projectHistory .toolbar select{background:#fff!important;color:#172033!important;-webkit-text-fill-color:#172033!important;border:1px solid #9aacc5!important}
+.app:not(.theme-dark) #projectHistory .toolbar input::placeholder{color:#52647c!important;-webkit-text-fill-color:#52647c!important;opacity:1!important}
+.app:not(.theme-dark) #projectHistory .toolbar select option{background:#fff!important;color:#172033!important}
+.app:not(.theme-dark) #projectHistoryList .card{background:linear-gradient(145deg,#fff,#f2f6fc)!important;color:#172033!important;border:1px solid #c4d2e4!important;box-shadow:0 8px 22px rgba(20,40,70,.10)!important}
+.app:not(.theme-dark) #projectHistoryList .card h3{color:#142238!important;-webkit-text-fill-color:#142238!important}
+.app:not(.theme-dark) #projectHistoryList .card .muted{color:#33465f!important;-webkit-text-fill-color:#33465f!important;opacity:1!important}
+.app:not(.theme-dark) #projectHistoryList .card button.secondary{background:#2563eb!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #1d4ed8!important;opacity:1!important;box-shadow:0 3px 0 #1e40af!important}
+.app:not(.theme-dark) #projectHistoryList .card .badge{background:#dbeafe!important;color:#1e40af!important;-webkit-text-fill-color:#1e40af!important;border:1px solid #93c5fd!important}
+.app.theme-dark #projectHistory> .top{background:linear-gradient(135deg,#111827,#172b49)!important;color:#f8fafc!important}
+.app.theme-dark #projectHistory> .top h1,.app.theme-dark #projectHistory> .top p{color:#f8fafc!important;-webkit-text-fill-color:#f8fafc!important}
+.app.theme-dark #projectHistory .toolbar{background:linear-gradient(145deg,#172033,#0c1423)!important;border:1px solid #385477!important}
+.app.theme-dark #projectHistory .toolbar input,.app.theme-dark #projectHistory .toolbar select{background:#0b1220!important;color:#f8fafc!important;-webkit-text-fill-color:#f8fafc!important;border:1px solid #57708f!important}
+.app.theme-dark #projectHistory .toolbar input::placeholder{color:#c0cde0!important;-webkit-text-fill-color:#c0cde0!important;opacity:1!important}
+.app.theme-dark #projectHistory .toolbar select option{background:#0b1220!important;color:#f8fafc!important}
+.app.theme-dark #projectHistoryList .card{background:linear-gradient(145deg,#172033,#0b1220)!important;color:#f8fafc!important;border:1px solid #4778b8!important}
+.app.theme-dark #projectHistoryList .card h3{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.app.theme-dark #projectHistoryList .card .muted{color:#d1dbea!important;-webkit-text-fill-color:#d1dbea!important;opacity:1!important}
+.app.theme-dark #projectHistoryList .card button.secondary{background:#2563eb!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #60a5fa!important;opacity:1!important;box-shadow:0 3px 0 #1e40af!important}
+.app.theme-dark #projectHistoryList .card .badge{background:#dbeafe!important;color:#1e40af!important;-webkit-text-fill-color:#1e40af!important;border:1px solid #93c5fd!important}
+#projectHistory .toolbar input,#projectHistory .toolbar select{font-size:16px;min-height:48px}
+#projectHistoryList .card button.secondary{font-weight:700;min-height:46px;padding:11px 18px;cursor:pointer}
+@media(max-width:600px){#projectHistory .toolbar{grid-template-columns:minmax(0,1fr)!important}#projectHistory .toolbar input{min-width:0}#projectHistoryList .card .top{flex-wrap:wrap}}
+
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
