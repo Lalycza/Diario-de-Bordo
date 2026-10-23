@@ -3375,8 +3375,22 @@ async function addMod(){
         mod=reactivate.data;
       }
 
-      // Garante os submódulos exatamente na ordem das linhas informadas. Reutiliza
-      // os que já existem para não gerar outra violação de chave única.
+      // Primeiro vincular o módulo ao projeto; a política RLS de submodules
+      // exige esse vínculo antes de permitir submódulos exclusivos do projeto.
+      const exclusion=await supabaseClient.from('project_module_exclusions')
+        .delete()
+        .eq('project_id',cur.dbId)
+        .eq('module_id',mod.id);
+      if(exclusion.error)throw exclusion.error;
+
+      const pm=await supabaseClient.from('project_modules').upsert({
+        project_id:cur.dbId,
+        module_id:mod.id,
+        planned_training_date:null
+      },{onConflict:'project_id,module_id'});
+      if(pm.error)throw pm.error;
+
+      // Criar submódulos somente depois do vínculo; nunca gravar no catálogo.
       const savedSubs=[];const savedSubRecords=[];
       for(const subName of subs){
        const subQ=await supabaseClient
@@ -3402,21 +3416,6 @@ async function addMod(){
        }
        savedSubs.push(sub.name);savedSubRecords.push(sub);
       }
-
-      // Ao incluir novamente um módulo removido anteriormente, limpa a exclusão
-      // persistida deste projeto antes de gravar o vínculo no MAPA.
-      const exclusion=await supabaseClient.from('project_module_exclusions')
-        .delete()
-        .eq('project_id',cur.dbId)
-        .eq('module_id',mod.id);
-      if(exclusion.error)throw exclusion.error;
-
-      const pm=await supabaseClient.from('project_modules').upsert({
-        project_id:cur.dbId,
-        module_id:mod.id,
-        planned_training_date:null
-      },{onConflict:'project_id,module_id'});
-      if(pm.error)throw pm.error;
 
       cur.m=Array.isArray(cur.m)?cur.m:[];
       cur.m.push([mod.name,savedSubs,{dbId:mod.id,productId:mod.product_id,submoduleRefs:savedSubs.map(name=>({id:(savedSubRecords.find(x=>String(x.module_id)===String(mod.id)&&x.name===name)?.id||null),name}))}]);
@@ -3512,7 +3511,7 @@ async function editSub(i,j){
   }catch(e){console.error(e);alert('Não foi possível editar o submódulo somente neste projeto. O catálogo compartilhado foi preservado.\\n\\n'+(e?.message||e));}
  });
 }
-async function delSub(i,j){if(!canEdit())return;const m=cur?.m?.[i],name=m?.[1]?.[j];if(!m||!name)return;if(!confirm('Excluir submódulo?'))return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A exclusão foi bloqueada.');try{const mod=await resolveProjectStructureModule(m[0]);if(!mod?.id)throw new Error('Módulo não encontrado no Supabase.');let scopedSub=null;const scopedQ=await supabaseClient.from('submodules').select('id,name,module_id,project_id').eq('project_id',cur.dbId).eq('module_id',mod.id).eq('name',name).maybeSingle();if(!scopedQ.error)scopedSub=scopedQ.data;else if(!String(scopedQ.error.message||'').toLowerCase().includes('project_id'))throw scopedQ.error;let subId=scopedSub?.id||null;if(scopedSub){subId=scopedSub.id;const tr=await supabaseClient.from('trainings').delete().eq('project_id',cur.dbId).eq('module_id',mod.id).eq('submodule_id',subId);if(tr.error)throw tr.error;const delScoped=await supabaseClient.from('submodules').delete().eq('id',scopedSub.id).eq('project_id',cur.dbId);if(delScoped.error)throw delScoped.error;const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();const key=String(cur.dbId)+'::'+norm(m[0]),additions=window._projectSubmoduleAdditions||new Map(),arr=(additions.get(key)||[]).filter(x=>norm(x)!==norm(name));additions.set(key,arr);window._projectSubmoduleAdditions=additions;}else{let shared=await supabaseClient.from('submodules').select('id').is('project_id',null).eq('module_id',mod.id).eq('name',name).limit(1).maybeSingle();if(shared.error&&String(shared.error.message||'').toLowerCase().includes('project_id'))shared=await supabaseClient.from('submodules').select('id').eq('module_id',mod.id).eq('name',name).limit(1).maybeSingle();if(shared.error)throw shared.error;subId=shared.data?.id||null;if(!subId)throw new Error('Submódulo não encontrado no catálogo; nenhuma alteração foi feita.');if(subId){const exclusion=await supabaseClient.from('project_submodule_exclusions').upsert({project_id:cur.dbId,module_id:mod.id,submodule_id:subId,excluded_by:currentUser?.id},{onConflict:'project_id,submodule_id'});if(exclusion.error)throw exclusion.error;const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();const key=String(cur.dbId)+'::'+norm(m[0])+'::'+norm(name),excluded=window._projectSubmoduleExclusionKeys||new Set();excluded.add(key);window._projectSubmoduleExclusionKeys=excluded;}}if(subId){const tr=await supabaseClient.from('trainings').delete().eq('project_id',cur.dbId).eq('module_id',mod.id).eq('submodule_id',subId);if(tr.error)throw tr.error;}m[1].splice(j,1);cur.t=(cur.t||[]).filter(t=>!(String(t.module||'').trim().toUpperCase()===String(m[0]).trim().toUpperCase()&&String(t.submodule||'').trim().toUpperCase()===String(name).trim().toUpperCase()));audit('Submódulo excluído somente deste projeto',m[0]+' · '+name);persistState();mapView();}catch(e){console.error(e);alert('Não foi possível excluir o submódulo deste projeto. O catálogo compartilhado foi preservado.\\n\\n'+(e?.message||e));}}
+async function delSub(i,j){if(!canEdit())return;const m=cur?.m?.[i],name=m?.[1]?.[j];if(!m||!name)return;if(!confirm('Excluir submódulo?'))return;if(!cur?.dbId)return alert('Este projeto ainda não está vinculado ao Supabase. A exclusão foi bloqueada.');try{const mod=await resolveProjectStructureModule(m[0]);if(!mod?.id)throw new Error('Módulo não encontrado no Supabase.');let scopedSub=null;const scopedQ=await supabaseClient.from('submodules').select('id,name,module_id,project_id').eq('project_id',cur.dbId).eq('module_id',mod.id).eq('name',name).maybeSingle();if(scopedQ.error)throw new Error('Não foi possível verificar o vínculo exclusivo do submódulo. A exclusão foi bloqueada para proteger o produto. '+(scopedQ.error.message||''));scopedSub=scopedQ.data;let subId=scopedSub?.id||null;if(scopedSub){subId=scopedSub.id;const tr=await supabaseClient.from('trainings').delete().eq('project_id',cur.dbId).eq('module_id',mod.id).eq('submodule_id',subId);if(tr.error)throw tr.error;const delScoped=await supabaseClient.from('submodules').delete().eq('id',scopedSub.id).eq('project_id',cur.dbId);if(delScoped.error)throw delScoped.error;const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();const key=String(cur.dbId)+'::'+norm(m[0]),additions=window._projectSubmoduleAdditions||new Map(),arr=(additions.get(key)||[]).filter(x=>norm(x)!==norm(name));additions.set(key,arr);window._projectSubmoduleAdditions=additions;}else{let shared=await supabaseClient.from('submodules').select('id').is('project_id',null).eq('module_id',mod.id).eq('name',name).limit(1).maybeSingle();if(shared.error)throw new Error('Não foi possível confirmar que o submódulo é compartilhado. A exclusão foi bloqueada para proteger o catálogo. '+(shared.error.message||''));subId=shared.data?.id||null;if(!subId)throw new Error('Submódulo não encontrado no catálogo; nenhuma alteração foi feita.');if(subId){const exclusion=await supabaseClient.from('project_submodule_exclusions').upsert({project_id:cur.dbId,module_id:mod.id,submodule_id:subId,excluded_by:currentUser?.id},{onConflict:'project_id,submodule_id'});if(exclusion.error)throw exclusion.error;const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();const key=String(cur.dbId)+'::'+norm(m[0])+'::'+norm(name),excluded=window._projectSubmoduleExclusionKeys||new Set();excluded.add(key);window._projectSubmoduleExclusionKeys=excluded;}}if(subId){const tr=await supabaseClient.from('trainings').delete().eq('project_id',cur.dbId).eq('module_id',mod.id).eq('submodule_id',subId);if(tr.error)throw tr.error;}m[1].splice(j,1);cur.t=(cur.t||[]).filter(t=>!(String(t.module||'').trim().toUpperCase()===String(m[0]).trim().toUpperCase()&&String(t.submodule||'').trim().toUpperCase()===String(name).trim().toUpperCase()));audit('Submódulo excluído somente deste projeto',m[0]+' · '+name);persistState();mapView();}catch(e){console.error(e);alert('Não foi possível excluir o submódulo deste projeto. O catálogo compartilhado foi preservado.\\n\\n'+(e?.message||e));}}
 function diaryView(){const cli=clientsData.find(x=>x.id===cur.clientId)||{};const analyst=(usersData.find(u=>u.email===cur.owner)||{}).name||cur.owner||'';document.getElementById('diary').innerHTML='<div class="doc-card"><div class="section-title">Identificação do projeto</div><p><b>Cliente:</b> '+esc(cli.name||cur.c)+'<br><b>Projeto:</b> '+esc(cur.n)+'<br><b>Analista Implantador:</b> '+esc(analyst)+'<br><b>Responsável do cliente:</b> '+esc(cli.contact||'Não informado')+'<br><b>E-mail:</b> '+esc(cli.email||'Não informado')+'<br><b>Telefone:</b> '+esc(cli.phone||'Não informado')+'</p></div><div class="top"><div><b>Diário de bordo</b><p class="muted">Registros da implantação</p></div><div>'+(canEdit()?'<button class="primary" onclick="addDiary()">＋ Novo registro</button>':'<span class="badge">Somente leitura</span>')+' <button class="secondary" onclick="pdfDiary()">📄 Ver / gerar PDF</button></div></div><input id="diarySearch" class="search" placeholder="Pesquisar no diário..." oninput="renderDiary()"><div id="diaryRows"></div>';renderDiary()}
 function horasFormat(n){const v=Number(n)||0;return v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' h'}
 function horasDate(v){if(!v)return '';if(/^\d{4}-\d{2}-\d{2}$/.test(String(v)))return v;const m=String(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):''}
@@ -4367,9 +4366,8 @@ async function persistCatalogProductToSupabase(productId){
    const wantedMods=new Set(mods.map(m=>localLegacy('module',m.id)));
    for(const dbm of (dbMods||[])){
      if(dbm.legacy_id && !wantedMods.has(dbm.legacy_id)){
-       let submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id).is('project_id',null);
-       if(submoduleDelete.error&&String(submoduleDelete.error.message||'').toLowerCase().includes('project_id'))submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id);
-       if(submoduleDelete.error)throw submoduleDelete.error;
+       const submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id).is('project_id',null);
+       if(submoduleDelete.error)throw new Error('Não foi possível isolar submódulos do catálogo. A exclusão do módulo foi bloqueada para proteger os dados do projeto. '+(submoduleDelete.error.message||''));
        const {error:mdErr}=await supabaseClient.from('modules').delete().eq('id',dbm.id);
        if(mdErr)throw mdErr;
      }
