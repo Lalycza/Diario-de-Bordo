@@ -4290,10 +4290,9 @@ async function persistCatalogProductToSupabase(productId){
    if(dmErr)throw dmErr;
    const wantedMods=new Set(mods.map(m=>localLegacy('module',m.id)));
    for(const dbm of (dbMods||[])){
-     if(!wantedMods.has(dbm.legacy_id)){
-       let submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id).is('project_id',null);
-       if(submoduleDelete.error&&String(submoduleDelete.error.message||'').toLowerCase().includes('project_id'))submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id);
-       if(submoduleDelete.error)throw submoduleDelete.error;
+     if(dbm.legacy_id && !wantedMods.has(dbm.legacy_id)){
+       const submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id).is('project_id',null);
+       if(submoduleDelete.error)throw new Error('Não foi possível confirmar o escopo dos submódulos. A remoção do módulo foi bloqueada para proteger o catálogo. '+(submoduleDelete.error.message||''));
        const {error:mdErr}=await supabaseClient.from('modules').delete().eq('id',dbm.id);
        if(mdErr)throw mdErr;
      }
@@ -4306,14 +4305,12 @@ async function persistCatalogProductToSupabase(productId){
      if(me)throw me;
 
      let {data:dbSubs,error:dsErr}=await supabaseClient.from('submodules').select('id,legacy_id').eq('module_id',md.id).is('project_id',null);
-     if(dsErr&&String(dsErr.message||'').toLowerCase().includes('project_id')){const fallback=await supabaseClient.from('submodules').select('id,legacy_id').eq('module_id',md.id);dbSubs=fallback.data;dsErr=fallback.error;}
-     if(dsErr)throw dsErr;
+     if(dsErr)throw new Error('Não foi possível identificar com segurança os submódulos compartilhados. A sincronização foi bloqueada para proteger o catálogo. '+(dsErr.message||''));
      const wantedSubs=new Set((m.subs||[]).map(sub=>localLegacy('submodule',m.id+'-'+sub)));
      for(const dbs of (dbSubs||[])){
-       if(!wantedSubs.has(dbs.legacy_id)){
-         let subDel=await supabaseClient.from('submodules').delete().eq('id',dbs.id).is('project_id',null);
-         if(subDel.error&&String(subDel.error.message||'').toLowerCase().includes('project_id'))subDel=await supabaseClient.from('submodules').delete().eq('id',dbs.id);
-         if(subDel.error)throw subDel.error;
+       if(dbs.legacy_id && !wantedSubs.has(dbs.legacy_id)){
+         const subDel=await supabaseClient.from('submodules').delete().eq('id',dbs.id).is('project_id',null);
+         if(subDel.error)throw new Error('Não foi possível confirmar que o submódulo pertence somente ao catálogo compartilhado. A exclusão foi bloqueada. '+(subDel.error.message||''));
        }
      }
      for(const sub of (m.subs||[])){
