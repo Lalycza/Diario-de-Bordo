@@ -2160,8 +2160,8 @@ async function hydrateFromSupabase(){
   try{
     const [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,cc,pcc,profilesQ,cd,pd,diaryQ,emailQ,kickoffQ,handoffQ,homQ,surveyQ,goLiveQ]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
-      supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
-      supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
+      supabaseClient.from('modules').select('id,name,legacy_id,product_id,project_id,active').eq('active',true).order('created_at'),
+      supabaseClient.from('submodules').select('id,name,legacy_id,module_id,project_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,phone,ie,im,cep,address,number,complement,neighborhood,city,state,notes,legacy_id,status,hpro_central_code,implementation_value,consulting_value').order('created_at'),
       supabaseClient.from('client_products').select('client_id,product_id,status,analyst_id'),
       supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope').order('created_at'),
@@ -2393,7 +2393,20 @@ async function hydrateFromSupabase(){
       // Sem este filtro, o módulo removido reaparece ao reidratar o projeto, mesmo com a exclusão registrada.
       if(p&&m&&!excludedProjectModuleKeys.has(String(x.project_id)+'::'+String(rawModule?.id||''))){
         if(!p.m.some(existing=>String(existing[2]?.dbId||'')===String(rawModule?.id||''))){
-          p.m.push([m.name,m.subs||[],{plannedDate:x.planned_training_date||null,dbId:rawModule?.id||null,productId:rawModule?.product_id||null,productName:(pr.data||[]).find(prod=>String(prod.id)===String(rawModule?.product_id))?.name||'',submoduleRefs:(su.data||[]).filter(sub=>String(sub.module_id)===String(rawModule?.id)).map(sub=>({id:sub.id,name:sub.name}))}]);
+          const visibleSubRows=(su.data||[]).filter(sub=>
+            String(sub.module_id)===String(rawModule?.id) &&
+            (sub.project_id==null || String(sub.project_id)===String(x.project_id))
+          );
+          const visibleSubs=[...new Map(visibleSubRows.map(sub=>[String(sub.name||'').trim().toLocaleUpperCase('pt-BR'),sub])).values()];
+          const projectScoped=String(rawModule?.project_id||'')===String(x.project_id);
+          p.m.push([m.name,visibleSubs.map(sub=>sub.name),{
+            plannedDate:x.planned_training_date||null,
+            dbId:rawModule?.id||null,
+            productId:rawModule?.product_id||null,
+            projectScoped,
+            productName:(pr.data||[]).find(prod=>String(prod.id)===String(rawModule?.product_id))?.name||'',
+            submoduleRefs:visibleSubs.map(sub=>({id:sub.id,name:sub.name,projectScoped:sub.project_id!=null}))
+          }]);
         }
       }
     }
@@ -3418,8 +3431,8 @@ async function addMod(){
       }
 
       cur.m=Array.isArray(cur.m)?cur.m:[];
-      cur.m.push([mod.name,savedSubs,{dbId:mod.id,productId:mod.product_id,submoduleRefs:savedSubs.map(name=>({id:(savedSubRecords.find(x=>String(x.module_id)===String(mod.id)&&x.name===name)?.id||null),name}))}]);
-      audit('Módulo criado no Mapa','Módulo '+mod.name+' criado no produto atribuído ao cliente com '+savedSubs.length+' submódulo(s).');
+      cur.m.push([mod.name,savedSubs,{dbId:mod.id,productId:null,projectScoped:true,submoduleRefs:savedSubs.map(name=>({id:(savedSubRecords.find(x=>String(x.module_id)===String(mod.id)&&x.name===name)?.id||null),name,projectScoped:true}))}]);
+      audit('Módulo criado somente no projeto','Módulo '+mod.name+' e '+savedSubs.length+' submódulo(s) criados exclusivamente neste projeto. O catálogo do produto não foi alterado.');
       persistState();closeModal();mapView();
     }catch(e){
       console.error(e);
@@ -3777,7 +3790,7 @@ function pdfPhase(type){let key=type==='kickoff'?'kickoff':'handoff';let title=t
 function pesquisaPdfBody(){let d=pesquisaData(),a=d.answers||{},gl=d.goLiveConfirmation||{};return '<h2>PESQUISA DE SATISFAÇÃO — ENTREGA DE PRODUTO / PROJETO</h2><div class="item"><b>Status:</b> '+esc(d.status||'Pendente')+'<br><b>Empresa:</b> '+esc(d.respondent.company||cur.c)+'<br><b>Nome:</b> '+esc(d.respondent.name||'')+'<br><b>Cargo/função:</b> '+esc(d.respondent.role||'')+'<br><b>E-mail:</b> '+esc(d.respondent.email||'')+'<br><b>Produto em atuação:</b> '+esc(d.respondent.product||'')+'</div><h3>Confirmação do Go Live / utilização</h3><table><thead><tr><th>Módulo</th><th>Situação</th><th>Go Live</th><th>Observação</th></tr></thead><tbody>'+((cur.m||[]).map(m=>{let x=gl[m[0]]||{};return '<tr><td>'+esc(m[0])+'</td><td>'+esc(x.status||'')+'</td><td>'+esc(formatDateBR(x.date)||'—')+'</td><td>'+esc(x.use||'')+'</td></tr>'}).join('')||'<tr><td colspan="4">Nenhum módulo.</td></tr>')+'</tbody></table><h3>Avaliação</h3>'+surveyQuestions.map((q,i)=>'<div class="item"><b>'+(i+1)+'. '+esc(q[1])+'</b><div>Resposta: '+esc(a[q[0]]||'Não respondido')+(q[2]==='scale'?' — escala 0 a 10':'')+'</div></div>').join('')+'<div class="item"><b>17. Existe alguma sugestão ou comentário adicional?</b><div class="pre">'+esc(d.comment||'')+'</div></div>'}
 function pdfPesquisa(){if(!cur)return;let body=pesquisaPdfBody();let preview='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><div><b>Prévia da Pesquisa enviada ao cliente</b><div class="muted">Confira o conteúdo antes de imprimir ou salvar como PDF.</div></div><div><button class="primary" onclick="printPesquisaPdf()">🖨 Imprimir / Salvar PDF</button> <button class="secondary" onclick="closeModal()">Fechar</button></div></div><div style="background:#fff;border:1px solid #dce2eb;border-radius:10px;padding:20px;max-height:70vh;overflow:auto"><div class="brand"><img src="'+logoData+'"><div><div style="font-size:11px;color:#64748b">DOCUMENTO DE IMPLANTAÇÃO</div><h1>Pesquisa de Satisfação</h1><div class="meta">Projeto: '+esc(cur.n)+' · Cliente: '+esc(cur.c)+' · Analista: '+esc(cur.owner||'')+'</div></div></div>'+body+'</div>';document.getElementById('modalbox').innerHTML=preview;document.getElementById('modal').classList.remove('hidden')}
 function printPesquisaPdf(){pdfPreviewTitle='Pesquisa de Satisfação';pdfPreviewBody=pesquisaPdfBody();printCurrentPdf()}
-function syncProjectMap(p){const ids=p.productIds||[];const seen={};const excluded=new Set((p.excludedModuleIds||[]).map(String));const oldMeta=Object.fromEntries((p.m||[]).map(m=>[m[0],m[2]||{}]));const projectDbId=String(p.dbId||p.id||'');const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();const excludedSubs=window._projectSubmoduleExclusionKeys||new Set();const additions=window._projectSubmoduleAdditions||new Map();p.m=[];ids.forEach(pid=>{const pr=productsData.find(x=>x.id===pid);if(!pr)return;(pr.moduleIds||[]).forEach(mid=>{const m=modulesData.find(x=>x.id===mid);if(!m||seen[mid]||excluded.has(String(mid)))return;seen[mid]=1;const shared=(m.subs||[]).filter(name=>!excludedSubs.has(projectDbId+'::'+norm(m.name)+'::'+norm(name)));const scoped=additions.get(projectDbId+'::'+norm(m.name))||[];p.m.push([m.name,[...new Set([...shared,...scoped])],oldMeta[m.name]||{}])})});return p.m}
+function syncProjectMap(p){const ids=p.productIds||[];const seen={};const excluded=new Set((p.excludedModuleIds||[]).map(String));const oldRows=Array.isArray(p.m)?p.m.slice():[];const oldMeta=Object.fromEntries(oldRows.map(m=>[m[0],m[2]||{}]));const projectDbId=String(p.dbId||p.id||'');const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();const excludedSubs=window._projectSubmoduleExclusionKeys||new Set();const additions=window._projectSubmoduleAdditions||new Map();p.m=[];ids.forEach(pid=>{const pr=productsData.find(x=>x.id===pid);if(!pr)return;(pr.moduleIds||[]).forEach(mid=>{const m=modulesData.find(x=>x.id===mid);if(!m||seen[mid]||excluded.has(String(mid)))return;seen[mid]=1;const shared=(m.subs||[]).filter(name=>!excludedSubs.has(projectDbId+'::'+norm(m.name)+'::'+norm(name)));const scoped=additions.get(projectDbId+'::'+norm(m.name))||[];p.m.push([m.name,[...new Set([...shared,...scoped])],oldMeta[m.name]||{}])})});for(const row of oldRows){const meta=row[2]||{};if(meta.projectScoped===true&&!p.m.some(m=>String(m[2]?.dbId||'')===String(meta.dbId||''))){p.m.push(row)}}return p.m}
 function newProjectClientSearchText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
 function renderNewProjectClientPicker(query=''){const input=document.getElementById('newProjectClientSearch'),box=document.getElementById('newProjectClientResults'),sel=document.getElementById('newProjectClient');if(!input||!box||!sel)return;const q=newProjectClientSearchText(query||input.value);const list=[...(clientsData||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));const filtered=q?list.filter(c=>newProjectClientSearchText(c.name).includes(q)||newProjectClientSearchText(c.fantasy||'').includes(q)):list;const selected=sel.value;const shown=q?filtered.slice(0,8):[];box.innerHTML=shown.length?shown.map(c=>'<button type="button" class="new-project-client-option '+(String(c.name)===String(selected)?'selected':'')+'" data-name="'+escAttr(String(c.name))+'" onclick="selectNewProjectClient(this.dataset.name)"><span>'+esc(c.name||'Cliente sem nome')+'</span></button>').join(''):(q?'<div class="new-project-client-empty">Nenhum cliente encontrado.</div>':'');box.classList.toggle('hidden',!q);}
 function selectNewProjectClient(name){const sel=document.getElementById('newProjectClient'),input=document.getElementById('newProjectClientSearch'),box=document.getElementById('newProjectClientResults');if(!sel)return;sel.value=name||'';if(input)input.value=name||'';if(box)box.classList.add('hidden');updateProjectProductOptions();}
