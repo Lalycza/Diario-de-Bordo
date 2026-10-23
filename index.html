@@ -2356,9 +2356,9 @@ async function hydrateFromSupabase(){
       const projectDbProductIds=new Set((pp.data||[])
         .filter(v=>String(v.project_id)===String(x.project_id))
         .map(v=>String(v.product_id)));
-      if(!projectDbProductIds.size&&p){
+      if(p){
         const projectRow=(pg.data||[]).find(v=>String(v.id)===String(x.project_id));
-        (clientProductsByClientDb.get(String(projectRow?.client_id||''))||[]).forEach(id=>projectDbProductIds.add(id));
+        (clientProductsByClientDb.get(String(projectRow?.client_id||''))||[]).forEach(id=>projectDbProductIds.add(String(id)));
       }
       const belongsToProjectProduct=!!rawModule?.product_id&&projectDbProductIds.has(String(rawModule.product_id));
       if(p&&m&&belongsToProjectProduct){
@@ -2375,9 +2375,7 @@ async function hydrateFromSupabase(){
       const projectProductIds=new Set((pp.data||[])
         .filter(v=>String(v.project_id)===String(projectRow.id))
         .map(v=>String(v.product_id)));
-      if(!projectProductIds.size){
-        (clientProductsByClientDb.get(String(projectRow.client_id||''))||[]).forEach(id=>projectProductIds.add(String(id)));
-      }
+      (clientProductsByClientDb.get(String(projectRow.client_id||''))||[]).forEach(id=>projectProductIds.add(String(id)));
       for(const rawModule of (mo.data||[])){
         if(!rawModule?.product_id||!projectProductIds.has(String(rawModule.product_id)))continue;
         if(excludedProjectModuleKeys.has(String(projectRow.id)+'::'+String(rawModule.id)))continue;
