@@ -5964,5 +5964,46 @@ document.addEventListener('click',function(e){
  #projectHistoryList .card h3{overflow-wrap:anywhere!important}
 }
 
+
+/* HOTFIX FINAL: legibilidade forçada no Histórico, respeitando a classe real do tema */
+#app:not(.theme-dark) #projectHistory,
+#app:not(.theme-dark) #projectHistory *{color:#172033!important;-webkit-text-fill-color:inherit}
+#app:not(.theme-dark) #projectHistory>.top{background:#17263b!important;border:1px solid #3979bd!important}
+#app:not(.theme-dark) #projectHistory>.top h1{color:#fff!important;-webkit-text-fill-color:#fff!important}
+#app:not(.theme-dark) #projectHistory>.top p{color:#e1eaf6!important;-webkit-text-fill-color:#e1eaf6!important}
+#app:not(.theme-dark) #projectHistory .toolbar{background:#eaf0f7!important;border:1px solid #aabbd0!important}
+#app:not(.theme-dark) #projectHistory .toolbar input,
+#app:not(.theme-dark) #projectHistory .toolbar select{background:#fff!important;color:#172033!important;-webkit-text-fill-color:#172033!important;border:2px solid #71849d!important;opacity:1!important}
+#app:not(.theme-dark) #projectHistory .toolbar input::placeholder{color:#526176!important;-webkit-text-fill-color:#526176!important;opacity:1!important}
+#app:not(.theme-dark) #projectHistoryList .card{background:#fff!important;color:#172033!important;border:2px solid #aebed1!important;box-shadow:0 8px 22px rgba(20,38,62,.12)!important}
+#app:not(.theme-dark) #projectHistoryList .card h3,
+#app:not(.theme-dark) #projectHistoryList .card p,
+#app:not(.theme-dark) #projectHistoryList .card span,
+#app:not(.theme-dark) #projectHistoryList .card small,
+#app:not(.theme-dark) #projectHistoryList .card strong,
+#app:not(.theme-dark) #projectHistoryList .card .muted{color:#172033!important;-webkit-text-fill-color:#172033!important;opacity:1!important}
+#app:not(.theme-dark) #projectHistoryList .card .badge{background:#dbeafe!important;color:#1e40af!important;-webkit-text-fill-color:#1e40af!important;border:1px solid #60a5fa!important}
+#app:not(.theme-dark) #projectHistoryList .card button,
+#app:not(.theme-dark) #projectHistoryList .card button.secondary{background:#175cd3!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:2px solid #175cd3!important;opacity:1!important}
+#app.theme-dark #projectHistory,
+#app.theme-dark #projectHistory *{color:#f1f5fb!important}
+#app.theme-dark #projectHistory>.top{background:#111d2e!important;border:1px solid #60a5fa!important}
+#app.theme-dark #projectHistory>.top h1{color:#fff!important;-webkit-text-fill-color:#fff!important}
+#app.theme-dark #projectHistory>.top p{color:#dbeafe!important;-webkit-text-fill-color:#dbeafe!important}
+#app.theme-dark #projectHistory .toolbar{background:#111d2e!important;border:2px solid #49617f!important}
+#app.theme-dark #projectHistory .toolbar input,
+#app.theme-dark #projectHistory .toolbar select{background:#0b1423!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:2px solid #6682a6!important;opacity:1!important}
+#app.theme-dark #projectHistory .toolbar input::placeholder{color:#c5d1e0!important;-webkit-text-fill-color:#c5d1e0!important;opacity:1!important}
+#app.theme-dark #projectHistoryList .card{background:#111d2e!important;color:#f1f5fb!important;border:2px solid #49617f!important;box-shadow:0 10px 25px rgba(0,0,0,.25)!important}
+#app.theme-dark #projectHistoryList .card h3,
+#app.theme-dark #projectHistoryList .card p,
+#app.theme-dark #projectHistoryList .card span,
+#app.theme-dark #projectHistoryList .card small,
+#app.theme-dark #projectHistoryList .card strong,
+#app.theme-dark #projectHistoryList .card .muted{color:#f1f5fb!important;-webkit-text-fill-color:#f1f5fb!important;opacity:1!important}
+#app.theme-dark #projectHistoryList .card .badge{background:#183e70!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #60a5fa!important}
+#app.theme-dark #projectHistoryList .card button,
+#app.theme-dark #projectHistoryList .card button.secondary{background:#2563eb!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:2px solid #60a5fa!important;opacity:1!important}
+
 </style>
 
