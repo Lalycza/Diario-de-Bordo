@@ -4291,8 +4291,9 @@ async function persistCatalogProductToSupabase(productId){
    const wantedMods=new Set(mods.map(m=>localLegacy('module',m.id)));
    for(const dbm of (dbMods||[])){
      if(!wantedMods.has(dbm.legacy_id)){
-       const {error:sdErr}=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id);
-       if(sdErr)throw sdErr;
+       let submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id).is('project_id',null);
+       if(submoduleDelete.error&&String(submoduleDelete.error.message||'').toLowerCase().includes('project_id'))submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id);
+       if(submoduleDelete.error)throw submoduleDelete.error;
        const {error:mdErr}=await supabaseClient.from('modules').delete().eq('id',dbm.id);
        if(mdErr)throw mdErr;
      }
