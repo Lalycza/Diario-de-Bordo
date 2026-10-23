@@ -2360,8 +2360,9 @@ async function hydrateFromSupabase(){
         const projectRow=(pg.data||[]).find(v=>String(v.id)===String(x.project_id));
         (clientProductsByClientDb.get(String(projectRow?.client_id||''))||[]).forEach(id=>projectDbProductIds.add(String(id)));
       }
-      const belongsToProjectProduct=!!rawModule?.product_id&&projectDbProductIds.has(String(rawModule.product_id));
-      if(p&&m&&belongsToProjectProduct){
+      // Um vínculo explícito em project_modules já confirma que o módulo pertence ao Mapa
+      // deste projeto. Módulos personalizados não devem depender de project_products.
+      if(p&&m){
         if(!p.m.some(existing=>String(existing[2]?.dbId||'')===String(rawModule?.id||''))){
           p.m.push([m.name,m.subs||[],{plannedDate:x.planned_training_date||null,dbId:rawModule?.id||null,productId:rawModule?.product_id||null,productName:(pr.data||[]).find(prod=>String(prod.id)===String(rawModule?.product_id))?.name||'',submoduleRefs:(su.data||[]).filter(sub=>String(sub.module_id)===String(rawModule?.id)).map(sub=>({id:sub.id,name:sub.name}))}]);
         }
