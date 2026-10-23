@@ -2405,7 +2405,10 @@ async function hydrateFromSupabase(){
         if(!p.m.some(existing=>String(existing[2]?.dbId||'')===String(rawModule?.id||''))){
           const visibleSubRows=(su.data||[]).filter(sub=>
             String(sub.module_id)===String(rawModule?.id) &&
-            (sub.project_id==null || String(sub.project_id)===String(x.project_id))
+            (sub.project_id==null || String(sub.project_id)===String(x.project_id)) &&
+            !window._projectSubmoduleExclusionKeys?.has(
+              String(x.project_id)+'::'+normMapName(rawModule?.name||m.name)+'::'+normMapName(sub.name)
+            )
           );
           const visibleSubs=[...new Map(visibleSubRows.map(sub=>[String(sub.name||'').trim().toLocaleUpperCase('pt-BR'),sub])).values()];
           const projectScoped=String(rawModule?.project_id||'')===String(x.project_id);
@@ -2434,13 +2437,24 @@ async function hydrateFromSupabase(){
         if(excludedProjectModuleKeys.has(String(projectRow.id)+'::'+String(rawModule.id)))continue;
         const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(rawModule.id)));
         if(!m)continue;
-        if(p.m.some(existing=>String(existing[2]?.dbId||'')===String(rawModule.id)))continue;
-        const projectModuleRow=(pm.data||[]).find(v=>String(v.project_id)===String(projectRow.id)&&String(v.module_id)===String(rawModule.id));
-        p.m.push([m.name,m.subs||[],{
+        if(p.m.some(existing=>String(existing[2]?.dbId||'')=        const excludedKeys=window._projectSubmoduleExclusionKeys||new Set();
+        const normalizedModuleName=normMapName(rawModule.name||m.name);
+        const visibleSubs=(m.subs||[]).filter(name=>
+          !excludedKeys.has(String(projectRow.id)+'::'+normalizedModuleName+'::'+normMapName(name))
+        );
+        const visibleSubRows=(su.data||[]).filter(sub=>
+          String(sub.module_id)===String(rawModule.id) &&
+          (sub.project_id==null || String(sub.project_id)===String(projectRow.id)) &&
+          !excludedKeys.has(String(projectRow.id)+'::'+normalizedModuleName+'::'+normMapName(sub.name))
+        );
+        const combinedSubs=[...new Map([...visibleSubs,...visibleSubRows.map(sub=>sub.name)].map(name=>[normMapName(name),name])).values()];
+        p.m.push([m.name,combinedSubs,{
           plannedDate:projectModuleRow?.planned_training_date||null,
           dbId:rawModule.id,
           productId:rawModule.product_id,
           productName:(pr.data||[]).find(prod=>String(prod.id)===String(rawModule.product_id))?.name||'',
+          submoduleRefs:visibleSubRows.map(sub=>({id:sub.id,name:sub.name,projectScoped:sub.project_id!=null}))
+        }]);wModule.product_id))?.name||'',
           submoduleRefs:(su.data||[]).filter(sub=>String(sub.module_id)===String(rawModule.id)).map(sub=>({id:sub.id,name:sub.name}))
         }]);
       }
