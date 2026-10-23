@@ -2821,7 +2821,7 @@ async function syncTrainingToSupabase(obj,old,resolvedRefs){
 }
 async function deleteTrainingFromSupabase(obj){
  if(!supabaseSession||!cur?.dbId||!obj?.module)return;
- const refs=await resolveTrainingRefs(obj.module,obj.submodule||'');
+ const refs=await resolveTrainingRefs(obj.module,obj.submodule||'',obj.moduleDbId||null,obj.submoduleDbId||null);
  if(!refs)return;
  let q=supabaseClient.from('trainings').delete().eq('project_id',refs.projectId).eq('module_id',refs.moduleId);
  q=refs.submoduleId?q.eq('submodule_id',refs.submoduleId):q.is('submodule_id',null);
