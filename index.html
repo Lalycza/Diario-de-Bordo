@@ -3310,19 +3310,33 @@ async function addMod(){
       return alert('Este módulo já está cadastrado no projeto.');
 
     try{
-      // Módulo personalizado é escopado diretamente ao projeto no Supabase.
-      // A constraint modules_scope_check exige exatamente um entre product_id e project_id.
-      const ins=await supabaseClient.from('modules').insert({
-        name,
-        legacy_id:localLegacy('project-module',cur.id+'-'+productId+'-'+name+'-'+Date.now()),
-        product_id:null,
-        project_id:cur.dbId,
-        active:true
-      }).select('id,name,product_id,project_id,legacy_id').single();
-      if(ins.error)throw ins.error;
-      const mod=ins.data;
+      // Ao recriar um módulo retirado do Mapa, o registro original pode continuar
+      // no Supabase para preservar o histórico. Reutilize-o em vez de inserir uma chave duplicada.
+      const existingQ=await supabaseClient.from('modules')
+        .select('id,name,product_id,project_id,legacy_id,active')
+        .eq('project_id',cur.dbId);
+      if(existingQ.error)throw existingQ.error;
+      const sameName=(existingQ.data||[]).filter(m=>String(m.name||'').trim().toLocaleUpperCase('pt-BR')===name.toLocaleUpperCase('pt-BR'));
+      if(sameName.length>1)throw new Error('Já existem registros deste módulo no projeto. Nenhuma alteração foi feita; solicite uma verificação dos registros duplicados.');
+      let mod=sameName[0]||null;
+      if(!mod){
+        const ins=await supabaseClient.from('modules').insert({
+          name,
+          legacy_id:localLegacy('project-module',cur.id+'-'+productId+'-'+name+'-'+Date.now()),
+          product_id:null,
+          project_id:cur.dbId,
+          active:true
+        }).select('id,name,product_id,project_id,legacy_id').single();
+        if(ins.error)throw ins.error;
+        mod=ins.data;
+      }else if(mod.active===false){
+        const reactivate=await supabaseClient.from('modules').update({active:true}).eq('id',mod.id).select('id,name,product_id,project_id,legacy_id').single();
+        if(reactivate.error)throw reactivate.error;
+        mod=reactivate.data;
+      }
 
-      // Garante os submódulos exatamente na ordem das linhas informadas.
+      // Garante os submódulos exatamente na ordem das linhas informadas. Reutiliza
+      // os que já existem para não gerar outra violação de chave única.
       const savedSubs=[];const savedSubRecords=[];
       for(const subName of subs){
        let subQ=await supabaseClient
