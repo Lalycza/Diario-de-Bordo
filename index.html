@@ -3027,13 +3027,22 @@ async function resolveProjectStructureModule(moduleName,moduleIdHint){
  const wanted=norm(moduleName),currentProjectId=String(cur.dbId);
  const projectProductQ=await supabaseClient.from('project_products').select('product_id').eq('project_id',cur.dbId);
  if(projectProductQ.error)throw projectProductQ.error;
- const productIds=[...new Set((projectProductQ.data||[]).map(x=>x.product_id).filter(Boolean).map(String))];
+ const productIds=new Set((projectProductQ.data||[]).map(x=>x.product_id).filter(Boolean).map(String));
+ // O Mapa também pode herdar produtos do cliente quando project_products não está preenchida.
+ const projectOwnerQ=await supabaseClient.from('projects').select('client_id').eq('id',cur.dbId).maybeSingle();
+ if(projectOwnerQ.error)throw projectOwnerQ.error;
+ if(projectOwnerQ.data?.client_id){
+   const clientProductQ=await supabaseClient.from('client_products').select('product_id,status').eq('client_id',projectOwnerQ.data.client_id);
+   if(clientProductQ.error)throw clientProductQ.error;
+   (clientProductQ.data||[]).filter(x=>x.product_id&&String(x.status||'').trim().toUpperCase()!=='INATIVO').forEach(x=>productIds.add(String(x.product_id)));
+ }
+ const scopedProductIds=[...productIds];
  const projectModuleQ=await supabaseClient.from('project_modules').select('module_id').eq('project_id',cur.dbId);
  if(projectModuleQ.error)throw projectModuleQ.error;
  const linkedIds=[...new Set((projectModuleQ.data||[]).map(x=>x.module_id).filter(Boolean).map(String))];
  const belongsToThisProject=m=>{
    if(m?.project_id!=null)return String(m.project_id)===currentProjectId;
-   return m?.product_id!=null&&productIds.includes(String(m.product_id));
+   return m?.product_id!=null&&scopedProductIds.includes(String(m.product_id));
  };
  const lookupById=async id=>{
    if(!id)return null;
@@ -3056,8 +3065,8 @@ async function resolveProjectStructureModule(moduleName,moduleIdHint){
  const customQ=await supabaseClient.from('modules').select('id,name,product_id,project_id,legacy_id').eq('project_id',cur.dbId);
  if(customQ.error)throw customQ.error;
  scoped.push(...(customQ.data||[]).filter(m=>norm(m.name)===wanted));
- if(productIds.length){
-   const productQ=await supabaseClient.from('modules').select('id,name,product_id,project_id,legacy_id').in('product_id',productIds);
+ if(scopedProductIds.length){
+   const productQ=await supabaseClient.from('modules').select('id,name,product_id,project_id,legacy_id').in('product_id',scopedProductIds);
    if(productQ.error)throw productQ.error;
    scoped.push(...(productQ.data||[]).filter(m=>norm(m.name)===wanted&&belongsToThisProject(m)));
  }
