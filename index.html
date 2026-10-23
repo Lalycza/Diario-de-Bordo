@@ -4304,13 +4304,15 @@ async function persistCatalogProductToSupabase(productId){
      },{onConflict:'legacy_id'}).select('id').single();
      if(me)throw me;
 
-     const {data:dbSubs,error:dsErr}=await supabaseClient.from('submodules').select('id,legacy_id').eq('module_id',md.id);
+     let {data:dbSubs,error:dsErr}=await supabaseClient.from('submodules').select('id,legacy_id').eq('module_id',md.id).is('project_id',null);
+     if(dsErr&&String(dsErr.message||'').toLowerCase().includes('project_id')){const fallback=await supabaseClient.from('submodules').select('id,legacy_id').eq('module_id',md.id);dbSubs=fallback.data;dsErr=fallback.error;}
      if(dsErr)throw dsErr;
      const wantedSubs=new Set((m.subs||[]).map(sub=>localLegacy('submodule',m.id+'-'+sub)));
      for(const dbs of (dbSubs||[])){
        if(!wantedSubs.has(dbs.legacy_id)){
-         const {error:subDelErr}=await supabaseClient.from('submodules').delete().eq('id',dbs.id);
-         if(subDelErr)throw subDelErr;
+         let subDel=await supabaseClient.from('submodules').delete().eq('id',dbs.id).is('project_id',null);
+         if(subDel.error&&String(subDel.error.message||'').toLowerCase().includes('project_id'))subDel=await supabaseClient.from('submodules').delete().eq('id',dbs.id);
+         if(subDel.error)throw subDel.error;
        }
      }
      for(const sub of (m.subs||[])){
