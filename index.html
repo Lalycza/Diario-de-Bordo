@@ -2160,8 +2160,8 @@ async function hydrateFromSupabase(){
   try{
     const [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,cc,pcc,profilesQ,cd,pd,diaryQ,emailQ,kickoffQ,handoffQ,homQ,surveyQ,goLiveQ]=await Promise.all([
       supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
-      supabaseClient.from('modules').select('id,name,legacy_id,product_id,project_id,active').eq('active',true).order('created_at'),
-      supabaseClient.from('submodules').select('id,name,legacy_id,module_id,project_id,active').eq('active',true).order('created_at'),
+      supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
+      supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,phone,ie,im,cep,address,number,complement,neighborhood,city,state,notes,legacy_id,status,hpro_central_code,implementation_value,consulting_value').order('created_at'),
       supabaseClient.from('client_products').select('client_id,product_id,status,analyst_id'),
       supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope').order('created_at'),
@@ -2183,13 +2183,23 @@ async function hydrateFromSupabase(){
       supabaseClient.from('project_go_live').select('id,project_id,module_id,status,go_live_date,support_active,notes')
     ]);
     for(const q of [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,cc,profilesQ,cd,pd,diaryQ,emailQ,kickoffQ,handoffQ,homQ,surveyQ,goLiveQ])if(q.error)throw q.error;
+    // Compatibilidade com bancos de preview ainda sem as colunas de escopo; nunca bloquear o login por isso.
+    for(const row of (mo.data||[]))row.project_id=null;
+    for(const row of (su.data||[]))row.project_id=null;
+    try{
+      const scopedModulesQ=await supabaseClient.from('modules').select('id,project_id').not('project_id','is',null);
+      if(!scopedModulesQ.error){
+        const scopedModuleIds=new Map((scopedModulesQ.data||[]).map(x=>[String(x.id),x.project_id]));
+        for(const row of (mo.data||[]))if(scopedModuleIds.has(String(row.id)))row.project_id=scopedModuleIds.get(String(row.id));
+      }else if(!String(scopedModulesQ.error.message||'').toLowerCase().includes('project_id'))console.warn('Módulos exclusivos de projeto indisponíveis.',scopedModulesQ.error.message);
+    }catch(scopeErr){console.warn('Escopo de módulos indisponível.',scopeErr?.message||scopeErr);}
     // Exclusões e inclusões de submódulos são sempre escopadas ao projeto.
     const psc=await supabaseClient.from('project_submodule_exclusions').select('project_id,module_id,submodule_id');
     if(psc.error)console.warn('Exclusões de submódulos por projeto indisponíveis; nenhum submódulo compartilhado será removido.',psc.error.message);
     let scopedSubmoduleRows=[];
     try{
       const scopeQ=await supabaseClient.from('submodules').select('id,project_id,module_id').not('project_id','is',null);
-      if(!scopeQ.error)scopedSubmoduleRows=scopeQ.data||[];
+      if(!scopeQ.error){scopedSubmoduleRows=scopeQ.data||[];const scopedIds=new Map(scopedSubmoduleRows.map(x=>[String(x.id),x.project_id]));for(const row of (su.data||[]))if(scopedIds.has(String(row.id)))row.project_id=scopedIds.get(String(row.id));}
       else if(!String(scopeQ.error.message||'').toLowerCase().includes('project_id'))console.warn('Não foi possível carregar submódulos exclusivos de projeto.',scopeQ.error.message);
     }catch(scopeErr){console.warn('Submódulos exclusivos de projeto indisponíveis.',scopeErr?.message||scopeErr);}
     const normMapName=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
