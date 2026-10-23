@@ -2164,7 +2164,7 @@ async function hydrateFromSupabase(){
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,phone,ie,im,cep,address,number,complement,neighborhood,city,state,notes,legacy_id,status,hpro_central_code,implementation_value,consulting_value').order('created_at'),
       supabaseClient.from('client_products').select('client_id,product_id,status,analyst_id'),
-      supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope').order('created_at'),
+      supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope,finalized,finalized_at').order('created_at'),
       supabaseClient.from('project_products').select('project_id,product_id'),
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
       supabaseClient.from('project_analysts').select('project_id,profile_id'),
