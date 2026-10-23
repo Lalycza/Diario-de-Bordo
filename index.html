@@ -3290,7 +3290,7 @@ async function addMod(){
     const name=document.getElementById('mapNewModuleName')?.value.trim();
     const subs=[...new Set(
       (document.getElementById('mapNewModuleSubs')?.value||'')
-        .split(/\\r?\\n/)
+        .split(/\r?\n/)
         .map(x=>x.trim())
         .filter(Boolean)
     )];
@@ -3324,7 +3324,7 @@ async function addMod(){
       }
 
       // Garante os submódulos exatamente na ordem das linhas informadas.
-      const savedSubs=[];
+      const savedSubs=[];const savedSubRecords=[];
       for(const subName of subs){
        let subQ=await supabaseClient
          .from('submodules')
@@ -3346,7 +3346,7 @@ async function addMod(){
         if(ins.error)throw ins.error;
         sub=ins.data;
        }
-       savedSubs.push(sub.name);
+       savedSubs.push(sub.name);savedSubRecords.push(sub);
       }
 
       const pm=await supabaseClient.from('project_modules').upsert({
@@ -3357,7 +3357,7 @@ async function addMod(){
       if(pm.error)throw pm.error;
 
       cur.m=Array.isArray(cur.m)?cur.m:[];
-      cur.m.push([mod.name,savedSubs,{dbId:mod.id,productId:mod.product_id,submoduleRefs:savedSubs.map(name=>({id:(su.data||[]).find(x=>String(x.module_id)===String(mod.id)&&x.name===name)?.id||null,name}))}]);
+      cur.m.push([mod.name,savedSubs,{dbId:mod.id,productId:mod.product_id,submoduleRefs:savedSubs.map(name=>({id:(savedSubRecords.find(x=>String(x.module_id)===String(mod.id)&&x.name===name)?.id||null),name}))}]);
       audit('Módulo criado no Mapa','Módulo '+mod.name+' criado no produto atribuído ao cliente com '+savedSubs.length+' submódulo(s).');
       persistState();closeModal();mapView();
     }catch(e){
