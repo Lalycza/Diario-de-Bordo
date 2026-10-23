@@ -3593,7 +3593,7 @@ async function generateMapFile(){
  try{
   const meta=pdfProjectModelMeta(), modules=Array.isArray(cur.m)?cur.m:[];
   const raw=Array.isArray(cur.t)?cur.t:[];
-  const norm=(v)=>String(v??'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+  const norm=(v)=>String(v??'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const mapTasks=raw.map((raw)=>{const x=Array.isArray(raw)?{name:raw[0]||'',status:raw[4]||'PENDENTE',responsible:raw[5]||'',module:raw[6]||'',submodule:raw[7]||'',trainingStartDate:raw[3]||'',trainingEndDate:raw[9]||'',plannedDate:raw[10]||'',plannedDateOriginal:raw[11]||raw[10]||'',homologationDate:raw[12]||'',homologationResponsible:raw[13]||''}:raw||{};return {...x,module:x.module||x.moduleName||'',submodule:x.submodule||x.submoduleName||'',status:x.status||'PENDENTE'};});
   const moduleStatus=(name,recs,subs)=>{const relevant=recs.filter(t=>!subs.length||subs.includes(norm(t.submodule)));const statuses=relevant.map(t=>norm(t.status));const allHom=subs.length>0&&subs.every(sub=>relevant.some(t=>norm(t.submodule)===sub&&(t.homologationDate&&t.homologationResponsible||norm(t.status)==='HOMOLOGADO')));if(allHom)return 'HOMOLOGADO';if(relevant.length&&relevant.every(t=>norm(t.status)==='CONCLUIDO'||norm(t.status)==='HOMOLOGADO'||t.trainingEndDate))return 'CONCLUÍDO';if(relevant.some(t=>norm(t.status)==='REPLANEJADO'||(t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate)))return 'REPLANEJADO';if(relevant.some(t=>t.trainingStartDate||t.trainingDate||['EM ANDAMENTO','CONCLUIDO','HOMOLOGADO'].includes(norm(t.status))))return 'EM ANDAMENTO';return 'PENDENTE'};
   let homologated=0, pending=0, rows=[];
