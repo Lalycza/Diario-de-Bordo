@@ -2362,7 +2362,9 @@ async function hydrateFromSupabase(){
       }
       // Um vínculo explícito em project_modules já confirma que o módulo pertence ao Mapa
       // deste projeto. Módulos personalizados não devem depender de project_products.
-      if(p&&m){
+      // A exclusão persistida tem prioridade sobre vínculos antigos em project_modules.
+      // Sem este filtro, o módulo removido reaparece ao reidratar o projeto, mesmo com a exclusão registrada.
+      if(p&&m&&!excludedProjectModuleKeys.has(String(x.project_id)+'::'+String(rawModule?.id||''))){
         if(!p.m.some(existing=>String(existing[2]?.dbId||'')===String(rawModule?.id||''))){
           p.m.push([m.name,m.subs||[],{plannedDate:x.planned_training_date||null,dbId:rawModule?.id||null,productId:rawModule?.product_id||null,productName:(pr.data||[]).find(prod=>String(prod.id)===String(rawModule?.product_id))?.name||'',submoduleRefs:(su.data||[]).filter(sub=>String(sub.module_id)===String(rawModule?.id)).map(sub=>({id:sub.id,name:sub.name}))}]);
         }
