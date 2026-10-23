@@ -4305,17 +4305,9 @@ async function persistCatalogProductToSupabase(productId){
      },{onConflict:'legacy_id'}).select('id').single();
      if(me)throw me;
 
-     let {data:dbSubs,error:dsErr}=await supabaseClient.from('submodules').select('id,legacy_id').eq('module_id',md.id).is('project_id',null);
-     if(dsErr&&String(dsErr.message||'').toLowerCase().includes('project_id')){const fallback=await supabaseClient.from('submodules').select('id,legacy_id').eq('module_id',md.id);dbSubs=fallback.data;dsErr=fallback.error;}
-     if(dsErr)throw dsErr;
-     const wantedSubs=new Set((m.subs||[]).map(sub=>localLegacy('submodule',m.id+'-'+sub)));
-     for(const dbs of (dbSubs||[])){
-       if(dbs.legacy_id && !wantedSubs.has(dbs.legacy_id)){
-         let subDel=await supabaseClient.from('submodules').delete().eq('id',dbs.id).is('project_id',null);
-         if(subDel.error&&String(subDel.error.message||'').toLowerCase().includes('project_id'))subDel=await supabaseClient.from('submodules').delete().eq('id',dbs.id);
-         if(subDel.error)throw subDel.error;
-       }
-     }
+     // Keep catalog sync additive for submodules. Rows added manually or from another
+     // authorized workflow must not be deleted just because they are absent from this
+     // browser's local snapshot. Deletion must be an explicit catalog action.
      for(const sub of (m.subs||[])){
        const {error:se}=await supabaseClient.from('submodules').upsert({
          legacy_id:localLegacy('submodule',m.id+'-'+sub),module_id:md.id,name:sub,active:true
