@@ -4389,8 +4389,13 @@ async function persistCatalogProductToSupabase(productId){
    const wantedMods=new Set(mods.map(m=>localLegacy('module',m.id)));
    for(const dbm of (dbMods||[])){
      if(dbm.legacy_id && !wantedMods.has(dbm.legacy_id)){
-       const submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id).is('project_id',null);
-       if(submoduleDelete.error)throw new Error('Não foi possível isolar submódulos do catálogo. A exclusão do módulo foi bloqueada para proteger os dados do projeto. '+(submoduleDelete.error.message||''));
+       let submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id).is('project_id',null);
+       if(submoduleDelete.error && String(submoduleDelete.error.message||'').toLowerCase().includes('column submodules.project_id does not exist')){
+         // Esquema legado: sem project_id não há linhas de submódulos escopadas por projeto.
+         // Este fluxo sincroniza exclusivamente o catálogo do produto; remover os filhos deste módulo é seguro.
+         submoduleDelete=await supabaseClient.from('submodules').delete().eq('module_id',dbm.id);
+       }
+       if(submoduleDelete.error)throw new Error('Não foi possível remover os submódulos vinculados ao módulo do catálogo. A exclusão do módulo foi bloqueada para proteger os dados. '+(submoduleDelete.error.message||''));
        const {error:mdErr}=await supabaseClient.from('modules').delete().eq('id',dbm.id);
        if(mdErr)throw mdErr;
      }
