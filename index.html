@@ -534,6 +534,58 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 .theme-dark #projectHistoryList .card button.secondary{background:#2563eb!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#60a5fa!important}
 @media(max-width:600px){#projectHistoryList .card{padding:17px!important}#projectHistoryList .card .top{align-items:flex-start!important}}
 
+
+/* POLIMENTO VISUAL 2 — Histórico: contraste explícito e acabamento tecnológico */
+#projectHistory{isolation:isolate}
+#projectHistory>.top{
+  background:radial-gradient(ellipse at 88% 5%,rgba(56,189,248,.22),transparent 35%),linear-gradient(120deg,#0b1423 0%,#152842 58%,#102039 100%)!important;
+  border:1px solid #3c6593!important;border-left:4px solid #38bdf8!important;
+  border-radius:20px!important;padding:25px 27px!important;
+  box-shadow:0 14px 30px rgba(17,40,70,.17)!important;
+}
+#projectHistory>.top h1{color:#f8fbff!important;-webkit-text-fill-color:#f8fbff!important;font-size:clamp(1.35rem,2vw,1.8rem)!important;font-weight:800!important;letter-spacing:-.035em!important}
+#projectHistory>.top p{color:#cbdcf0!important;-webkit-text-fill-color:#cbdcf0!important;line-height:1.6!important}
+#projectHistory .toolbar{display:flex!important;gap:12px!important;align-items:center!important;border-radius:17px!important;padding:15px!important;margin:18px 0 20px!important}
+#projectHistory .toolbar input,#projectHistory .toolbar select{min-height:46px!important;border-radius:12px!important;padding:11px 14px!important;font-weight:550!important;outline-offset:2px!important}
+#projectHistoryList{gap:14px!important}
+#projectHistoryList .card{border-radius:18px!important;padding:23px 24px 22px 27px!important;margin:0 0 15px!important;position:relative!important;overflow:hidden!important}
+#projectHistoryList .card:before{width:4px!important;background:linear-gradient(180deg,#38bdf8 0%,#3b82f6 58%,#6366f1 100%)!important}
+#projectHistoryList .card h3{font-size:1.12rem!important;line-height:1.4!important;font-weight:800!important;letter-spacing:-.02em!important;margin-bottom:7px!important}
+#projectHistoryList .card .muted{font-size:.94rem!important;line-height:1.65!important}
+#projectHistoryList .card .badge{border-radius:999px!important;padding:6px 11px!important;font-weight:750!important;white-space:nowrap!important}
+#projectHistoryList .card button,#projectHistoryList .card button.secondary{border-radius:11px!important;min-height:43px!important;font-weight:750!important;padding:11px 17px!important}
+#app:not(.theme-dark) #projectHistory .toolbar{
+ background:linear-gradient(125deg,#eaf2fc 0%,#f4f8fe 100%)!important;border:1px solid #c4d5e9!important;
+ box-shadow:0 8px 20px rgba(27,54,88,.07)!important;
+}
+#app:not(.theme-dark) #projectHistory .toolbar input,#app:not(.theme-dark) #projectHistory .toolbar select{
+ background:#fff!important;color:#172b45!important;-webkit-text-fill-color:#172b45!important;
+ border:1px solid #9eb4ce!important;box-shadow:0 1px 2px rgba(16,35,60,.04)!important;
+}
+#app:not(.theme-dark) #projectHistory .toolbar input::placeholder{color:#586d86!important;-webkit-text-fill-color:#586d86!important;opacity:1!important}
+#app:not(.theme-dark) #projectHistoryList .card{
+ background:linear-gradient(125deg,#ffffff 0%,#f5f9ff 56%,#eaf3ff 100%)!important;
+ border:1px solid #c4d5e8!important;border-left:1px solid #c4d5e8!important;
+ box-shadow:0 9px 22px rgba(26,55,91,.09),inset 0 1px rgba(255,255,255,.95)!important;
+}
+#app:not(.theme-dark) #projectHistoryList .card h3,
+#app:not(.theme-dark) #projectHistoryList .card p,
+#app:not(.theme-dark) #projectHistoryList .card span:not(.badge),
+#app:not(.theme-dark) #projectHistoryList .card small,
+#app:not(.theme-dark) #projectHistoryList .card strong,
+#app:not(.theme-dark) #projectHistoryList .card .muted{color:#273d58!important;-webkit-text-fill-color:#273d58!important;opacity:1!important}
+#app:not(.theme-dark) #projectHistoryList .card .badge{background:#dcecff!important;color:#174ea6!important;-webkit-text-fill-color:#174ea6!important;border:1px solid #a9cbff!important}
+#app:not(.theme-dark) #projectHistoryList .card button,#app:not(.theme-dark) #projectHistoryList .card button.secondary{background:linear-gradient(135deg,#1763c5,#2454b8)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #1c57b0!important;box-shadow:0 5px 12px rgba(23,92,211,.18)!important}
+#app.theme-dark #projectHistory .toolbar{background:linear-gradient(125deg,#101b2b,#172840)!important;border:1px solid #385575!important;box-shadow:0 8px 22px rgba(0,0,0,.18)!important}
+#app.theme-dark #projectHistory .toolbar input,#app.theme-dark #projectHistory .toolbar select{background:#0b1423!important;color:#f5f8ff!important;-webkit-text-fill-color:#f5f8ff!important;border:1px solid #617fa4!important}
+#app.theme-dark #projectHistory .toolbar input::placeholder{color:#c1d0e2!important;-webkit-text-fill-color:#c1d0e2!important;opacity:1!important}
+#app.theme-dark #projectHistoryList .card{background:radial-gradient(ellipse at 100% 0%,rgba(37,99,235,.15),transparent 43%),linear-gradient(125deg,#192a40 0%,#111d2e 72%,#0e1828 100%)!important;border:1px solid #3a5a7c!important;box-shadow:0 12px 26px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.045)!important}
+#app.theme-dark #projectHistoryList .card h3{color:#f7faff!important;-webkit-text-fill-color:#f7faff!important}
+#app.theme-dark #projectHistoryList .card p,#app.theme-dark #projectHistoryList .card span:not(.badge),#app.theme-dark #projectHistoryList .card small,#app.theme-dark #projectHistoryList .card strong,#app.theme-dark #projectHistoryList .card .muted{color:#cbd9eb!important;-webkit-text-fill-color:#cbd9eb!important;opacity:1!important}
+#app.theme-dark #projectHistoryList .card .badge{background:#1b416e!important;color:#eff6ff!important;-webkit-text-fill-color:#eff6ff!important;border:1px solid #4a7eb5!important}
+#app.theme-dark #projectHistoryList .card button,#app.theme-dark #projectHistoryList .card button.secondary{background:linear-gradient(135deg,#286dd1,#274db5)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #5b9df4!important;box-shadow:0 5px 14px rgba(0,0,0,.22)!important}
+@media(max-width:600px){#projectHistory>.top{padding:20px!important;border-radius:16px!important}#projectHistory .toolbar{padding:12px!important}#projectHistoryList .card{padding:19px 17px 18px 22px!important;border-radius:15px!important}#projectHistoryList .card .top{align-items:flex-start!important;gap:10px!important}#projectHistoryList .card h3{font-size:1.04rem!important;overflow-wrap:anywhere!important}}
+
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
