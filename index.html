@@ -586,6 +586,67 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 #app.theme-dark #projectHistoryList .card button,#app.theme-dark #projectHistoryList .card button.secondary{background:linear-gradient(135deg,#286dd1,#274db5)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #5b9df4!important;box-shadow:0 5px 14px rgba(0,0,0,.22)!important}
 @media(max-width:600px){#projectHistory>.top{padding:20px!important;border-radius:16px!important}#projectHistory .toolbar{padding:12px!important}#projectHistoryList .card{padding:19px 17px 18px 22px!important;border-radius:15px!important}#projectHistoryList .card .top{align-items:flex-start!important;gap:10px!important}#projectHistoryList .card h3{font-size:1.04rem!important;overflow-wrap:anywhere!important}}
 
+
+/* HISTÓRICO V3 — layout compacto, refinado e responsivo; somente apresentação */
+#projectHistory>.top{
+  padding:22px 25px!important;border-radius:18px!important;
+  background:radial-gradient(ellipse at 92% 0%,rgba(56,189,248,.18),transparent 36%),linear-gradient(125deg,#101a2a 0%,#172b43 58%,#102039 100%)!important;
+  border:1px solid #355b83!important;border-left:3px solid #38bdf8!important;
+  box-shadow:0 8px 22px rgba(17,40,70,.12)!important;
+}
+#projectHistory>.top h1{font-size:clamp(1.3rem,2vw,1.65rem)!important;line-height:1.25!important;margin:0 0 8px!important;letter-spacing:-.035em!important}
+#projectHistory>.top p{font-size:.96rem!important;line-height:1.55!important;margin:0!important}
+#projectHistory .toolbar{
+  display:flex!important;align-items:center!important;gap:10px!important;
+  padding:12px!important;border-radius:14px!important;margin:14px 0 16px!important;
+  box-shadow:none!important;
+}
+#projectHistory .toolbar input,#projectHistory .toolbar select{
+  box-sizing:border-box!important;min-width:0!important;width:100%!important;
+  min-height:42px!important;padding:9px 12px!important;border-radius:10px!important;
+  font-size:.94rem!important;font-weight:500!important;
+}
+#projectHistoryList{gap:0!important}
+#projectHistoryList .card{
+  padding:19px 20px 18px 23px!important;margin:0 0 13px!important;
+  border-radius:15px!important;box-shadow:0 6px 16px rgba(22,47,78,.07)!important;
+}
+#projectHistoryList .card:before{width:3px!important}
+#projectHistoryList .card .top{gap:10px!important;align-items:flex-start!important;margin-bottom:9px!important}
+#projectHistoryList .card h3{font-size:1.05rem!important;line-height:1.35!important;margin:0 0 5px!important}
+#projectHistoryList .card .muted{font-size:.9rem!important;line-height:1.55!important}
+#projectHistoryList .card .badge{font-size:.75rem!important;padding:5px 9px!important}
+#projectHistoryList .card button,#projectHistoryList .card button.secondary{
+  min-height:40px!important;padding:10px 15px!important;border-radius:10px!important;
+  box-shadow:none!important;
+}
+#app:not(.theme-dark) #projectHistory .toolbar{background:#eaf1fa!important;border:1px solid #d0dceb!important}
+#app:not(.theme-dark) #projectHistoryList .card{
+  background:linear-gradient(120deg,#fff 0%,#f8faff 65%,#eff5fd 100%)!important;
+  border:1px solid #cad7e7!important;
+  box-shadow:0 6px 16px rgba(30,55,86,.07)!important;
+}
+#app.theme-dark #projectHistory .toolbar{background:#111d2e!important;border:1px solid #344d6a!important}
+#app.theme-dark #projectHistoryList .card{
+  background:linear-gradient(120deg,#19283d 0%,#142236 70%,#111d2e 100%)!important;
+  border:1px solid #344f70!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.18)!important;
+}
+@media(max-width:600px){
+  #projectHistory>.top{padding:19px 20px!important;border-radius:15px!important}
+  #projectHistory>.top h1{font-size:1.42rem!important}
+  #projectHistory>.top p{font-size:.91rem!important;max-width:34ch!important}
+  #projectHistory .toolbar{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:9px!important;padding:11px!important;margin:12px 0 14px!important}
+  #projectHistory .toolbar input,#projectHistory .toolbar select{width:100%!important;min-width:0!important;min-height:42px!important;font-size:.91rem!important}
+  #projectHistoryList .card{padding:17px 15px 16px 19px!important;margin-bottom:11px!important;border-radius:14px!important}
+  #projectHistoryList .card .top{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:8px!important}
+  #projectHistoryList .card .top>div{min-width:0!important;flex:1 1 auto!important}
+  #projectHistoryList .card h3{font-size:1rem!important;overflow-wrap:anywhere!important}
+  #projectHistoryList .card .badge{flex:0 0 auto!important;max-width:46%!important;white-space:normal!important;text-align:center!important}
+  #projectHistoryList .card .muted{font-size:.88rem!important;line-height:1.5!important}
+  #projectHistoryList .card button,#projectHistoryList .card button.secondary{width:100%!important;margin-top:2px!important}
+}
+
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
