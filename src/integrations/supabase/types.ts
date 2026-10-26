@@ -1685,7 +1685,7 @@ export type Database = {
         }
         Relationships: []
       }
-    }
+      },
       personal_calendar_events: {
         Row: {
           id: string
@@ -1746,6 +1746,7 @@ export type Database = {
           },
         ]
       }
+    }
     Views: {
       [_ in never]: never
     }
