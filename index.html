@@ -544,6 +544,25 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 .menu-profile-icon{font-size:12px;opacity:.75;margin-left:auto;margin-right:8px;order:1}
 .menu-toggle .menu-arrow{order:2}
 #agendaCalendar{--agenda-hour:54px;min-width:0;color:var(--text,#e5e7eb)}
+.agenda-time-axis{min-width:0;border-right:1px solid var(--border,#334155)}
+.agenda-time-label{box-sizing:border-box}
+.agenda-day-column{box-sizing:border-box}
+.agenda-slot{box-sizing:border-box}
+.app.theme-light #agendaCalendar{color:#1e293b!important;--panel:#ffffff;--border:#d7e0ec;--text:#1e293b;--muted:#64748b}
+.app.theme-light #agendaCalendar .agenda-toolbar .agenda-date-title{color:#17243a!important}
+.app.theme-light #agendaCalendar #agendaDatePicker{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border:1px solid #bdcde1!important;color-scheme:light}
+.app.theme-light #agendaCalendar .agenda-grid,.app.theme-light #agendaCalendar .agenda-month-grid{background:#fff!important;border-color:#d5dfeb!important}
+.app.theme-light #agendaCalendar .agenda-grid-head,.app.theme-light #agendaCalendar .agenda-month-head{background:#edf3fa!important;color:#25364d!important;border-color:#d5dfeb!important}
+.app.theme-light #agendaCalendar .agenda-day-column,.app.theme-light #agendaCalendar .agenda-time-axis{background-color:#fff!important;border-color:#dbe4ef!important}
+.app.theme-light #agendaCalendar .agenda-time-label{color:#52647d!important;border-color:#dbe4ef!important}
+.app.theme-light #agendaCalendar .agenda-month-day{background:#fff!important;color:#25364d!important;border-color:#e1e8f0!important}
+.app.theme-light #agendaCalendar .agenda-month-day.other{background:#f7f9fc!important;color:#94a3b8!important}
+.app.theme-light #agendaCalendar .agenda-event,.app.theme-light #agendaCalendar .agenda-month-event{color:#17304f!important;background:rgba(14,165,233,.13)!important}
+.app.theme-light #agendaCalendar .agenda-event[data-type="treinamento"],.app.theme-light #agendaCalendar .agenda-month-event[data-type="treinamento"]{background:rgba(139,92,246,.12)!important;color:#4c287d!important}
+.app.theme-light #agendaCalendar .agenda-event[data-type="tarefa"],.app.theme-light #agendaCalendar .agenda-month-event[data-type="tarefa"]{background:rgba(16,185,129,.12)!important;color:#14532d!important}
+.app.theme-light #agendaCalendar .agenda-event[data-type="lembrete"],.app.theme-light #agendaCalendar .agenda-month-event[data-type="lembrete"]{background:rgba(245,158,11,.14)!important;color:#78350f!important}
+.app.theme-dark #agendaCalendar{color:#e5e7eb!important}
+.app.theme-dark #agendaCalendar #agendaDatePicker{color-scheme:dark;background:#111827;color:#e5e7eb;border-color:#334155}
 .agenda-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0}
 .agenda-toolbar .agenda-date-title{font-weight:700;margin-right:auto;min-width:150px}
 .agenda-toolbar button,.agenda-toolbar select{margin:0}
@@ -5084,13 +5103,30 @@ function renderAgendaCalendar(){
 }
 function renderAgendaTimeGrid(){
  const days=agendaView==='day'?[agendaDayStart(agendaAnchor)]:Array.from({length:7},(_,i)=>agendaAddDays(agendaWeekStart(agendaAnchor),i));
- const firstHour=7,lastHour=21,hours=lastHour-firstHour,slotH=54;
+ const firstHour=7,lastHour=21,slotH=54,pxPerMin=slotH/60,totalH=(lastHour-firstHour)*slotH;
  let html='<div class="agenda-grid" style="grid-template-columns:54px repeat('+days.length+',minmax(100px,1fr));min-width:'+(days.length===1?'480px':'790px')+'"><div class="agenda-grid-head"></div>';
  html+=days.map(d=>'<div class="agenda-grid-head '+(agendaDateKey(d)===agendaDateKey(new Date())?'today':'')+'">'+(agendaView==='day'?'':d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')+'<br>')+agendaFmt(d,{day:'2-digit',month:'2-digit'})+'</div>').join('');
- for(let hour=firstHour;hour<lastHour;hour++){html+='<div class="agenda-time-label">'+agendaPad(hour)+':00</div>';for(const day of days){html+='<div class="agenda-day-column" style="height:'+slotH+'px"><button type="button" class="agenda-slot" style="top:0" aria-label="Agendar às '+agendaPad(hour)+':00" onclick="novoEventoAgenda(\''+agendaDateKey(day)+'\','+hour+')"></button></div>'}}
+ html+='<div class="agenda-time-axis" style="height:'+totalH+'px">';
+ for(let hour=firstHour;hour<lastHour;hour++)html+='<div class="agenda-time-label" style="height:'+slotH+'px">'+agendaPad(hour)+':00</div>';
  html+='</div>';
- const wrap=document.createElement('div');wrap.innerHTML=html;const grid=wrap.firstElementChild;let cols=grid.querySelectorAll('.agenda-day-column');const pxPerMin=slotH/60;
- for(const ev of agendaEvents){const start=new Date(ev.starts_at),end=new Date(ev.ends_at);const dayIndex=days.findIndex(d=>agendaDateKey(d)===agendaDateKey(start));if(dayIndex<0)continue;const hour=start.getHours()+start.getMinutes()/60;if(hour<firstHour||hour>=lastHour)continue;const row=Math.floor(hour-firstHour);const colIndex=row*days.length+dayIndex;const col=cols[colIndex];if(!col)continue;const top=((start.getHours()-firstHour)*60+start.getMinutes())*pxPerMin;const dur=Math.max(22,Math.min((end-start)/60000,720)*pxPerMin);const b=document.createElement('button');b.type='button';b.className='agenda-event';b.dataset.type=ev.event_type;b.style.top=top+'px';b.style.height=Math.max(22,dur)+'px';b.innerHTML='<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong><div>'+esc(agendaTypeName(ev.event_type))+'</div>';b.title=ev.title;b.onclick=()=>editarEventoAgenda(ev.id);col.appendChild(b)}
+ for(const day of days){
+  html+='<div class="agenda-day-column" style="height:'+totalH+'px">';
+  for(let hour=firstHour;hour<lastHour;hour++)html+='<button type="button" class="agenda-slot" style="top:'+((hour-firstHour)*slotH)+'px;height:'+slotH+'px" aria-label="Agendar às '+agendaPad(hour)+':00" onclick="novoEventoAgenda(\''+agendaDateKey(day)+'\','+hour+')"></button>';
+  html+='</div>';
+ }
+ html+='</div>';
+ const wrap=document.createElement('div');wrap.innerHTML=html;const grid=wrap.firstElementChild,cols=grid.querySelectorAll('.agenda-day-column');
+ for(const ev of agendaEvents){
+  const start=new Date(ev.starts_at),end=new Date(ev.ends_at),dayIndex=days.findIndex(d=>agendaDateKey(d)===agendaDateKey(start));
+  if(dayIndex<0)continue;
+  const hour=start.getHours()+start.getMinutes()/60;if(hour<firstHour||hour>=lastHour)continue;
+  const col=cols[dayIndex];if(!col)continue;
+  const top=((start.getHours()-firstHour)*60+start.getMinutes())*pxPerMin;
+  const dur=Math.max(22,Math.min((end-start)/60000,720)*pxPerMin);
+  const b=document.createElement('button');b.type='button';b.className='agenda-event';b.dataset.type=ev.event_type;b.style.top=top+'px';b.style.height=Math.max(22,dur)+'px';
+  b.innerHTML='<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong><div>'+esc(agendaTypeName(ev.event_type))+'</div>';
+  b.title='Editar compromisso: '+ev.title;b.setAttribute('aria-label','Editar compromisso '+ev.title);b.onclick=()=>editarEventoAgenda(ev.id);col.appendChild(b);
+ }
  return wrap.innerHTML;
 }
 function renderAgendaMonth(){
