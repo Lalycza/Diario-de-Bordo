@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   CalendarDays,
+  LockKeyhole,
   DatabaseBackup,
   FolderKanban,
   LayoutDashboard,
@@ -266,6 +267,12 @@ export function AppShell({
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
     <DropdownMenuItem asChild>
+      <Link to="/alterar-senha">
+        <LockKeyhole className="size-4" />
+        Alterar senha
+      </Link>
+    </DropdownMenuItem>
+    <DropdownMenuItem asChild>
       <Link to="/agenda">
         <CalendarDays className="size-4 text-sky-500" />
         Minha Agenda
@@ -368,6 +375,12 @@ export function AppShell({
         <span className="block truncate text-sm font-medium text-foreground">{userLabel ?? "Usuário"}</span>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
+      <DropdownMenuItem asChild>
+        <Link to="/alterar-senha" onClick={() => setMobileOpen(false)}>
+          <LockKeyhole className="size-4" />
+          Alterar senha
+        </Link>
+      </DropdownMenuItem>
       <DropdownMenuItem asChild>
         <Link to="/agenda" onClick={() => setMobileOpen(false)}>
           <CalendarDays className="size-4 text-sky-500" />
