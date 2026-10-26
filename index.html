@@ -5195,15 +5195,15 @@ function renderAgendaCalendar(){
 }
 function renderAgendaTimeGrid(){
  const days=agendaView==='day'?[agendaDayStart(agendaAnchor)]:Array.from({length:7},(_,i)=>agendaAddDays(agendaWeekStart(agendaAnchor),i));
- const firstHour=7,lastHour=21,hours=lastHour-firstHour,slotH=54,totalH=hours*slotH;
- let html='<div class="agenda-grid agenda-time-grid" style="grid-template-columns:54px repeat('+days.length+',minmax(100px,1fr));grid-template-rows:44px '+totalH+'px;min-width:'+(days.length===1?'480px':'790px')+'">';
+ const firstHour=7,lastHour=21,hours=lastHour-firstHour,slotH=60,totalH=hours*slotH,headH=44,axisW=60;
+ let html='<div class="agenda-grid agenda-time-grid" style="--agenda-hour:'+slotH+'px;--agenda-head-height:'+headH+'px;grid-template-columns:'+axisW+'px repeat('+days.length+',minmax(100px,1fr));grid-template-rows:'+headH+'px '+totalH+'px;min-width:'+(days.length===1?'480px':'790px')+'">';
  html+='<div class="agenda-grid-head agenda-time-corner"></div>';
  html+=days.map(d=>'<div class="agenda-grid-head '+(agendaDateKey(d)===agendaDateKey(new Date())?'today':'')+'">'+(agendaView==='day'?'':d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')+'<br>')+agendaFmt(d,{day:'2-digit',month:'2-digit'})+'</div>').join('');
- html+='<div class="agenda-time-axis" style="height:'+totalH+'px;position:relative">';
+ html+='<div class="agenda-time-axis" style="height:'+totalH+'px;position:relative;grid-row:2;grid-column:1">';
  for(let hour=firstHour;hour<lastHour;hour++)html+='<div class="agenda-time-label" style="position:absolute;top:'+((hour-firstHour)*slotH)+'px;left:0;right:0;height:'+slotH+'px">'+agendaPad(hour)+':00</div>';
  html+='</div>';
  for(const day of days){
-  html+='<div class="agenda-day-column" data-day="'+agendaDateKey(day)+'" style="height:'+totalH+'px;position:relative">';
+  html+='<div class="agenda-day-column" data-day="'+agendaDateKey(day)+'" style="height:'+totalH+'px;position:relative;grid-row:2;grid-column:'+(days.indexOf(day)+2)+'">';
   for(let hour=firstHour;hour<lastHour;hour++)html+='<button type="button" class="agenda-slot" style="top:'+((hour-firstHour)*slotH)+'px;height:'+slotH+'px" aria-label="Agendar '+agendaPad(hour)+':00" onclick="novoEventoAgenda(\''+agendaDateKey(day)+'\','+hour+')"></button>';
   html+='</div>';
  }
@@ -6522,4 +6522,11 @@ document.addEventListener('click',function(e){
 #app #agendaPage .agenda-time-grid .agenda-event .agenda-event-meta{font-size:10px!important;line-height:12px!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important;}
 #app #agendaPage .agenda-time-grid .agenda-event .agenda-event-actions{position:absolute!important;right:2px!important;bottom:2px!important;gap:2px!important;margin:0!important;}
 #app #agendaPage .agenda-time-grid .agenda-event .agenda-event-actions button{width:16px!important;height:16px!important;min-width:16px!important;padding:0!important;font-size:10px!important;line-height:14px!important;}
+
+/* Agenda: eixo, linhas e cartões compartilham uma única escala vertical. */
+#app #agendaPage .agenda-time-grid{align-items:stretch!important;grid-auto-rows:auto!important;}
+#app #agendaPage .agenda-time-grid .agenda-time-axis,#app #agendaPage .agenda-time-grid .agenda-day-column{height:calc(var(--agenda-hour,60px)*14)!important;min-height:calc(var(--agenda-hour,60px)*14)!important;box-sizing:border-box!important;align-self:stretch!important;}
+#app #agendaPage .agenda-time-grid .agenda-time-label{top:calc(var(--hour-index,0)*var(--agenda-hour,60px))!important;height:var(--agenda-hour,60px)!important;box-sizing:border-box!important;}
+#app #agendaPage .agenda-time-grid .agenda-day-column{background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--agenda-hour,60px) - 1px),var(--agenda-border,#334155) calc(var(--agenda-hour,60px) - 1px),var(--agenda-border,#334155) var(--agenda-hour,60px))!important;}
+#app #agendaPage .agenda-time-grid .agenda-event{top:var(--event-top)!important;}
 </style>
