@@ -5093,7 +5093,7 @@ function agendaMove(delta){if(agendaView==='day')agendaAnchor=agendaAddDays(agen
 function agendaSetView(view){agendaView=view;renderAgendaCalendar()}
 function agendaEventTime(ev){return new Date(ev.starts_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function agendaTypeName(type){return ({reuniao:'Reunião',treinamento:'Treinamento',tarefa:'Tarefa',lembrete:'Lembrete'})[type]||'Compromisso'}
-function agendaEventButton(ev,month){return '<button type="button" class="'+(month?'agenda-month-event':'agenda-event')+'" data-type="'+escAttr(ev.event_type)+'" title="Alterar compromisso: '+escAttr(ev.title)+'" aria-label="Alterar compromisso: '+escAttr(ev.title)+'" onclick="event.stopPropagation();editarEventoAgenda(\\''+escAttr(ev.id)+'\\')">'+(month?'':agendaEventTime(ev)+' ')+esc(ev.title)+' <span class="agenda-edit-hint">✎ Alterar</span></button>'}
+function agendaEventButton(ev,month){return '<button type="button" class="'+(month?'agenda-month-event':'agenda-event')+'" data-type="'+escAttr(ev.event_type)+'" title="Alterar compromisso: '+escAttr(ev.title)+'" aria-label="Alterar compromisso: '+escAttr(ev.title)+'" onclick="event.stopPropagation();editarEventoAgenda('+JSON.stringify(String(ev.id))+')">'+(month?'':agendaEventTime(ev)+' ')+esc(ev.title)+' <span class="agenda-edit-hint">✎ Alterar</span></button>'}
 async function abrirAgenda(){
  if(!currentUser||!['admin','analyst'].includes(currentUser.role)){alert('A Agenda pessoal está disponível para Admin e Analista.');return}
  agendaAnchor=new Date();agendaView='week';agendaEditingId=null;
