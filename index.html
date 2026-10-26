@@ -5144,23 +5144,19 @@ async function sincronizarPrevisoesMapaNaAgenda(){
   const confirmed=!completed&&!inProgress&&tr.calendar_confirmed===true;
   const trainingStatus=completed?'completed':inProgress?'in_progress':confirmed?'confirmed':'pending_confirmation';
   const moduleName=moduleById.get(String(pm.module_id))?.name||('Módulo '+String(pm.module_id));
-  forecasts.push({pm,project,tr,dateKey:String(date).slice(0,10),trainingStatus,moduleName,title:'Treinamento · '+(project.name||'Projeto')+' · '+moduleName,existing:existingByTraining.get(String(tr.id))});
+  forecasts.push({pm,project,tr,dateKey:String(date).slice(0,10),trainingStatus,moduleName,title:moduleName,existing:existingByTraining.get(String(tr.id))});
  }
  forecasts.sort((a,b)=>a.dateKey.localeCompare(b.dateKey)||String(a.project.name||'').localeCompare(String(b.project.name||''))||a.moduleName.localeCompare(b.moduleName));
  const slotByDate=new Map();
  for(const item of forecasts){
   const slot=slotByDate.get(item.dateKey)||0;slotByDate.set(item.dateKey,slot+1);
-  const slotStart=new Date(item.dateKey+'T09:00:00');slotStart.setMinutes(slotStart.getMinutes()+slot*30);
-  const slotEnd=new Date(slotStart.getTime()+30*60000);
+  const slotStart=new Date(item.dateKey+'T09:00:00');slotStart.setMinutes(slotStart.getMinutes()+slot*60);
+  const slotEnd=new Date(slotStart.getTime()+60*60000);
   const existing=item.existing;
-  const isLegacyAutoSlot=existing&&existing.starts_at&&existing.ends_at&&
-   Math.abs(new Date(existing.starts_at).getHours()-9)<=0&&new Date(existing.starts_at).getMinutes()===0&&
-   new Date(existing.ends_at).getHours()===10&&new Date(existing.ends_at).getMinutes()===0&&
-   String(existing.description||'').includes('sincronizado pela previsão');
-  const startsAt=existing&&!isLegacyAutoSlot?existing.starts_at:slotStart.toISOString();
-  const endsAt=existing&&!isLegacyAutoSlot?existing.ends_at:slotEnd.toISOString();
+  const startsAt=slotStart.toISOString();
+  const endsAt=slotEnd.toISOString();
   const assigned=(analystsByProject.get(String(item.project.id))||[])[0]||currentUser.id;
-  const payload={user_id:assigned,client_id:item.project.client_id||null,project_id:item.project.id,title:item.title,event_type:'treinamento',starts_at:startsAt,ends_at:endsAt,description:'Origem: Mapa do projeto. Previsão visual de 30 minutos; ajuste o horário após combinar com o cliente.',source:'cronograma',training_id:item.tr.id,training_status:item.trainingStatus,status:'scheduled'};
+  const payload={user_id:assigned,client_id:item.project.client_id||null,project_id:item.project.id,title:item.title,event_type:'treinamento',starts_at:startsAt,ends_at:endsAt,description:'Origem: Mapa do projeto. Previsão visual de 1 hora; ajuste o horário após combinar com o cliente.',source:'cronograma',training_id:item.tr.id,training_status:item.trainingStatus,status:'scheduled'};
   if(existing){
    const {error}=await supabaseClient.from('personal_calendar_events').update(payload).eq('id',existing.id);
    if(error)throw error;
