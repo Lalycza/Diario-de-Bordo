@@ -24,9 +24,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useRole } from "@/lib/useRole";
 import { resolveProfileHomeRoute } from "@/lib/profile-home";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type MenuSection = "gerencial" | "projetos" | "produtos" | "clientes" | "usuarios";
+type MenuSection = "gerencial" | "projetos" | "produtos" | "clientes" | "usuarios" | "perfil";
 
 type ProductMenuItem = {
   id: string;
@@ -157,6 +156,25 @@ function MenuItems({
           ) : null}
         </section>
       ) : null}
+
+      <section>
+        <button type="button" onClick={() => toggle("perfil")} className={sectionClass}>
+          <span>Meu Perfil</span>
+          {open.perfil ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        </button>
+        {open.perfil ? (
+          <div className="mt-1 space-y-1">
+            <Link to="/agenda" onClick={onNavigate} className={itemClass}>
+              <CalendarDays className="size-4 text-sky-500" />
+              Minha Agenda
+            </Link>
+            <Link to="/alterar-senha" onClick={onNavigate} className={itemClass}>
+              <LockKeyhole className="size-4" />
+              Alterar senha
+            </Link>
+          </div>
+        ) : null}
+      </section>
     </nav>
   );
 }
@@ -180,6 +198,7 @@ export function AppShell({
     produtos: true,
     clientes: true,
     usuarios: true,
+    perfil: false,
   });
 
   const homeRouteQuery = useQuery({
@@ -252,34 +271,7 @@ export function AppShell({
 
           <div className="border-t p-3">
             <div className="mb-2 flex items-center justify-between gap-2 px-2">
-              <DropdownMenu>
-  <DropdownMenuTrigger asChild>
-    <button type="button" className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      <UserCog className="size-4 shrink-0 text-sky-500" />
-      <span className="truncate text-xs text-muted-foreground">Meu Perfil</span>
-      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-    </button>
-  </DropdownMenuTrigger>
-  <DropdownMenuContent align="start" side="top" className="w-56">
-    <DropdownMenuLabel className="font-normal">
-      <span className="block text-xs text-muted-foreground">Conectado como</span>
-      <span className="block truncate text-sm font-medium text-foreground">{userLabel ?? "Usuário"}</span>
-    </DropdownMenuLabel>
-    <DropdownMenuSeparator />
-    <DropdownMenuItem asChild>
-      <Link to="/alterar-senha">
-        <LockKeyhole className="size-4" />
-        Alterar senha
-      </Link>
-    </DropdownMenuItem>
-    <DropdownMenuItem asChild>
-      <Link to="/agenda">
-        <CalendarDays className="size-4 text-sky-500" />
-        Minha Agenda
-      </Link>
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
+
               <ThemeToggle />
             </div>
 
@@ -361,34 +353,7 @@ export function AppShell({
 
                 <div className="border-t p-3">
                   <div className="mb-2">
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <button type="button" className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <UserCog className="size-4 shrink-0 text-sky-500" />
-        <span className="flex-1 text-xs text-muted-foreground">Meu Perfil</span>
-        <ChevronDown className="size-3.5 text-muted-foreground" />
-      </button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="start" side="top" className="w-56">
-      <DropdownMenuLabel className="font-normal">
-        <span className="block text-xs text-muted-foreground">Conectado como</span>
-        <span className="block truncate text-sm font-medium text-foreground">{userLabel ?? "Usuário"}</span>
-      </DropdownMenuLabel>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem asChild>
-        <Link to="/alterar-senha" onClick={() => setMobileOpen(false)}>
-          <LockKeyhole className="size-4" />
-          Alterar senha
-        </Link>
-      </DropdownMenuItem>
-      <DropdownMenuItem asChild>
-        <Link to="/agenda" onClick={() => setMobileOpen(false)}>
-          <CalendarDays className="size-4 text-sky-500" />
-          Minha Agenda
-        </Link>
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
+
 </div>
                   {canManage ? (
                     <a
