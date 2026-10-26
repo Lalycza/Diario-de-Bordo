@@ -5115,14 +5115,16 @@ async function abrirAgenda(){
 }
 async function sincronizarPrevisoesMapaNaAgenda(){
  if(!supabaseSession||!currentUser?.id)return;
- const [pmQ,trQ,prQ,paQ]=await Promise.all([
+ const [pmQ,trQ,prQ,paQ,modQ]=await Promise.all([
   supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
   supabaseClient.from('trainings').select('id,project_id,module_id,submodule_id,planned_date,realization_date,training_start_date,training_completion_date,status,calendar_confirmed,responsible').is('submodule_id',null),
   supabaseClient.from('projects').select('id,name,client_id,status'),
-  supabaseClient.from('project_analysts').select('project_id,profile_id')
+  supabaseClient.from('project_analysts').select('project_id,profile_id'),
+  supabaseClient.from('modules').select('id,name')
  ]);
- if(pmQ.error)throw pmQ.error;if(trQ.error)throw trQ.error;if(prQ.error)throw prQ.error;if(paQ.error)throw paQ.error;
+ if(pmQ.error)throw pmQ.error;if(trQ.error)throw trQ.error;if(prQ.error)throw prQ.error;if(paQ.error)throw paQ.error;if(modQ.error)throw modQ.error;
  const projectById=new Map((prQ.data||[]).map(p=>[String(p.id),p]));
+ const moduleById=new Map((modQ.data||[]).map(m=>[String(m.id),m]));
  const mainTrainingByKey=new Map((trQ.data||[]).map(t=>[String(t.project_id)+'|'+String(t.module_id),t]));
  const analystsByProject=new Map();
  for(const a of paQ.data||[]){const k=String(a.project_id);if(!analystsByProject.has(k))analystsByProject.set(k,[]);analystsByProject.get(k).push(a.profile_id)}
@@ -5143,7 +5145,7 @@ async function sincronizarPrevisoesMapaNaAgenda(){
   const assigned=(analystsByProject.get(String(project.id))||[])[0]||currentUser.id;
   const start=new Date(String(date).slice(0,10)+'T09:00:00');
   const end=new Date(start.getTime()+60*60000);
-  const moduleName=String(pm.module_id);
+  const moduleName=moduleById.get(String(pm.module_id))?.name||('Módulo '+String(pm.module_id));
   const title='Treinamento · '+(project.name||'Projeto')+' · '+moduleName;
   const payload={user_id:assigned,client_id:project.client_id||null,project_id:project.id,title,event_type:'treinamento',starts_at:start.toISOString(),ends_at:end.toISOString(),description:'Origem: Mapa do projeto. Evento sincronizado pela previsão do módulo principal.',source:'cronograma',training_id:tr.id,training_status:trainingStatus,status:'scheduled'};
   const existing=existingByTraining.get(String(tr.id));
