@@ -585,17 +585,29 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 .agenda-toolbar input[type="date"]{background:var(--agenda-input,#1f2937)!important;color:var(--agenda-ink,#e5e7eb)!important;border:1px solid var(--agenda-border,#334155)!important;color-scheme:dark}
 .agenda-toolbar button{color:inherit}
 .agenda-event{cursor:pointer}
-.app.theme-light #agendaCalendar{--agenda-surface:#fff;--agenda-border:#d7e1ee;--agenda-ink:#17243a;--agenda-input:#fff;color:#17243a!important}
-.app.theme-light #agendaCalendar .agenda-toolbar .agenda-date-title{color:#17243a!important}
-.app.theme-light #agendaCalendar .agenda-toolbar input[type="date"]{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border-color:#bdcde1!important;color-scheme:light}
-.app.theme-light #agendaCalendar .agenda-grid,.app.theme-light #agendaCalendar .agenda-month-grid{background:#fff!important;border-color:#d7e1ee!important}
-.app.theme-light #agendaCalendar .agenda-grid-head,.app.theme-light #agendaCalendar .agenda-month-head{background:#f2f6fc!important;color:#24364e!important;border-color:#d7e1ee!important}
-.app.theme-light #agendaCalendar .agenda-time-axis,.app.theme-light #agendaCalendar .agenda-day-column,.app.theme-light #agendaCalendar .agenda-month-day{background-color:#fff!important;border-color:#d7e1ee!important}
-.app.theme-light #agendaCalendar .agenda-time-axis .agenda-time-label{color:#52647d!important;border-color:#d7e1ee!important}
-.app.theme-light #agendaCalendar .agenda-day-column{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 53px,#d7e1ee 53px,#d7e1ee 54px)!important}
-.app.theme-light #agendaCalendar .agenda-form-grid input,.app.theme-light #agendaCalendar .agenda-form-grid select,.app.theme-light #agendaCalendar .agenda-form-grid textarea{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border-color:#bdcde1!important}
-.app.theme-light #agendaCalendar .agenda-form-grid label{color:#24364e!important}
-.app.theme-light #agendaCalendar .agenda-form-grid select option{background:#fff;color:#17243a}
+/* Tema claro usa .app sem a classe theme-dark. */
+.app:not(.theme-dark) #agendaCalendar{--agenda-surface:#f8fafc;--agenda-border:#d9e2ef;--agenda-ink:#1e293b;--agenda-input:#fff;color:#1e293b!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-toolbar .agenda-date-title{color:#1e293b!important;font-size:14px;font-weight:700}
+.app:not(.theme-dark) #agendaCalendar .agenda-toolbar button{background:#eef3fa!important;color:#334155!important;border:1px solid #d5dfed!important;border-radius:9px!important;box-shadow:none!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-toolbar button:hover{background:#e1edfc!important;border-color:#a9c8f3!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-toolbar .agenda-view-btn.active{background:#e0efff!important;color:#075bb5!important;border-color:#93c5fd!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-toolbar input[type="date"]{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border:1px solid #cbd7e7!important;border-radius:9px!important;color-scheme:light}
+.app:not(.theme-dark) #agendaCalendar .agenda-grid,.app:not(.theme-dark) #agendaCalendar .agenda-month-grid{background:#fff!important;border:1px solid #d7e1ee!important;box-shadow:0 5px 18px rgba(28,51,84,.05)}
+.app:not(.theme-dark) #agendaCalendar .agenda-grid-head,.app:not(.theme-dark) #agendaCalendar .agenda-month-head{background:#f3f7fc!important;color:#334155!important;border-color:#d7e1ee!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-grid-head.today{color:#0877d5!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-time-axis,.app:not(.theme-dark) #agendaCalendar .agenda-day-column,.app:not(.theme-dark) #agendaCalendar .agenda-month-day{background-color:#fff!important;border-color:#d7e1ee!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-time-axis .agenda-time-label{color:#64748b!important;border-color:#e1e8f1!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-day-column{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 53px,#e1e8f1 53px,#e1e8f1 54px)!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-event{background:#e3f1ff!important;color:#17416f!important;border-left-color:#2383e2!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-event[data-type="treinamento"]{background:#eee9ff!important;color:#513b8e!important;border-left-color:#8b5cf6!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-event[data-type="tarefa"]{background:#e2f7ed!important;color:#176548!important;border-left-color:#10b981!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-event[data-type="lembrete"]{background:#fff4d8!important;color:#805a08!important;border-left-color:#f59e0b!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-form-grid input,.app:not(.theme-dark) #agendaCalendar .agenda-form-grid select,.app:not(.theme-dark) #agendaCalendar .agenda-form-grid textarea{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border-color:#bdcde1!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-form-grid label{color:#334155!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-form-grid select option{background:#fff;color:#17243a}
+#agendaCalendar .agenda-feedback{background:var(--agenda-surface,#172033)!important;color:var(--agenda-ink,#e2e8f0)!important;border:1px solid var(--agenda-border,#334155)!important;border-radius:10px!important;padding:10px 14px!important}
+.app:not(.theme-dark) #agendaCalendar .agenda-feedback{--agenda-surface:#f1f6fc;--agenda-ink:#334155;--agenda-border:#dbe5f1}
+#agendaCalendar .agenda-event{z-index:5!important;display:block!important;opacity:1!important;visibility:visible!important}
 
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
@@ -5125,15 +5137,17 @@ function renderAgendaTimeGrid(){
  const wrap=document.createElement('div');wrap.innerHTML=html;const grid=wrap.firstElementChild;const cols=grid.querySelectorAll('.agenda-day-column');const pxPerMin=slotH/60;
  for(const ev of agendaEvents){
   const start=new Date(ev.starts_at),end=new Date(ev.ends_at);
+  if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime()))continue;
   const dayIndex=days.findIndex(d=>agendaDateKey(d)===agendaDateKey(start));if(dayIndex<0)continue;
-  const hour=start.getHours()+start.getMinutes()/60;if(hour<firstHour||hour>=lastHour)continue;
+  const minutes=start.getHours()*60+start.getMinutes(),firstMinutes=firstHour*60,lastMinutes=lastHour*60;
+  if(minutes>=lastMinutes||minutes+(end-start)/60000<=firstMinutes)continue;
   const col=cols[dayIndex];if(!col)continue;
-  const top=((start.getHours()-firstHour)*60+start.getMinutes())*pxPerMin;
-  const dur=Math.max(24,Math.min((end-start)/60000,(lastHour-firstHour)*60)*pxPerMin);
+  const top=Math.max(0,minutes-firstMinutes)*pxPerMin;
+  const duration=Math.max(24,Math.min((end-start)/60000,lastMinutes-Math.max(minutes,firstMinutes))*pxPerMin);
   const b=document.createElement('button');b.type='button';b.className='agenda-event';b.dataset.type=ev.event_type;
-  b.style.top=top+'px';b.style.height=Math.max(24,dur)+'px';b.style.zIndex='3';
+  b.style.position='absolute';b.style.left='3px';b.style.right='3px';b.style.top=top+'px';b.style.height=Math.max(24,duration)+'px';b.style.zIndex='5';b.style.display='block';b.style.visibility='visible';
   b.innerHTML='<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong><div>'+esc(agendaTypeName(ev.event_type))+'</div>';
-  b.title='Clique para editar: '+ev.title;b.onclick=()=>editarEventoAgenda(ev.id);col.appendChild(b);
+  b.title='Clique para editar: '+ev.title;b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();editarEventoAgenda(ev.id)});col.appendChild(b);
  }
  return wrap.innerHTML;
 }
