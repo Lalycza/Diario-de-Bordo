@@ -1686,6 +1686,66 @@ export type Database = {
         Relationships: []
       }
     }
+      personal_calendar_events: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          event_type: string
+          starts_at: string
+          ends_at: string
+          status: string
+          client_id: string | null
+          project_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          title: string
+          description?: string | null
+          event_type?: string
+          starts_at: string
+          ends_at: string
+          status?: string
+          client_id?: string | null
+          project_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          event_type?: string
+          starts_at?: string
+          ends_at?: string
+          status?: string
+          client_id?: string | null
+          project_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_calendar_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_calendar_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     Views: {
       [_ in never]: never
     }
