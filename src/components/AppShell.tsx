@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   ChevronRight,
+  CalendarDays,
   DatabaseBackup,
   FolderKanban,
   LayoutDashboard,
@@ -23,7 +24,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useRole } from "@/lib/useRole";
 import { resolveProfileHomeRoute } from "@/lib/profile-home";
 
-type MenuSection = "gerencial" | "projetos" | "produtos" | "clientes" | "usuarios";
+type MenuSection = "gerencial" | "projetos" | "produtos" | "clientes" | "usuarios" | "perfil";
 
 type ProductMenuItem = {
   id: string;
@@ -154,6 +155,20 @@ function MenuItems({
           ) : null}
         </section>
       ) : null}
+      <section>
+        <button type="button" onClick={() => toggle("perfil")} className={sectionClass}>
+          <span>Meu Perfil</span>
+          {open.perfil ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        </button>
+        {open.perfil ? (
+          <div className="mt-1 space-y-1">
+            <Link to="/agenda" onClick={onNavigate} className={itemClass}>
+              <CalendarDays className="size-4" />
+              Minha Agenda
+            </Link>
+          </div>
+        ) : null}
+      </section>
     </nav>
   );
 }
@@ -177,6 +192,7 @@ export function AppShell({
     produtos: true,
     clientes: true,
     usuarios: true,
+    perfil: true,
   });
 
   const homeRouteQuery = useQuery({
