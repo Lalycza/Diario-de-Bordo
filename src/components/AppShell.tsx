@@ -14,6 +14,7 @@ import {
   Package,
   Plus,
   Users,
+  UserCog,
   X,
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
