@@ -6403,15 +6403,17 @@ document.addEventListener('click',function(e){
 #app #agendaPage .agenda-edit-hint{display:inline-block;margin-top:4px;font-size:10px;font-weight:800;letter-spacing:.01em;opacity:.9;text-decoration:underline;text-underline-offset:2px}
 #app #agendaPage .agenda-event,#app #agendaPage .agenda-month-event{cursor:pointer}
 #app #agendaPage .agenda-event:hover,#app #agendaPage .agenda-month-event:hover{filter:brightness(1.08);outline:2px solid #38bdf8;outline-offset:1px}
-</style>
 
-/* Agenda: ações compactas em círculos, mantendo áreas de clique acessíveis */
-.agenda-event-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
-.agenda-event-actions button{width:28px;height:28px;min-width:28px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;border-radius:50%!important;font-family:Arial,sans-serif!important;font-size:15px!important;font-weight:700;line-height:1;border:1px solid currentColor;background:rgba(15,23,42,.18);cursor:pointer;transition:transform .12s ease,background .12s ease}
-.agenda-event-actions button:hover{transform:scale(1.08);background:rgba(148,163,184,.2)}
-.agenda-action-edit{color:#38bdf8!important;border-color:#38bdf8!important}
-.agenda-action-confirm{color:#34d399!important;border-color:#34d399!important}
-.agenda-action-delete{color:#f87171!important;border-color:#f87171!important}
-.agenda-month-event .agenda-event-actions{gap:4px;margin-top:4px}
-.agenda-month-event .agenda-event-actions button{width:24px;height:24px;min-width:24px;font-size:13px!important}
-@media(max-width:600px){.agenda-event-actions button{width:30px;height:30px;min-width:30px}}
+/* Agenda: ações compactas dentro dos cartões */
+#app #agendaPage .agenda-event{display:flex;flex-direction:column}
+#app #agendaPage .agenda-event-actions{display:flex;align-items:center;justify-content:flex-start;gap:4px;flex-wrap:wrap;margin-top:auto;padding-top:5px;position:relative;z-index:20;pointer-events:auto}
+#app #agendaPage .agenda-event-actions button{position:relative;z-index:21;pointer-events:auto;width:22px;height:22px;min-width:22px;min-height:22px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;border-radius:50%!important;font-family:Arial,sans-serif!important;font-size:12px!important;font-weight:700;line-height:1;border:1px solid currentColor;background:rgba(15,23,42,.3);cursor:pointer;touch-action:manipulation;transition:transform .12s ease,background .12s ease}
+#app #agendaPage .agenda-event-actions button:hover{transform:scale(1.06);background:rgba(148,163,184,.2)}
+#app #agendaPage .agenda-action-edit{color:#38bdf8!important;border-color:#38bdf8!important}
+#app #agendaPage .agenda-action-confirm{color:#34d399!important;border-color:#34d399!important}
+#app #agendaPage .agenda-action-delete{color:#f87171!important;border-color:#f87171!important}
+#app #agendaPage .agenda-month-event .agenda-event-actions{gap:3px;margin-top:3px;padding-top:2px;z-index:20}
+#app #agendaPage .agenda-month-event .agenda-event-actions button{width:19px;height:19px;min-width:19px;min-height:19px;font-size:11px!important}
+@media(max-width:600px){#app #agendaPage .agenda-event-actions button{width:24px;height:24px;min-width:24px;min-height:24px}}
+
+</style>
