@@ -6092,3 +6092,108 @@ document.addEventListener('click',function(e){
 
 </style>
 
+<style id="lz-history-scrollnav-final-override">
+/* Overrides finais isolados: prevalecem sobre regras legadas posteriores. */
+#app #projectHistoryList .card button,
+#app #projectHistoryList .card button.secondary{
+  display:flex!important;
+  width:max-content!important;
+  min-width:190px!important;
+  max-width:100%!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  margin:12px auto 0!important;
+  padding:10px 22px!important;
+  min-height:42px!important;
+  height:auto!important;
+  flex:0 0 auto!important;
+}
+#lzScrollNav{
+  position:fixed!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  right:16px!important;
+  bottom:18px!important;
+  left:auto!important;
+  top:auto!important;
+  width:48px!important;
+  height:auto!important;
+  min-width:48px!important;
+  min-height:0!important;
+  max-width:48px!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:visible!important;
+  transform:none!important;
+  z-index:2147483000!important;
+  pointer-events:none!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+#lzScrollNav #lzScrollTop,
+#lzScrollNav #lzScrollBottom{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  box-sizing:border-box!important;
+  position:static!important;
+  inset:auto!important;
+  display:none;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 42px!important;
+  width:42px!important;
+  min-width:42px!important;
+  max-width:42px!important;
+  height:42px!important;
+  min-height:42px!important;
+  max-height:42px!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:visible!important;
+  border:1px solid #477db8!important;
+  border-radius:12px!important;
+  background:#111b2b!important;
+  color:#f4f8ff!important;
+  -webkit-text-fill-color:#f4f8ff!important;
+  font-family:Arial,sans-serif!important;
+  font-size:25px!important;
+  font-style:normal!important;
+  font-weight:800!important;
+  line-height:1!important;
+  letter-spacing:0!important;
+  text-indent:0!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+  opacity:1!important;
+  visibility:visible!important;
+  box-shadow:0 6px 18px rgba(0,0,0,.28)!important;
+  cursor:pointer!important;
+  pointer-events:auto!important;
+  transform:none!important;
+}
+#lzScrollNav #lzScrollTop:hover,
+#lzScrollNav #lzScrollBottom:hover{
+  background:#1d3a60!important;
+  border-color:#60a5fa!important;
+}
+#app:not(.theme-dark) #lzScrollNav #lzScrollTop,
+#app:not(.theme-dark) #lzScrollNav #lzScrollBottom{
+  background:#fff!important;
+  color:#17365f!important;
+  -webkit-text-fill-color:#17365f!important;
+  border-color:#9db9df!important;
+}
+@media(max-width:720px){
+  #lzScrollNav{right:10px!important;bottom:12px!important;gap:6px!important}
+  #lzScrollNav #lzScrollTop,#lzScrollNav #lzScrollBottom{
+    flex-basis:38px!important;width:38px!important;min-width:38px!important;
+    max-width:38px!important;height:38px!important;min-height:38px!important;max-height:38px!important;
+    font-size:23px!important;
+  }
+}
+</style>
