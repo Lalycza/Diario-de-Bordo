@@ -5093,7 +5093,7 @@ function agendaMove(delta){if(agendaView==='day')agendaAnchor=agendaAddDays(agen
 function agendaSetView(view){agendaView=view;renderAgendaCalendar()}
 function agendaEventTime(ev){return new Date(ev.starts_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function agendaTypeName(type){return ({reuniao:'Reunião',treinamento:'Treinamento',tarefa:'Tarefa',lembrete:'Lembrete'})[type]||'Compromisso'}
-function agendaEventButton(ev,month){return '<button type="button" class="'+(month?'agenda-month-event':'agenda-event')+'" data-type="'+escAttr(ev.event_type)+'" title="'+escAttr(ev.title)+'" onclick="event.stopPropagation();editarEventoAgenda(\''+escAttr(ev.id)+'\')">'+(month?'':agendaEventTime(ev)+' ')+esc(ev.title)+'</button>'}
+function agendaEventButton(ev,month){return '<button type="button" class="'+(month?'agenda-month-event':'agenda-event')+'" data-type="'+escAttr(ev.event_type)+'" title="Alterar compromisso: '+escAttr(ev.title)+'" aria-label="Alterar compromisso: '+escAttr(ev.title)+'" onclick="event.stopPropagation();editarEventoAgenda(\\''+escAttr(ev.id)+'\\')">'+(month?'':agendaEventTime(ev)+' ')+esc(ev.title)+' <span class="agenda-edit-hint">✎ Alterar</span></button>'}
 async function abrirAgenda(){
  if(!currentUser||!['admin','analyst'].includes(currentUser.role)){alert('A Agenda pessoal está disponível para Admin e Analista.');return}
  agendaAnchor=new Date();agendaView='week';agendaEditingId=null;
@@ -5150,7 +5150,7 @@ function renderAgendaTimeGrid(){
   const duration=Math.max(24,Math.min((end-start)/60000,lastMinutes-Math.max(minutes,firstMinutes))*pxPerMin);
   const b=document.createElement('button');b.type='button';b.className='agenda-event';b.dataset.type=ev.event_type;
   b.style.position='absolute';b.style.left='3px';b.style.right='3px';b.style.top=top+'px';b.style.height=Math.max(24,duration)+'px';b.style.zIndex='5';b.style.display='block';b.style.visibility='visible';
-  b.innerHTML='<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong><div>'+esc(agendaTypeName(ev.event_type))+'</div>';
+  b.innerHTML='<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong><div>'+esc(agendaTypeName(ev.event_type))+'</div><span class="agenda-edit-hint">✎ Alterar</span>';
   b.title='Clique para editar: '+ev.title;b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();editarEventoAgenda(ev.id)});col.appendChild(b);
  }
  return wrap.innerHTML;
@@ -6386,4 +6386,9 @@ document.addEventListener('click',function(e){
 #app.theme-dark #agendaPage .agenda-event-editor label{color:#e3edf9!important}
 #app.theme-dark #agendaPage .agenda-event-editor input,#app.theme-dark #agendaPage .agenda-event-editor select,#app.theme-dark #agendaPage .agenda-event-editor textarea{background:#0b1423!important;color:#f1f5fb!important;-webkit-text-fill-color:#f1f5fb!important;border:1px solid #49617f!important}
 @media(max-width:760px){#app #agendaPage .agenda-page-header{padding:18px!important}#app #agendaPage .agenda-toolbar{align-items:stretch;padding:10px!important;gap:8px!important}#app #agendaPage .agenda-date-title{order:-1;flex-basis:100%;min-width:0;font-size:18px}#app #agendaPage .agenda-toolbar input[type=date]{flex:1 1 145px;max-width:none!important}#app #agendaPage .agenda-view-group{flex:1 1 100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}#app #agendaPage .agenda-view-group button{padding:8px 5px}#app #agendaPage .agenda-time-grid{min-width:790px}#app #agendaPage .agenda-form-grid{grid-template-columns:1fr}#app #agendaPage .agenda-description-field{grid-column:auto}#app #agendaPage .agenda-form-actions{justify-content:stretch}#app #agendaPage .agenda-form-actions button{flex:1 1 auto}}
+
+/* Ação explícita para editar compromissos já existentes */
+#app #agendaPage .agenda-edit-hint{display:inline-block;margin-top:4px;font-size:10px;font-weight:800;letter-spacing:.01em;opacity:.9;text-decoration:underline;text-underline-offset:2px}
+#app #agendaPage .agenda-event,#app #agendaPage .agenda-month-event{cursor:pointer}
+#app #agendaPage .agenda-event:hover,#app #agendaPage .agenda-month-event:hover{filter:brightness(1.08);outline:2px solid #38bdf8;outline-offset:1px}
 </style>
