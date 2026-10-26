@@ -5128,9 +5128,10 @@ async function sincronizarPrevisoesMapaNaAgenda(){
  const mainTrainingByKey=new Map((trQ.data||[]).map(t=>[String(t.project_id)+'|'+String(t.module_id),t]));
  const analystsByProject=new Map();
  for(const a of paQ.data||[]){const k=String(a.project_id);if(!analystsByProject.has(k))analystsByProject.set(k,[]);analystsByProject.get(k).push(a.profile_id)}
- const existingQ=await supabaseClient.from('personal_calendar_events').select('id,training_id,project_id,source,status').eq('source','cronograma').limit(2000);
+ const existingQ=await supabaseClient.from('personal_calendar_events').select('id,training_id,project_id,source,status,starts_at,ends_at,description').eq('source','cronograma').limit(2000);
  if(existingQ.error)throw existingQ.error;
  const existingByTraining=new Map((existingQ.data||[]).filter(e=>e.training_id).map(e=>[String(e.training_id),e]));
+ const forecasts=[];
  for(const pm of pmQ.data||[]){
   const project=projectById.get(String(pm.project_id));if(!project)continue;
   const tr=mainTrainingByKey.get(String(pm.project_id)+'|'+String(pm.module_id));
@@ -5142,13 +5143,24 @@ async function sincronizarPrevisoesMapaNaAgenda(){
   const inProgress=!completed&&(statusText==='em andamento'||!!tr.training_start_date||!!tr.realization_date);
   const confirmed=!completed&&!inProgress&&tr.calendar_confirmed===true;
   const trainingStatus=completed?'completed':inProgress?'in_progress':confirmed?'confirmed':'pending_confirmation';
-  const assigned=(analystsByProject.get(String(project.id))||[])[0]||currentUser.id;
-  const start=new Date(String(date).slice(0,10)+'T09:00:00');
-  const end=new Date(start.getTime()+60*60000);
   const moduleName=moduleById.get(String(pm.module_id))?.name||('Módulo '+String(pm.module_id));
-  const title='Treinamento · '+(project.name||'Projeto')+' · '+moduleName;
-  const payload={user_id:assigned,client_id:project.client_id||null,project_id:project.id,title,event_type:'treinamento',starts_at:start.toISOString(),ends_at:end.toISOString(),description:'Origem: Mapa do projeto. Evento sincronizado pela previsão do módulo principal.',source:'cronograma',training_id:tr.id,training_status:trainingStatus,status:'scheduled'};
-  const existing=existingByTraining.get(String(tr.id));
+  forecasts.push({pm,project,tr,dateKey:String(date).slice(0,10),trainingStatus,moduleName,title:'Treinamento · '+(project.name||'Projeto')+' · '+moduleName,existing:existingByTraining.get(String(tr.id))});
+ }
+ forecasts.sort((a,b)=>a.dateKey.localeCompare(b.dateKey)||String(a.project.name||'').localeCompare(String(b.project.name||''))||a.moduleName.localeCompare(b.moduleName));
+ const slotByDate=new Map();
+ for(const item of forecasts){
+  const slot=slotByDate.get(item.dateKey)||0;slotByDate.set(item.dateKey,slot+1);
+  const slotStart=new Date(item.dateKey+'T09:00:00');slotStart.setMinutes(slotStart.getMinutes()+slot*30);
+  const slotEnd=new Date(slotStart.getTime()+30*60000);
+  const existing=item.existing;
+  const isLegacyAutoSlot=existing&&existing.starts_at&&existing.ends_at&&
+   Math.abs(new Date(existing.starts_at).getHours()-9)<=0&&new Date(existing.starts_at).getMinutes()===0&&
+   new Date(existing.ends_at).getHours()===10&&new Date(existing.ends_at).getMinutes()===0&&
+   String(existing.description||'').includes('sincronizado pela previsão');
+  const startsAt=existing&&!isLegacyAutoSlot?existing.starts_at:slotStart.toISOString();
+  const endsAt=existing&&!isLegacyAutoSlot?existing.ends_at:slotEnd.toISOString();
+  const assigned=(analystsByProject.get(String(item.project.id))||[])[0]||currentUser.id;
+  const payload={user_id:assigned,client_id:item.project.client_id||null,project_id:item.project.id,title:item.title,event_type:'treinamento',starts_at:startsAt,ends_at:endsAt,description:'Origem: Mapa do projeto. Previsão visual de 30 minutos; ajuste o horário após combinar com o cliente.',source:'cronograma',training_id:item.tr.id,training_status:item.trainingStatus,status:'scheduled'};
   if(existing){
    const {error}=await supabaseClient.from('personal_calendar_events').update(payload).eq('id',existing.id);
    if(error)throw error;
