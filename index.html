@@ -5134,7 +5134,7 @@ function renderAgendaCalendar(){
  if(title)title.textContent=agendaRangeTitle();if(picker)picker.value=agendaDateKey(agendaAnchor);
  document.querySelectorAll('.agenda-view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===agendaView));
  stage.innerHTML=agendaView==='month'?renderAgendaMonth():renderAgendaTimeGrid();
- stage.querySelectorAll('.agenda-month-event [data-action]').forEach(button=>button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const card=button.closest('[data-agenda-event-id]');const id=card?.dataset.agendaEventId;if(!id)return;const action=button.dataset.action;if(action==='edit')editarEventoAgenda(id);else if(action==='delete')excluirEventoAgenda(id);else if(action==='confirm')agendaConfirmarEvento(id)}));
+ if(!stage.dataset.agendaActionsBound){stage.addEventListener('click',function(e){const button=e.target.closest('.agenda-event-actions [data-action]');if(!button)return;e.preventDefault();e.stopPropagation();const card=button.closest('[data-agenda-event-id]');const id=card?.dataset.agendaEventId;if(!id)return;const action=button.dataset.action;if(action==='edit')editarEventoAgenda(id);else if(action==='delete')excluirEventoAgenda(id);else if(action==='confirm')agendaConfirmarEvento(id)},true);stage.dataset.agendaActionsBound='true';}
 }
 function renderAgendaTimeGrid(){
  const days=agendaView==='day'?[agendaDayStart(agendaAnchor)]:Array.from({length:7},(_,i)=>agendaAddDays(agendaWeekStart(agendaAnchor),i));
@@ -5164,7 +5164,7 @@ function renderAgendaTimeGrid(){
   const holder=document.createElement('div');holder.className='agenda-event';holder.dataset.type=ev.event_type;holder.dataset.source=ev.source||'manual';holder.dataset.trainingStatus=ev.training_status||'manual';
   holder.style.position='absolute';holder.style.left='3px';holder.style.right='3px';holder.style.top=top+'px';holder.style.height=Math.max(84,duration)+'px';holder.style.zIndex='5';holder.style.display='flex';holder.style.flexDirection='column';holder.style.visibility='visible';
   holder.innerHTML='<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong>'+(ev.client_id?'<small class="agenda-event-meta">'+esc(agendaClientName(ev.client_id))+'</small>':'')+(agendaIsManager()?'<small class="agenda-event-meta">Sigla: '+esc(agendaProfileName(ev.user_id))+'</small>':'')+(ev.source==='cronograma'?'<small class="agenda-event-meta agenda-status-label">'+esc(agendaTrainingStatusLabel(ev.training_status))+'</small>':'')+'<div class="agenda-event-actions">'+(ev.source==='cronograma'&&ev.training_status==='pending_confirmation'?'<button type="button" class="agenda-action-confirm" data-action="confirm" title="Confirmar treinamento" aria-label="Confirmar treinamento">✓</button>':'')+'<button type="button" class="agenda-action-edit" data-action="edit" title="Editar compromisso" aria-label="Editar compromisso">✎</button><button type="button" class="agenda-action-delete" data-action="delete" title="Excluir compromisso" aria-label="Excluir compromisso">×</button></div>';
-  holder.querySelector('[data-action="edit"]').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();editarEventoAgenda(ev.id)});holder.querySelector('[data-action="delete"]').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();excluirEventoAgenda(ev.id)});holder.querySelector('[data-action="confirm"]')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();agendaConfirmarEvento(ev.id)});col.appendChild(holder);
+  col.appendChild(holder);
  }
  return wrap.innerHTML;
 }
@@ -6417,4 +6417,9 @@ document.addEventListener('click',function(e){
 #app #agendaPage .agenda-month-event .agenda-event-actions button{width:19px;height:19px;min-width:19px;min-height:19px;font-size:11px!important}
 @media(max-width:600px){#app #agendaPage .agenda-event-actions button{width:24px;height:24px;min-width:24px;min-height:24px}}
 
+
+/* Agenda: ações fixadas no rodapé e clique delegado em fase de captura */
+#app #agendaPage .agenda-time-grid .agenda-event{padding-bottom:32px!important;}
+#app #agendaPage .agenda-time-grid .agenda-event .agenda-event-actions{position:absolute!important;left:6px!important;right:6px!important;bottom:5px!important;margin:0!important;padding:0!important;display:flex!important;align-items:center!important;gap:4px!important;z-index:30!important;pointer-events:auto!important;}
+#app #agendaPage .agenda-time-grid .agenda-event .agenda-event-actions button{position:relative!important;z-index:31!important;pointer-events:auto!important;touch-action:manipulation!important;}
 </style>
