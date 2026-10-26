@@ -5151,7 +5151,7 @@ async function sincronizarPrevisoesMapaNaAgenda(){
  const slotByDate=new Map();
  for(const item of forecasts){
   const slot=slotByDate.get(item.dateKey)||0;slotByDate.set(item.dateKey,slot+1);
-  const slotStart=new Date(item.dateKey+'T09:00:00');slotStart.setMinutes(slotStart.getMinutes()+slot*60);
+  const slotStart=new Date(item.dateKey+'T08:00:00');slotStart.setMinutes(slotStart.getMinutes()+slot*60);
   const slotEnd=new Date(slotStart.getTime()+60*60000);
   const existing=item.existing;
   const startsAt=slotStart.toISOString();
@@ -5195,7 +5195,7 @@ function renderAgendaCalendar(){
 }
 function renderAgendaTimeGrid(){
  const days=agendaView==='day'?[agendaDayStart(agendaAnchor)]:Array.from({length:7},(_,i)=>agendaAddDays(agendaWeekStart(agendaAnchor),i));
- const firstHour=7,lastHour=21,hours=lastHour-firstHour,slotH=60,totalH=hours*slotH,headH=44,axisW=60;
+ const firstHour=8,lastHour=22,hours=lastHour-firstHour,slotH=60,totalH=hours*slotH,headH=44,axisW=60;
  let html='<div class="agenda-grid agenda-time-grid" style="--agenda-hour:'+slotH+'px;--agenda-head-height:'+headH+'px;grid-template-columns:'+axisW+'px repeat('+days.length+',minmax(100px,1fr));grid-template-rows:'+headH+'px '+totalH+'px;min-width:'+(days.length===1?'480px':'790px')+'">';
  html+='<div class="agenda-grid-head agenda-time-corner"></div>';
  html+=days.map(d=>'<div class="agenda-grid-head '+(agendaDateKey(d)===agendaDateKey(new Date())?'today':'')+'">'+(agendaView==='day'?'':d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')+'<br>')+agendaFmt(d,{day:'2-digit',month:'2-digit'})+'</div>').join('');
@@ -5251,7 +5251,7 @@ function renderAgendaMonth(){
 function novoEventoAgenda(dateKey,hour){
  agendaEditingId=null;
  const start=dateKey?new Date(dateKey+'T'+agendaPad(hour===undefined?9:hour)+':00:00'):new Date(agendaAnchor);
- if(!dateKey)start.setHours(9,0,0,0);
+ if(!dateKey)start.setHours(8,0,0,0);
  const end=new Date(start.getTime()+30*60000);
  agendaRenderForm({title:'',description:'',event_type:'reuniao',starts_at:agendaDataLocal(start),ends_at:agendaDataLocal(end)},false);
 }
@@ -6526,7 +6526,6 @@ document.addEventListener('click',function(e){
 /* Agenda: eixo, linhas e cartões compartilham uma única escala vertical. */
 #app #agendaPage .agenda-time-grid{align-items:stretch!important;grid-auto-rows:auto!important;}
 #app #agendaPage .agenda-time-grid .agenda-time-axis,#app #agendaPage .agenda-time-grid .agenda-day-column{height:calc(var(--agenda-hour,60px)*14)!important;min-height:calc(var(--agenda-hour,60px)*14)!important;box-sizing:border-box!important;align-self:stretch!important;}
-#app #agendaPage .agenda-time-grid .agenda-time-label{top:calc(var(--hour-index,0)*var(--agenda-hour,60px))!important;height:var(--agenda-hour,60px)!important;box-sizing:border-box!important;}
+#app #agendaPage .agenda-time-grid .agenda-time-label{height:var(--agenda-hour,60px)!important;box-sizing:border-box!important;}
 #app #agendaPage .agenda-time-grid .agenda-day-column{background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--agenda-hour,60px) - 1px),var(--agenda-border,#334155) calc(var(--agenda-hour,60px) - 1px),var(--agenda-border,#334155) var(--agenda-hour,60px))!important;}
-#app #agendaPage .agenda-time-grid .agenda-event{top:var(--event-top)!important;}
 </style>
