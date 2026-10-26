@@ -544,25 +544,6 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 .menu-profile-icon{font-size:12px;opacity:.75;margin-left:auto;margin-right:8px;order:1}
 .menu-toggle .menu-arrow{order:2}
 #agendaCalendar{--agenda-hour:54px;min-width:0;color:var(--text,#e5e7eb)}
-.agenda-time-axis{min-width:0;border-right:1px solid var(--border,#334155)}
-.agenda-time-label{box-sizing:border-box}
-.agenda-day-column{box-sizing:border-box}
-.agenda-slot{box-sizing:border-box}
-.app.theme-light #agendaCalendar{color:#1e293b!important;--panel:#ffffff;--border:#d7e0ec;--text:#1e293b;--muted:#64748b}
-.app.theme-light #agendaCalendar .agenda-toolbar .agenda-date-title{color:#17243a!important}
-.app.theme-light #agendaCalendar #agendaDatePicker{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border:1px solid #bdcde1!important;color-scheme:light}
-.app.theme-light #agendaCalendar .agenda-grid,.app.theme-light #agendaCalendar .agenda-month-grid{background:#fff!important;border-color:#d5dfeb!important}
-.app.theme-light #agendaCalendar .agenda-grid-head,.app.theme-light #agendaCalendar .agenda-month-head{background:#edf3fa!important;color:#25364d!important;border-color:#d5dfeb!important}
-.app.theme-light #agendaCalendar .agenda-day-column,.app.theme-light #agendaCalendar .agenda-time-axis{background-color:#fff!important;border-color:#dbe4ef!important}
-.app.theme-light #agendaCalendar .agenda-time-label{color:#52647d!important;border-color:#dbe4ef!important}
-.app.theme-light #agendaCalendar .agenda-month-day{background:#fff!important;color:#25364d!important;border-color:#e1e8f0!important}
-.app.theme-light #agendaCalendar .agenda-month-day.other{background:#f7f9fc!important;color:#94a3b8!important}
-.app.theme-light #agendaCalendar .agenda-event,.app.theme-light #agendaCalendar .agenda-month-event{color:#17304f!important;background:rgba(14,165,233,.13)!important}
-.app.theme-light #agendaCalendar .agenda-event[data-type="treinamento"],.app.theme-light #agendaCalendar .agenda-month-event[data-type="treinamento"]{background:rgba(139,92,246,.12)!important;color:#4c287d!important}
-.app.theme-light #agendaCalendar .agenda-event[data-type="tarefa"],.app.theme-light #agendaCalendar .agenda-month-event[data-type="tarefa"]{background:rgba(16,185,129,.12)!important;color:#14532d!important}
-.app.theme-light #agendaCalendar .agenda-event[data-type="lembrete"],.app.theme-light #agendaCalendar .agenda-month-event[data-type="lembrete"]{background:rgba(245,158,11,.14)!important;color:#78350f!important}
-.app.theme-dark #agendaCalendar{color:#e5e7eb!important}
-.app.theme-dark #agendaCalendar #agendaDatePicker{color-scheme:dark;background:#111827;color:#e5e7eb;border-color:#334155}
 .agenda-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0}
 .agenda-toolbar .agenda-date-title{font-weight:700;margin-right:auto;min-width:150px}
 .agenda-toolbar button,.agenda-toolbar select{margin:0}
@@ -590,6 +571,31 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 .agenda-form-grid input,.agenda-form-grid select,.agenda-form-grid textarea{width:100%;min-width:0}
 .agenda-form-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
 @media(max-width:760px){#agendaCalendar{--agenda-hour:48px}.agenda-grid{grid-template-columns:42px repeat(7,minmax(76px,1fr))}.agenda-form-grid{grid-template-columns:1fr}.agenda-month-day{min-height:68px;padding:3px}.agenda-month-event{font-size:9px}}
+
+
+/* Agenda: temas alinhados à preferência do usuário */
+.agenda-time-grid{display:grid;align-items:stretch}
+.agenda-time-grid .agenda-grid-head{min-height:44px;box-sizing:border-box}
+.agenda-time-axis{background:var(--agenda-surface,#111827);border-right:1px solid var(--agenda-border,#334155)}
+.agenda-time-axis .agenda-time-label{box-sizing:border-box;border-bottom:1px solid var(--agenda-border,#334155);background:transparent}
+.agenda-time-grid .agenda-day-column{box-sizing:border-box;overflow:hidden;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--agenda-hour,54px) - 1px),var(--agenda-border,#334155) calc(var(--agenda-hour,54px) - 1px),var(--agenda-border,#334155) var(--agenda-hour,54px));border-right:1px solid var(--agenda-border,#334155)}
+.agenda-time-grid .agenda-slot{left:0;right:0;width:100%;box-sizing:border-box;border-bottom:1px solid transparent;opacity:0}
+.agenda-time-grid .agenda-slot:hover{opacity:1}
+.agenda-toolbar .agenda-date-title{color:var(--agenda-ink,#e5e7eb)}
+.agenda-toolbar input[type="date"]{background:var(--agenda-input,#1f2937)!important;color:var(--agenda-ink,#e5e7eb)!important;border:1px solid var(--agenda-border,#334155)!important;color-scheme:dark}
+.agenda-toolbar button{color:inherit}
+.agenda-event{cursor:pointer}
+.app.theme-light #agendaCalendar{--agenda-surface:#fff;--agenda-border:#d7e1ee;--agenda-ink:#17243a;--agenda-input:#fff;color:#17243a!important}
+.app.theme-light #agendaCalendar .agenda-toolbar .agenda-date-title{color:#17243a!important}
+.app.theme-light #agendaCalendar .agenda-toolbar input[type="date"]{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border-color:#bdcde1!important;color-scheme:light}
+.app.theme-light #agendaCalendar .agenda-grid,.app.theme-light #agendaCalendar .agenda-month-grid{background:#fff!important;border-color:#d7e1ee!important}
+.app.theme-light #agendaCalendar .agenda-grid-head,.app.theme-light #agendaCalendar .agenda-month-head{background:#f2f6fc!important;color:#24364e!important;border-color:#d7e1ee!important}
+.app.theme-light #agendaCalendar .agenda-time-axis,.app.theme-light #agendaCalendar .agenda-day-column,.app.theme-light #agendaCalendar .agenda-month-day{background-color:#fff!important;border-color:#d7e1ee!important}
+.app.theme-light #agendaCalendar .agenda-time-axis .agenda-time-label{color:#52647d!important;border-color:#d7e1ee!important}
+.app.theme-light #agendaCalendar .agenda-day-column{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 53px,#d7e1ee 53px,#d7e1ee 54px)!important}
+.app.theme-light #agendaCalendar .agenda-form-grid input,.app.theme-light #agendaCalendar .agenda-form-grid select,.app.theme-light #agendaCalendar .agenda-form-grid textarea{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border-color:#bdcde1!important}
+.app.theme-light #agendaCalendar .agenda-form-grid label{color:#24364e!important}
+.app.theme-light #agendaCalendar .agenda-form-grid select option{background:#fff;color:#17243a}
 
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
@@ -5103,29 +5109,31 @@ function renderAgendaCalendar(){
 }
 function renderAgendaTimeGrid(){
  const days=agendaView==='day'?[agendaDayStart(agendaAnchor)]:Array.from({length:7},(_,i)=>agendaAddDays(agendaWeekStart(agendaAnchor),i));
- const firstHour=7,lastHour=21,slotH=54,pxPerMin=slotH/60,totalH=(lastHour-firstHour)*slotH;
- let html='<div class="agenda-grid" style="grid-template-columns:54px repeat('+days.length+',minmax(100px,1fr));min-width:'+(days.length===1?'480px':'790px')+'"><div class="agenda-grid-head"></div>';
+ const firstHour=7,lastHour=21,hours=lastHour-firstHour,slotH=54,totalH=hours*slotH;
+ let html='<div class="agenda-grid agenda-time-grid" style="grid-template-columns:54px repeat('+days.length+',minmax(100px,1fr));grid-template-rows:44px '+totalH+'px;min-width:'+(days.length===1?'480px':'790px')+'">';
+ html+='<div class="agenda-grid-head agenda-time-corner"></div>';
  html+=days.map(d=>'<div class="agenda-grid-head '+(agendaDateKey(d)===agendaDateKey(new Date())?'today':'')+'">'+(agendaView==='day'?'':d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')+'<br>')+agendaFmt(d,{day:'2-digit',month:'2-digit'})+'</div>').join('');
- html+='<div class="agenda-time-axis" style="height:'+totalH+'px">';
- for(let hour=firstHour;hour<lastHour;hour++)html+='<div class="agenda-time-label" style="height:'+slotH+'px">'+agendaPad(hour)+':00</div>';
+ html+='<div class="agenda-time-axis" style="height:'+totalH+'px;position:relative">';
+ for(let hour=firstHour;hour<lastHour;hour++)html+='<div class="agenda-time-label" style="position:absolute;top:'+((hour-firstHour)*slotH)+'px;left:0;right:0;height:'+slotH+'px">'+agendaPad(hour)+':00</div>';
  html+='</div>';
  for(const day of days){
-  html+='<div class="agenda-day-column" style="height:'+totalH+'px">';
-  for(let hour=firstHour;hour<lastHour;hour++)html+='<button type="button" class="agenda-slot" style="top:'+((hour-firstHour)*slotH)+'px;height:'+slotH+'px" aria-label="Agendar às '+agendaPad(hour)+':00" onclick="novoEventoAgenda(\''+agendaDateKey(day)+'\','+hour+')"></button>';
+  html+='<div class="agenda-day-column" data-day="'+agendaDateKey(day)+'" style="height:'+totalH+'px;position:relative">';
+  for(let hour=firstHour;hour<lastHour;hour++)html+='<button type="button" class="agenda-slot" style="top:'+((hour-firstHour)*slotH)+'px;height:'+slotH+'px" aria-label="Agendar '+agendaPad(hour)+':00" onclick="novoEventoAgenda(\''+agendaDateKey(day)+'\','+hour+')"></button>';
   html+='</div>';
  }
  html+='</div>';
- const wrap=document.createElement('div');wrap.innerHTML=html;const grid=wrap.firstElementChild,cols=grid.querySelectorAll('.agenda-day-column');
+ const wrap=document.createElement('div');wrap.innerHTML=html;const grid=wrap.firstElementChild;const cols=grid.querySelectorAll('.agenda-day-column');const pxPerMin=slotH/60;
  for(const ev of agendaEvents){
-  const start=new Date(ev.starts_at),end=new Date(ev.ends_at),dayIndex=days.findIndex(d=>agendaDateKey(d)===agendaDateKey(start));
-  if(dayIndex<0)continue;
+  const start=new Date(ev.starts_at),end=new Date(ev.ends_at);
+  const dayIndex=days.findIndex(d=>agendaDateKey(d)===agendaDateKey(start));if(dayIndex<0)continue;
   const hour=start.getHours()+start.getMinutes()/60;if(hour<firstHour||hour>=lastHour)continue;
   const col=cols[dayIndex];if(!col)continue;
   const top=((start.getHours()-firstHour)*60+start.getMinutes())*pxPerMin;
-  const dur=Math.max(22,Math.min((end-start)/60000,720)*pxPerMin);
-  const b=document.createElement('button');b.type='button';b.className='agenda-event';b.dataset.type=ev.event_type;b.style.top=top+'px';b.style.height=Math.max(22,dur)+'px';
+  const dur=Math.max(24,Math.min((end-start)/60000,(lastHour-firstHour)*60)*pxPerMin);
+  const b=document.createElement('button');b.type='button';b.className='agenda-event';b.dataset.type=ev.event_type;
+  b.style.top=top+'px';b.style.height=Math.max(24,dur)+'px';b.style.zIndex='3';
   b.innerHTML='<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong><div>'+esc(agendaTypeName(ev.event_type))+'</div>';
-  b.title='Editar compromisso: '+ev.title;b.setAttribute('aria-label','Editar compromisso '+ev.title);b.onclick=()=>editarEventoAgenda(ev.id);col.appendChild(b);
+  b.title='Clique para editar: '+ev.title;b.onclick=()=>editarEventoAgenda(ev.id);col.appendChild(b);
  }
  return wrap.innerHTML;
 }
