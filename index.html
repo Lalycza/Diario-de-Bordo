@@ -5207,7 +5207,16 @@ function renderAgendaTimeGrid(){
  }
  html+='</div>';
  const wrap=document.createElement('div');wrap.innerHTML=html;const grid=wrap.firstElementChild;const cols=grid.querySelectorAll('.agenda-day-column');const pxPerMin=slotH/60;
- for(const ev of agendaFilteredEvents()){
+ const events=agendaFilteredEvents().map(ev=>({ev,start:new Date(ev.starts_at),end:new Date(ev.ends_at)})).filter(x=>!Number.isNaN(x.start.getTime())&&!Number.isNaN(x.end.getTime()));
+ const lanesByDay=new Map();
+ events.sort((a,b)=>a.start-b.start||b.end-a.end);
+ for(const item of events){
+  const key=agendaDateKey(item.start);if(!lanesByDay.has(key))lanesByDay.set(key,[]);
+  const lanes=lanesByDay.get(key);let lane=lanes.findIndex(laneEnd=>laneEnd<=item.start.getTime());
+  if(lane<0){lane=lanes.length;lanes.push(item.end.getTime());}else lanes[lane]=item.end.getTime();
+  item.lane=lane;item.laneCount=lanes.length;
+ }
+ for(const {ev,start,end,lane,laneCount} of events){
   const start=new Date(ev.starts_at),end=new Date(ev.ends_at);
   if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime()))continue;
   const dayIndex=days.findIndex(d=>agendaDateKey(d)===agendaDateKey(start));if(dayIndex<0)continue;
@@ -5216,14 +5225,17 @@ function renderAgendaTimeGrid(){
   const col=cols[dayIndex];if(!col)continue;
   const top=Math.max(0,minutes-firstMinutes)*pxPerMin;
   const managerCompact=agendaIsManager()&&ev.source==='cronograma';
+  const analystLayout=!agendaIsManager();
+  const laneWidth=100/laneCount;
   const compactClient=ev.client_id?agendaClientName(ev.client_id):String(ev.title||'').replace(/^Treinamento\\s*[·-]\\s*/,'');
   const compactSigla=String(agendaProfileName(ev.user_id)||'').trim().split(/\\s+/).pop();
   const titleLines=managerCompact?1:Math.max(1,Math.ceil((String(ev.title||'').length+6)/15));
   const contentHeight=managerCompact?42:36+titleLines*14+(ev.client_id?13:0)+(agendaIsManager()?13:0)+30;
   const duration=managerCompact?slotH:Math.max(contentHeight,Math.min((end-start)/60000,lastMinutes-Math.max(minutes,firstMinutes))*pxPerMin);
   const holder=document.createElement('div');holder.className='agenda-event'+(managerCompact?' agenda-manager-compact':'');holder.dataset.agendaEventId=String(ev.id);holder.dataset.type=ev.event_type;holder.dataset.source=ev.source||'manual';holder.dataset.trainingStatus=ev.training_status||'manual';
-  holder.style.position='absolute';holder.style.left='3px';holder.style.right='3px';holder.style.top=top+'px';holder.style.height=(managerCompact?Math.max(42,duration-4):Math.max(84,duration))+'px';holder.style.zIndex='5';holder.style.display='flex';holder.style.flexDirection='column';holder.style.visibility='visible';
-  holder.innerHTML=managerCompact?'<strong>'+esc(agendaEventTime(ev))+' '+esc(compactSigla)+' '+esc(compactClient)+'</strong>'+(agendaCanEditEvent(ev)?'<div class="agenda-event-actions"><button type="button" class="agenda-action-edit" data-action="edit" title="Editar meu compromisso" aria-label="Editar meu compromisso">✎</button><button type="button" class="agenda-action-delete" data-action="delete" title="Excluir meu compromisso" aria-label="Excluir meu compromisso">×</button></div>':''):'<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong>'+(ev.client_id?'<small class="agenda-event-meta">'+esc(agendaClientName(ev.client_id))+'</small>':'')+(agendaIsManager()?'<small class="agenda-event-meta">Sigla: '+esc(agendaProfileName(ev.user_id))+'</small>':'')+(ev.source==='cronograma'?'<small class="agenda-event-meta agenda-status-label">'+esc(agendaTrainingStatusLabel(ev.training_status))+'</small>':'')+'<div class="agenda-event-actions">'+(ev.source==='cronograma'&&ev.training_status==='pending_confirmation'?'<button type="button" class="agenda-action-confirm" data-action="confirm" title="Confirmar treinamento" aria-label="Confirmar treinamento">✓</button>':'')+'<button type="button" class="agenda-action-edit" data-action="edit" title="Editar compromisso" aria-label="Editar compromisso">✎</button><button type="button" class="agenda-action-delete" data-action="delete" title="Excluir compromisso" aria-label="Excluir compromisso">×</button></div>';
+  holder.style.position='absolute';holder.style.left=analystLayout?'calc('+laneWidth+'% * '+lane+' + 2px)':'3px';holder.style.width=analystLayout?'calc('+laneWidth+'% - 4px)':'auto';holder.style.right=analystLayout?'auto':'3px';holder.style.top=top+'px';holder.style.height=(managerCompact?Math.max(42,duration-4):Math.max(54,duration))+'px';holder.style.zIndex='5';holder.style.display='flex';holder.style.flexDirection='column';holder.style.visibility='visible';
+  const analystTitle=ev.client_id?agendaClientName(ev.client_id):String(ev.title||'');
+  holder.innerHTML=managerCompact?'<strong>'+esc(agendaEventTime(ev))+' '+esc(compactSigla)+' '+esc(compactClient)+'</strong>'+(agendaCanEditEvent(ev)?'<div class="agenda-event-actions"><button type="button" class="agenda-action-edit" data-action="edit" title="Editar meu compromisso" aria-label="Editar meu compromisso">✎</button><button type="button" class="agenda-action-delete" data-action="delete" title="Excluir meu compromisso" aria-label="Excluir meu compromisso">×</button></div>':''):analystLayout?'<strong>'+esc(agendaEventTime(ev))+' '+esc(analystTitle)+'</strong>'+(ev.source==='cronograma'?'<small class="agenda-event-meta">'+esc(agendaTrainingStatusLabel(ev.training_status))+'</small>':''):'<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong>'+(ev.client_id?'<small class="agenda-event-meta">'+esc(agendaClientName(ev.client_id))+'</small>':'')+(agendaIsManager()?'<small class="agenda-event-meta">Sigla: '+esc(agendaProfileName(ev.user_id))+'</small>':'')+(ev.source==='cronograma'?'<small class="agenda-event-meta agenda-status-label">'+esc(agendaTrainingStatusLabel(ev.training_status))+'</small>':'')+'<div class="agenda-event-actions">'+(ev.source==='cronograma'&&ev.training_status==='pending_confirmation'?'<button type="button" class="agenda-action-confirm" data-action="confirm" title="Confirmar treinamento" aria-label="Confirmar treinamento">✓</button>':'')+'<button type="button" class="agenda-action-edit" data-action="edit" title="Editar compromisso" aria-label="Editar compromisso">✎</button><button type="button" class="agenda-action-delete" data-action="delete" title="Excluir compromisso" aria-label="Excluir compromisso">×</button></div>';
   col.appendChild(holder);
  }
  return wrap.innerHTML;
@@ -6501,4 +6513,11 @@ document.addEventListener('click',function(e){
 #app #agendaPage .agenda-time-grid .agenda-manager-compact strong{display:block!important;font-size:11px!important;line-height:15px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
 #app #agendaPage .agenda-time-grid .agenda-manager-compact .agenda-event-actions{position:absolute!important;right:3px!important;bottom:2px!important;left:auto!important;gap:2px!important;margin:0!important;}
 #app #agendaPage .agenda-time-grid .agenda-manager-compact .agenda-event-actions button{width:16px!important;height:16px!important;min-width:16px!important;padding:0!important;font-size:10px!important;line-height:14px!important;}
+
+/* Agenda do analista: cartões curtos e sem sobreposição em horários simultâneos. */
+#app #agendaPage .agenda-time-grid .agenda-event{box-sizing:border-box!important;min-width:0!important;overflow:hidden!important;padding:4px 5px!important;}
+#app #agendaPage .agenda-time-grid .agenda-event strong{font-size:11px!important;line-height:14px!important;white-space:normal!important;overflow:hidden!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow-wrap:anywhere!important;}
+#app #agendaPage .agenda-time-grid .agenda-event .agenda-event-meta{font-size:10px!important;line-height:12px!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+#app #agendaPage .agenda-time-grid .agenda-event .agenda-event-actions{position:absolute!important;right:2px!important;bottom:2px!important;gap:2px!important;margin:0!important;}
+#app #agendaPage .agenda-time-grid .agenda-event .agenda-event-actions button{width:16px!important;height:16px!important;min-width:16px!important;padding:0!important;font-size:10px!important;line-height:14px!important;}
 </style>
