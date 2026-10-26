@@ -13,7 +13,6 @@ import {
   Menu,
   Package,
   Plus,
-  UserCog,
   Users,
   X,
 } from "lucide-react";
