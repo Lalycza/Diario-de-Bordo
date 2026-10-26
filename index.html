@@ -6292,4 +6292,24 @@ document.addEventListener('click',function(e){
    max-width:100%!important;
  }
 }
+
+/* Ajustes pontuais da agenda: identidade visual consistente com o IMPLANTA */
+#app:not(.theme-dark) #agendaCalendar{color:#1e293b!important;--panel:#fff;--border:#d9e2ef;--text:#1e293b}
+#app:not(.theme-dark) #agendaCalendar .agenda-toolbar .agenda-date-title{color:#1e293b!important;font-weight:700}
+#app:not(.theme-dark) #agendaCalendar .agenda-toolbar button{background:#edf3fa!important;color:#334155!important;border:1px solid #d7e1ee!important;border-radius:9px!important;box-shadow:none!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-toolbar button:hover{background:#e2edfb!important;color:#17416f!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-toolbar .agenda-view-btn.active{background:#dff0ff!important;color:#075bb5!important;border-color:#93c5fd!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-toolbar input[type=date]{background:#fff!important;color:#17243a!important;-webkit-text-fill-color:#17243a!important;border:1px solid #cbd7e7!important;border-radius:9px!important;color-scheme:light}
+#app:not(.theme-dark) #agendaCalendar .agenda-grid,#app:not(.theme-dark) #agendaCalendar .agenda-month-grid{background:#fff!important;border-color:#d7e1ee!important;box-shadow:0 6px 18px rgba(30,64,110,.05)}
+#app:not(.theme-dark) #agendaCalendar .agenda-grid-head,#app:not(.theme-dark) #agendaCalendar .agenda-month-head{background:#f2f6fc!important;color:#334155!important;border-color:#d7e1ee!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-time-axis,#app:not(.theme-dark) #agendaCalendar .agenda-day-column,#app:not(.theme-dark) #agendaCalendar .agenda-month-day{background-color:#fff!important;border-color:#dbe4ef!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-time-axis .agenda-time-label{color:#64748b!important;border-color:#e1e8f1!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-day-column{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 53px,#e1e8f1 53px,#e1e8f1 54px)!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-event{background:#e1f0ff!important;color:#17416f!important;border-left:3px solid #2383e2!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-month-event{background:#e1f0ff!important;color:#17416f!important}
+#app:not(.theme-dark) #agendaCalendar .agenda-feedback{background:#f1f6fc!important;color:#334155!important;border:1px solid #dbe5f1!important;border-radius:10px!important;padding:10px 14px!important}
+#app.theme-dark #agendaCalendar .agenda-feedback{background:#172033!important;color:#e2e8f0!important;border:1px solid #334155!important;border-radius:10px!important;padding:10px 14px!important}
+#app .menu-section.menu-toggle{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px}
+#app .menu-section.menu-toggle .menu-profile-icon{order:0!important;flex:0 0 auto!important;margin:0!important}
+#app .menu-section.menu-toggle .menu-arrow{order:2!important;flex:0 0 auto!important;margin-left:auto!important}
 </style>
