@@ -613,6 +613,7 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 /* Arrastar compromissos manuais próprios no grid de agenda */
 #app #agendaPage .agenda-event[data-agenda-draggable="true"],#app #agendaPage .agenda-event[data-agenda-draggable="true"] *{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
 #app #agendaPage .agenda-event.agenda-dragging{cursor:grabbing;opacity:.72!important;z-index:9999!important;box-shadow:0 12px 28px rgba(0,0,0,.3);pointer-events:none}
+body>.agenda-drag-ghost{opacity:.98!important;z-index:2147483647!important;pointer-events:none!important;filter:drop-shadow(0 12px 18px rgba(0,0,0,.28))!important}
 #app #agendaPage .agenda-day-column.agenda-drop-target{outline:2px solid #38bdf8;outline-offset:-2px;background:rgba(56,189,248,.10)}
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
@@ -5221,17 +5222,26 @@ function agendaBindDragDrop(stage){
   const card=e.target.closest('.agenda-event[data-agenda-draggable="true"]');if(!card)return;
   const ev=agendaEvents.find(x=>String(x.id)===String(card.dataset.agendaEventId));
   if(!ev||ev.source==='cronograma'||!agendaCanEditEvent(ev))return;
-  const cardRect=card.getBoundingClientRect();
+  const cardRect=card.getBoundingClientRect(),style=getComputedStyle(card);
   e.preventDefault();
-  agendaDragState={id:String(ev.id),pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,grabOffsetY:e.clientY-cardRect.top,card,dragging:false,oldTransform:card.style.transform,oldOpacity:card.style.opacity,oldPointerEvents:card.style.pointerEvents,oldUserSelect:document.body.style.userSelect};
+  const ghost=card.cloneNode(true);
+  ghost.classList.remove('agenda-dragging');
+  ghost.classList.add('agenda-drag-ghost');
+  ghost.removeAttribute('id');
+  ghost.style.cssText='position:fixed!important;left:'+cardRect.left+'px!important;top:'+cardRect.top+'px!important;width:'+cardRect.width+'px!important;height:'+cardRect.height+'px!important;margin:0!important;transform:none!important;opacity:.98!important;visibility:visible!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;overflow:hidden!important;z-index:2147483647!important;pointer-events:none!important;cursor:grabbing!important;background:'+style.backgroundColor+'!important;color:'+style.color+'!important;border:'+style.border+'!important;border-left:'+style.borderLeft+'!important;border-radius:'+style.borderRadius+'!important;padding:'+style.padding+'!important;font:'+style.font+'!important;line-height:'+style.lineHeight+'!important;box-shadow:0 14px 34px rgba(0,0,0,.38)!important;';
+  const sourceChildren=card.querySelectorAll('*'),ghostChildren=ghost.querySelectorAll('*');
+  sourceChildren.forEach((node,i)=>{const target=ghostChildren[i];if(!target)return;const cs=getComputedStyle(node);target.style.color=cs.color;target.style.fontSize=cs.fontSize;target.style.fontWeight=cs.fontWeight;target.style.lineHeight=cs.lineHeight;target.style.whiteSpace=cs.whiteSpace;target.style.overflow=cs.overflow;target.style.textOverflow=cs.textOverflow;});
+  document.body.appendChild(ghost);
+  agendaDragState={id:String(ev.id),pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,grabOffsetX:e.clientX-cardRect.left,grabOffsetY:e.clientY-cardRect.top,card,ghost,dragging:false,oldOpacity:card.style.opacity,oldPointerEvents:card.style.pointerEvents,oldUserSelect:document.body.style.userSelect};
  },true);
  document.addEventListener('pointermove',function(e){
   const d=agendaDragState;if(!d||e.pointerId!==d.pointerId)return;
   d.lastX=e.clientX;d.lastY=e.clientY;
   if(!d.dragging&&Math.hypot(e.clientX-d.startX,e.clientY-d.startY)<5)return;
-  if(!d.dragging){d.dragging=true;d.card.classList.add('agenda-dragging');d.card.style.pointerEvents='none';document.body.style.userSelect='none';}
+  if(!d.dragging){d.dragging=true;d.card.classList.add('agenda-dragging');d.card.style.opacity='.18';d.card.style.pointerEvents='none';document.body.style.userSelect='none';}
   e.preventDefault();
-  d.card.style.transform='translate('+(e.clientX-d.startX)+'px,'+(e.clientY-d.startY)+'px)';
+  d.ghost.style.left=(e.clientX-d.grabOffsetX)+'px';
+  d.ghost.style.top=(e.clientY-d.grabOffsetY)+'px';
   document.querySelectorAll('#agendaCalendarStage .agenda-day-column.agenda-drop-target').forEach(el=>el.classList.remove('agenda-drop-target'));
   const col=Array.from(document.querySelectorAll('#agendaCalendarStage .agenda-day-column')).find(el=>{const r=el.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;});
   if(col)col.classList.add('agenda-drop-target');
@@ -5241,7 +5251,9 @@ function agendaBindDragDrop(stage){
 }
 function agendaCancelDrag(){
  const d=agendaDragState;if(!d)return;agendaDragState=null;
- d.card.classList.remove('agenda-dragging');d.card.style.transform=d.oldTransform;d.card.style.opacity=d.oldOpacity;d.card.style.pointerEvents=d.oldPointerEvents;document.body.style.userSelect=d.oldUserSelect;
+ d.card.classList.remove('agenda-dragging');d.card.style.opacity=d.oldOpacity;d.card.style.pointerEvents=d.oldPointerEvents;
+ if(d.ghost?.parentNode)d.ghost.parentNode.removeChild(d.ghost);
+ document.body.style.userSelect=d.oldUserSelect;
  document.querySelectorAll('#agendaCalendarStage .agenda-drop-target').forEach(el=>el.classList.remove('agenda-drop-target'));
 }
 async function agendaFinishDrag(e){
@@ -5257,7 +5269,8 @@ async function agendaApplyDrop(id,x,y,grabOffsetY=0){
  const oldStart=new Date(ev.starts_at),oldEnd=new Date(ev.ends_at),duration=(oldEnd-oldStart)/60000;
  if(!Number.isFinite(duration)||duration<=0||duration>840){alert('Este compromisso tem uma duração que não cabe no horário visível (08h–22h). Ajuste-o pela edição convencional.');return;}
  const rect=col.getBoundingClientRect(),dayKey=col.dataset.day;
- let minutes=Math.round(Math.max(0,Math.min(rect.height-duration,y-rect.top-grabOffsetY))/15)*15;
+ const dropTop=Math.max(0,Math.min(rect.height-duration,y-rect.top-grabOffsetY));
+ let minutes=Math.round(dropTop/15)*15;
  minutes=Math.max(0,Math.min(840-duration,minutes));
  const start=new Date(dayKey+'T08:00:00');start.setMinutes(start.getMinutes()+minutes);
  const end=new Date(start.getTime()+duration*60000);
