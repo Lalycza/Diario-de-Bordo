@@ -6530,6 +6530,16 @@ document.addEventListener('click',function(e){
 #app #agendaPage .agenda-time-grid .agenda-time-label{height:var(--agenda-hour,60px)!important;box-sizing:border-box!important;}
 #app #agendaPage .agenda-time-grid .agenda-day-column{background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--agenda-hour,60px) - 1px),var(--agenda-border,#334155) calc(var(--agenda-hour,60px) - 1px),var(--agenda-border,#334155) var(--agenda-hour,60px))!important;}
 
+/* Visão do analista: cartões com a apresentação limpa da visão gerencial, mantendo o tema escuro ao redor e as ações no rodapé. */
+#app #agendaPage .agenda-time-grid .agenda-analyst-event{border-radius:8px!important;box-shadow:0 1px 3px rgba(0,0,0,.16)!important;border-top:1px solid rgba(255,255,255,.55)!important;color:#17324f!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event strong{color:#17324f!important;font-weight:800!important;letter-spacing:.01em!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event[data-source="manual"]{background:#dcecff!important;border-left:4px solid #1976d2!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event[data-source="cronograma"]{background:#fbd5d7!important;border-left:4px solid #d9363e!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event[data-source="cronograma"][data-training-status="pending_confirmation"]{background:#ffebc7!important;border-left:4px solid #e6a23c!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event[data-source="cronograma"][data-training-status="completed"]{background:#d8f3e6!important;border-left:4px solid #239b70!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions{left:5px!important;right:5px!important;bottom:4px!important;gap:4px!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions button{background:rgba(255,255,255,.72)!important;box-shadow:0 1px 2px rgba(0,0,0,.12)!important;}
+
 /* Event cards must never grow beyond their actual duration in the time grid. */
 #app #agendaPage .agenda-time-grid .agenda-analyst-event{height:auto;min-height:0!important;padding:4px 5px 30px!important;overflow:hidden!important;}
 #app #agendaPage .agenda-time-grid .agenda-analyst-event strong{display:block!important;-webkit-line-clamp:1!important;white-space:nowrap!important;text-overflow:ellipsis!important;}
