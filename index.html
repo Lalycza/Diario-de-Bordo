@@ -2855,7 +2855,7 @@ function cronQuarterHtml(title,months,displayRecords,year){
  if(!plannedModules.length)return '';
  const records=displayRecords||allTrainingRecords();
  let h='<div class="cron-grid"><table><thead><tr><th class="quarter-head" colspan="17">'+title+'</th></tr><tr><th rowspan="2" class="month-head" style="width:180px">MÓDULO</th><th rowspan="2" class="month-head" style="width:110px">RESPONSÁVEL</th>';
- months.forEach(m=>h+='<th class="month-head" colspan="6">'+m.toUpperCase()+'</th>');
+ months.forEach(m=>h+='<th class="month-head" colspan="5">'+m.toUpperCase()+'</th>');
  h+='</tr><tr>';months.forEach(()=>{for(let w=1;w<=5;w++)h+='<th class="week-head">S'+w+'</th>'});h+='</tr></thead><tbody>';
  const modules=plannedModules.map((m,index)=>({key:m[0],name:m[0],plannedDate:m[2].plannedDate,meta:m[2],originalIndex:index})).sort((a,b)=>String(a.plannedDate||'').localeCompare(String(b.plannedDate||''))||a.originalIndex-b.originalIndex);
  modules.forEach(a=>{const all=records.filter(t=>normModule(t.module||t.name)===normModule(a.key));if(!all.some(t=>!t.submodule&&(t.plannedDateOriginal||t.plannedDate))){all.push({module:a.name,submodule:'',plannedDate:a.plannedDate,plannedDateOriginal:a.plannedDate,status:'PENDENTE'});}const status=moduleCronStatus(a.key,all);const resp=status==='HOMOLOGADO'?'CLIENTE':all.some(t=>t.trainingStartDate||t.trainingDate)?'CLIENTE':'HPRO';
