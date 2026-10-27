@@ -5202,8 +5202,10 @@ function agendaBindDragDrop(stage){
   const card=e.target.closest('.agenda-event[data-agenda-draggable="true"]');if(!card)return;
   const ev=agendaEvents.find(x=>String(x.id)===String(card.dataset.agendaEventId));
   if(!ev||ev.source==='cronograma'||!agendaCanEditEvent(ev))return;
+  /* Impede a seleção de texto já no pointerdown; o movimento é acompanhado pela janela. */
+  e.preventDefault();
   agendaDragState={id:String(ev.id),pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,card,dragging:false,oldTransform:card.style.transform,oldOpacity:card.style.opacity,oldPointerEvents:card.style.pointerEvents,oldUserSelect:document.body.style.userSelect};
- });
+ },true);
  window.addEventListener('pointermove',function(e){
   const d=agendaDragState;if(!d||e.pointerId!==d.pointerId)return;
   d.lastX=e.clientX;d.lastY=e.clientY;
@@ -6604,7 +6606,7 @@ document.addEventListener('click',function(e){
 #app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions button{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;font-size:10px!important;line-height:14px!important;padding:0!important;}
 
 /* Agenda: arrastar compromissos manuais próprios no grid semanal/diário */
-#app #agendaPage .agenda-event[data-agenda-draggable="true"]{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+#app #agendaPage .agenda-event[data-agenda-draggable="true"],#app #agendaPage .agenda-event[data-agenda-draggable="true"] *{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
 #app #agendaPage .agenda-event.agenda-dragging{cursor:grabbing;opacity:.72!important;z-index:9999!important;box-shadow:0 12px 28px rgba(0,0,0,.3);pointer-events:none}
 #app #agendaPage .agenda-day-column.agenda-drop-target{outline:2px solid #38bdf8;outline-offset:-2px;background:rgba(56,189,248,.10)}
 </style>
