@@ -5081,7 +5081,7 @@ function editUserPermissions(id){
 async function deleteUser(id){if(!canManageUsers())return;const target=usersData.find(u=>u.id===id);if(String(target?.email||'').trim().toLowerCase()===SUPERADMIN_EMAIL||String(id||'')==='883addca-422c-4266-955e-823df31ec404'){return alert('O Administrador principal é protegido e não pode ser apagado ou desativado.')}if(!confirm('Desativar este usuário no IMPLANTA?'))return;let {error}=await supabaseClient.from('profiles').update({active:false}).eq('id',id);if(error)return alert('Não foi possível desativar: '+error.message);usersData=usersData.filter(u=>u.id!==id);persistState();renderUsers()}
 function closeModal(){document.getElementById('modal').classList.add('hidden');document.getElementById('modalbox').className='box'}
 function agendaDataLocal(value){if(!value)return '';const d=new Date(value);if(Number.isNaN(d.getTime()))return '';const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
-let agendaEvents=[],agendaView='week',agendaAnchor=new Date(),agendaEditingId=null,agendaProfiles=[],agendaAllProfiles=[],agendaClients=[],agendaFilterAnalyst='all',agendaFilterClient='all';
+let agendaEvents=[],agendaView='week',agendaAnchor=new Date(),agendaEditingId=null,agendaProfiles=[],agendaAllProfiles=[],agendaClients=[],agendaFilterAnalyst='all',agendaFilterClient='all',agendaDragState=null;
 const agendaIsManager=()=>['admin','supervisor'].includes(currentUser?.role);
 const agendaCanEditEvent=ev=>!!ev&&String(ev.user_id)===String(currentUser?.id);
 function agendaFilteredEvents(){return agendaEvents.filter(e=>(agendaFilterAnalyst==='all'||String(e.user_id)===String(agendaFilterAnalyst))&&(agendaFilterClient==='all'||String(e.client_id||'')===String(agendaFilterClient)));}
@@ -5192,6 +5192,62 @@ function renderAgendaCalendar(){
  document.querySelectorAll('.agenda-view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===agendaView));
  stage.innerHTML=agendaView==='month'?renderAgendaMonth():renderAgendaTimeGrid();
  if(!stage.dataset.agendaActionsBound){stage.addEventListener('click',function(e){const button=e.target.closest('.agenda-event-actions [data-action]');if(!button)return;e.preventDefault();e.stopPropagation();const card=button.closest('[data-agenda-event-id]');const id=card?.dataset.agendaEventId;if(!id)return;const action=button.dataset.action;if(action==='edit')editarEventoAgenda(id);else if(action==='delete')excluirEventoAgenda(id);else if(action==='confirm')agendaConfirmarEvento(id)},true);stage.dataset.agendaActionsBound='true';}
+ agendaBindDragDrop(stage);
+}
+function agendaBindDragDrop(stage){
+ if(stage.dataset.agendaDragBound)return;
+ stage.dataset.agendaDragBound='true';
+ stage.addEventListener('pointerdown',function(e){
+  if(e.button!==0||!e.isPrimary||e.target.closest('.agenda-event-actions'))return;
+  const card=e.target.closest('.agenda-event[data-agenda-draggable="true"]');if(!card)return;
+  const ev=agendaEvents.find(x=>String(x.id)===String(card.dataset.agendaEventId));
+  if(!ev||ev.source==='cronograma'||!agendaCanEditEvent(ev))return;
+  agendaDragState={id:String(ev.id),pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,card,dragging:false,oldTransform:card.style.transform,oldOpacity:card.style.opacity,oldPointerEvents:card.style.pointerEvents,oldUserSelect:document.body.style.userSelect};
+ });
+ window.addEventListener('pointermove',function(e){
+  const d=agendaDragState;if(!d||e.pointerId!==d.pointerId)return;
+  d.lastX=e.clientX;d.lastY=e.clientY;
+  if(!d.dragging&&Math.hypot(e.clientX-d.startX,e.clientY-d.startY)<7)return;
+  if(!d.dragging){d.dragging=true;d.card.classList.add('agenda-dragging');d.card.style.pointerEvents='none';document.body.style.userSelect='none';try{d.card.setPointerCapture(e.pointerId)}catch(_){} }
+  e.preventDefault();d.card.style.transform='translate('+(e.clientX-d.startX)+'px,'+(e.clientY-d.startY)+'px)';
+  document.querySelectorAll('#agendaCalendarStage .agenda-day-column.agenda-drop-target').forEach(el=>el.classList.remove('agenda-drop-target'));
+  const col=Array.from(document.querySelectorAll('#agendaCalendarStage .agenda-day-column')).find(el=>{const r=el.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top-8&&e.clientY<=r.bottom+8;});
+  if(col)col.classList.add('agenda-drop-target');
+ },{passive:false});
+ window.addEventListener('pointerup',function(e){if(agendaDragState&&e.pointerId===agendaDragState.pointerId)agendaFinishDrag(e)});
+ window.addEventListener('pointercancel',function(e){if(agendaDragState&&e.pointerId===agendaDragState.pointerId)agendaCancelDrag()});
+}
+function agendaCancelDrag(){
+ const d=agendaDragState;if(!d)return;agendaDragState=null;
+ d.card.classList.remove('agenda-dragging');d.card.style.transform=d.oldTransform;d.card.style.opacity=d.oldOpacity;d.card.style.pointerEvents=d.oldPointerEvents;document.body.style.userSelect=d.oldUserSelect;
+ document.querySelectorAll('#agendaCalendarStage .agenda-drop-target').forEach(el=>el.classList.remove('agenda-drop-target'));
+}
+async function agendaFinishDrag(e){
+ const d=agendaDragState;if(!d)return;const wasDragging=d.dragging,x=e.clientX,y=e.clientY;
+ agendaCancelDrag();if(!wasDragging)return;
+ await agendaApplyDrop(d.id,x,y);
+}
+async function agendaApplyDrop(id,x,y){
+ const ev=agendaEvents.find(item=>String(item.id)===String(id));
+ if(!ev||ev.source==='cronograma'||!agendaCanEditEvent(ev)){alert('Só é possível mover compromissos manuais criados por você.');return;}
+ const col=Array.from(document.querySelectorAll('#agendaCalendarStage .agenda-day-column')).find(el=>{const r=el.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top-8&&y<=r.bottom+8;});
+ if(!col)return;
+ const oldStart=new Date(ev.starts_at),oldEnd=new Date(ev.ends_at),duration=(oldEnd-oldStart)/60000;
+ if(!Number.isFinite(duration)||duration<=0||duration>840){alert('Este compromisso tem uma duração que não cabe no horário visível (08h–22h). Ajuste-o pela edição convencional.');return;}
+ const rect=col.getBoundingClientRect(),dayKey=col.dataset.day;
+ let minutes=Math.round(Math.max(0,Math.min(rect.height,y-rect.top))/15)*15;
+ minutes=Math.max(0,Math.min(840-duration,minutes));
+ const start=new Date(dayKey+'T08:00:00');start.setMinutes(start.getMinutes()+minutes);
+ const end=new Date(start.getTime()+duration*60000);
+ if(start.getTime()===oldStart.getTime()&&end.getTime()===oldEnd.getTime())return;
+ const conflict=agendaEvents.find(other=>String(other.id)!==String(ev.id)&&String(other.user_id)===String(ev.user_id)&&new Date(other.starts_at)<end&&new Date(other.ends_at)>start);
+ if(conflict){alert('Não foi possível mover: este horário conflita com “'+(conflict.title||'outro compromisso')+'” ('+agendaFmt(new Date(conflict.starts_at))+' às '+agendaEventTime(conflict)+').');return;}
+ try{
+  const {error}=await supabaseClient.from('personal_calendar_events').update({starts_at:start.toISOString(),ends_at:end.toISOString()}).eq('id',ev.id).eq('user_id',currentUser.id);
+  if(error)throw error;
+  await carregarEventosAgenda();
+  alert('Agendamento movido para '+start.toLocaleDateString('pt-BR')+' às '+agendaEventTime({starts_at:start.toISOString()})+'.');
+ }catch(error){alert('Não foi possível mover o agendamento: '+(error?.message||'erro desconhecido'));}
 }
 function renderAgendaTimeGrid(){
  const days=agendaView==='day'?[agendaDayStart(agendaAnchor)]:Array.from({length:7},(_,i)=>agendaAddDays(agendaWeekStart(agendaAnchor),i));
@@ -5235,7 +5291,7 @@ function renderAgendaTimeGrid(){
   const contentHeight=managerCompact?42:36+titleLines*14+(ev.client_id?13:0)+(agendaIsManager()?13:0)+30;
   const visibleMinutes=Math.max(0,Math.min(end.getTime(),start.getTime()+(lastMinutes-minutes)*60000)-Math.max(start.getTime(),new Date(start).setHours(firstHour,0,0,0)))/60000;
   const duration=managerCompact?slotH:Math.max(0,Math.min((end-start)/60000,lastMinutes-Math.max(minutes,firstMinutes))*pxPerMin);
-  const holder=document.createElement('div');holder.className='agenda-event'+(managerCompact?' agenda-manager-compact':'')+(analystLayout?' agenda-analyst-event':'');holder.dataset.agendaEventId=String(ev.id);holder.dataset.type=ev.event_type;holder.dataset.source=ev.source||'manual';holder.dataset.trainingStatus=ev.training_status||'manual';
+  const holder=document.createElement('div');holder.className='agenda-event'+(managerCompact?' agenda-manager-compact':'')+(analystLayout?' agenda-analyst-event':'');holder.dataset.agendaEventId=String(ev.id);holder.dataset.type=ev.event_type;holder.dataset.source=ev.source||'manual';holder.dataset.trainingStatus=ev.training_status||'manual';holder.dataset.agendaDraggable=(ev.source!=='cronograma'&&agendaCanEditEvent(ev))?'true':'false';
   holder.style.position='absolute';holder.style.left=analystLayout?'calc('+laneWidth+'% * '+lane+' + 2px)':'3px';holder.style.width=analystLayout?'calc('+laneWidth+'% - 4px)':'auto';holder.style.right=analystLayout?'auto':'3px';holder.style.top=top+'px';holder.style.height=(managerCompact?Math.max(42,duration-4):Math.max(24,duration))+'px';holder.style.zIndex='5';holder.style.display='flex';holder.style.flexDirection='column';holder.style.visibility='visible';
   const analystTitle=ev.client_id?agendaClientName(ev.client_id):String(ev.title||'');
   holder.innerHTML=managerCompact?'<strong>'+esc(agendaEventTime(ev))+' '+esc(compactSigla)+' '+esc(compactClient)+'</strong>'+(agendaCanEditEvent(ev)?'<div class="agenda-event-actions"><button type="button" class="agenda-action-edit" data-action="edit" title="Editar meu compromisso" aria-label="Editar meu compromisso">✎</button><button type="button" class="agenda-action-delete" data-action="delete" title="Excluir meu compromisso" aria-label="Excluir meu compromisso">×</button></div>':''):analystLayout?'<strong>'+esc(agendaEventTime(ev))+' '+esc(analystTitle)+'</strong><div class="agenda-event-actions">'+(ev.source==='cronograma'&&ev.training_status==='pending_confirmation'?'<button type="button" class="agenda-action-confirm" data-action="confirm" title="Confirmar treinamento" aria-label="Confirmar treinamento">✓</button>':'')+(agendaCanEditEvent(ev)?'<button type="button" class="agenda-action-edit" data-action="edit" title="Editar compromisso" aria-label="Editar compromisso">✎</button><button type="button" class="agenda-action-delete" data-action="delete" title="Excluir compromisso" aria-label="Excluir compromisso">×</button>':'')+'</div>':'<strong>'+esc(agendaEventTime(ev))+' '+esc(ev.title)+'</strong>'+(ev.client_id?'<small class="agenda-event-meta">'+esc(agendaClientName(ev.client_id))+'</small>':'')+(agendaIsManager()?'<small class="agenda-event-meta">Sigla: '+esc(agendaProfileName(ev.user_id))+'</small>':'')+(ev.source==='cronograma'?'<small class="agenda-event-meta agenda-status-label">'+esc(agendaTrainingStatusLabel(ev.training_status))+'</small>':'')+'<div class="agenda-event-actions">'+(ev.source==='cronograma'&&ev.training_status==='pending_confirmation'?'<button type="button" class="agenda-action-confirm" data-action="confirm" title="Confirmar treinamento" aria-label="Confirmar treinamento">✓</button>':'')+'<button type="button" class="agenda-action-edit" data-action="edit" title="Editar compromisso" aria-label="Editar compromisso">✎</button><button type="button" class="agenda-action-delete" data-action="delete" title="Excluir compromisso" aria-label="Excluir compromisso">×</button></div>';
@@ -6546,4 +6602,9 @@ document.addEventListener('click',function(e){
 #app #agendaPage .agenda-time-grid .agenda-analyst-event[data-source="cronograma"]{height:42px!important;}
 #app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions{bottom:3px!important;left:5px!important;right:5px!important;gap:3px!important;}
 #app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions button{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;font-size:10px!important;line-height:14px!important;padding:0!important;}
+
+/* Agenda: arrastar compromissos manuais próprios no grid semanal/diário */
+#app #agendaPage .agenda-event[data-agenda-draggable="true"]{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+#app #agendaPage .agenda-event.agenda-dragging{cursor:grabbing;opacity:.72!important;z-index:9999!important;box-shadow:0 12px 28px rgba(0,0,0,.3);pointer-events:none}
+#app #agendaPage .agenda-day-column.agenda-drop-target{outline:2px solid #38bdf8;outline-offset:-2px;background:rgba(56,189,248,.10)}
 </style>
