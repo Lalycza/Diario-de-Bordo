@@ -6540,8 +6540,10 @@ document.addEventListener('click',function(e){
 #app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions{left:5px!important;right:5px!important;bottom:4px!important;gap:4px!important;}
 #app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions button{background:rgba(255,255,255,.72)!important;box-shadow:0 1px 2px rgba(0,0,0,.12)!important;}
 
-/* Event cards must never grow beyond their actual duration in the time grid. */
-#app #agendaPage .agenda-time-grid .agenda-analyst-event{height:auto;min-height:0!important;padding:4px 5px 30px!important;overflow:hidden!important;}
-#app #agendaPage .agenda-time-grid .agenda-analyst-event strong{display:block!important;-webkit-line-clamp:1!important;white-space:nowrap!important;text-overflow:ellipsis!important;}
-#app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions{bottom:3px!important;left:4px!important;right:4px!important;}
+/* Cartões do analista: compactos como os da visão Admin; duração continua respeitada nos compromissos manuais. */
+#app #agendaPage .agenda-time-grid .agenda-analyst-event{min-height:0!important;padding:4px 5px 22px!important;overflow:hidden!important;border-radius:7px!important;box-shadow:none!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event strong{display:block!important;font-size:11px!important;line-height:14px!important;font-weight:700!important;letter-spacing:0!important;text-transform:none!important;color:#17416f!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event[data-source="cronograma"]{height:42px!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions{bottom:3px!important;left:5px!important;right:5px!important;gap:3px!important;}
+#app #agendaPage .agenda-time-grid .agenda-analyst-event .agenda-event-actions button{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;font-size:10px!important;line-height:14px!important;padding:0!important;}
 </style>
