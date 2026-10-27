@@ -5081,7 +5081,7 @@ function editUserPermissions(id){
 async function deleteUser(id){if(!canManageUsers())return;const target=usersData.find(u=>u.id===id);if(String(target?.email||'').trim().toLowerCase()===SUPERADMIN_EMAIL||String(id||'')==='883addca-422c-4266-955e-823df31ec404'){return alert('O Administrador principal é protegido e não pode ser apagado ou desativado.')}if(!confirm('Desativar este usuário no IMPLANTA?'))return;let {error}=await supabaseClient.from('profiles').update({active:false}).eq('id',id);if(error)return alert('Não foi possível desativar: '+error.message);usersData=usersData.filter(u=>u.id!==id);persistState();renderUsers()}
 function closeModal(){document.getElementById('modal').classList.add('hidden');document.getElementById('modalbox').className='box'}
 function agendaDataLocal(value){if(!value)return '';const d=new Date(value);if(Number.isNaN(d.getTime()))return '';const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
-let agendaEvents=[],agendaView='week',agendaAnchor=new Date(),agendaEditingId=null,agendaProfiles=[],agendaAllProfiles=[],agendaClients=[],agendaFilterAnalyst='all',agendaFilterClient='all';
+let agendaEvents=[],agendaView='week',agendaAnchor=new Date(),agendaEditingId=null,agendaProfiles=[],agendaAllProfiles=[],agendaClients=[],agendaFilterAnalyst='all',agendaFilterClient='all',agendaForecastSyncRunning=false,agendaForecastSyncDone=false;
 const agendaIsManager=()=>['admin','supervisor'].includes(currentUser?.role);
 const agendaCanEditEvent=ev=>!!ev&&String(ev.user_id)===String(currentUser?.id);
 function agendaFilteredEvents(){return agendaEvents.filter(e=>(agendaFilterAnalyst==='all'||String(e.user_id)===String(agendaFilterAnalyst))&&(agendaFilterClient==='all'||String(e.client_id||'')===String(agendaFilterClient)));}
@@ -5173,7 +5173,6 @@ async function carregarEventosAgenda(){
  const feedback=document.getElementById('agendaFeedback');if(!feedback||!currentUser?.id)return;
  feedback.textContent='Carregando compromissos...';
  try{
-  await sincronizarPrevisoesMapaNaAgenda();
   let query=supabaseClient.from('personal_calendar_events').select('id,user_id,title,description,event_type,starts_at,ends_at,status,client_id,project_id,source,training_id,training_status').eq('status','scheduled').order('starts_at',{ascending:true}).limit(1000);
   if(!agendaIsManager())query=query.eq('user_id',currentUser.id);
   const [{data,error},{data:profiles,error:profilesError},{data:clients,error:clientsError}]=await Promise.all([query,supabaseClient.from('profiles').select('id,name,email,role,active,sigla').eq('active',true),supabaseClient.from('clients').select('id,razao_social,nome_fantasia').order('razao_social')]);
@@ -5184,7 +5183,21 @@ async function carregarEventosAgenda(){
   agendaRenderFilters();
   feedback.textContent=agendaEvents.length?agendaEvents.length+' compromisso(s) na agenda':'Nenhum compromisso cadastrado ainda. Clique em um horário para agendar.';
   renderAgendaCalendar();
+  agendaSincronizarPrevisoesEmSegundoPlano();
  }catch(error){feedback.textContent=error?.message?.includes('personal_calendar_events')?'A Agenda está pronta, mas a tabela precisa existir no Supabase.':'Não foi possível carregar a Agenda: '+(error?.message||'erro desconhecido');}
+}
+function agendaSincronizarPrevisoesEmSegundoPlano(){
+ if(agendaForecastSyncRunning||agendaForecastSyncDone)return;
+ agendaForecastSyncRunning=true;
+ Promise.resolve().then(()=>sincronizarPrevisoesMapaNaAgenda()).then(async()=>{
+  if(!currentUser?.id)return;
+  let query=supabaseClient.from('personal_calendar_events').select('id,user_id,title,description,event_type,starts_at,ends_at,status,client_id,project_id,source,training_id,training_status').eq('status','scheduled').order('starts_at',{ascending:true}).limit(1000);
+  if(!agendaIsManager())query=query.eq('user_id',currentUser.id);
+  const {data,error}=await query;if(error)throw error;
+  agendaEvents=data||[];agendaForecastSyncDone=true;
+  const stage=document.getElementById('agendaCalendarStage');
+  if(stage){const feedback=document.getElementById('agendaFeedback');if(feedback)feedback.textContent=agendaEvents.length?agendaEvents.length+' compromisso(s) na agenda':'Nenhum compromisso cadastrado ainda. Clique em um horário para agendar.';renderAgendaCalendar();}
+ }).catch(error=>{console.warn('Sincronização de previsões da Agenda em segundo plano:',error);}).finally(()=>{agendaForecastSyncRunning=false;});
 }
 function renderAgendaCalendar(){
  const stage=document.getElementById('agendaCalendarStage'),title=document.getElementById('agendaRangeTitle'),picker=document.getElementById('agendaDatePicker');if(!stage)return;
