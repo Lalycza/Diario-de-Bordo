@@ -5144,9 +5144,22 @@ async function sincronizarPrevisoesMapaNaAgenda(){
   const project=projectById.get(String(pm.project_id));if(!project)continue;
   const candidates=mainTrainingsByKey.get(String(pm.project_id)+'|'+String(pm.module_id))||[];
   // Pode haver mais de um registro principal por módulo legado: prioriza o que corresponde à data do Mapa.
-  const tr=candidates.find(t=>pm.planned_training_date&&String(t.planned_date||'').slice(0,10)===String(pm.planned_training_date).slice(0,10))
+  const plannedKey=String(pm.planned_training_date||'').slice(0,10);
+  // Prefere o registro cujo evento já está no dia previsto; evita selecionar duplicata legada arbitrariamente.
+  const tr=candidates.find(t=>plannedKey&&String(existingByTraining.get(String(t.id))?.starts_at||'').slice(0,10)===plannedKey)
+   ||candidates.find(t=>plannedKey&&String(t.planned_date||'').slice(0,10)===plannedKey&&existingByTraining.has(String(t.id))&&String(existingByTraining.get(String(t.id)).status||'').toLowerCase()!=='cancelled')
+   ||candidates.find(t=>plannedKey&&String(t.planned_date||'').slice(0,10)===plannedKey)
    ||candidates.find(t=>existingByTraining.has(String(t.id))&&String(existingByTraining.get(String(t.id)).status||'').toLowerCase()!=='cancelled')
    ||candidates[0];
+  // Oculta apenas da Agenda os eventos ligados a registros principais duplicados; não altera o Cronograma.
+  for(const duplicate of candidates){
+   if(!tr||String(duplicate.id)===String(tr.id))continue;
+   const duplicateEvent=existingByTraining.get(String(duplicate.id));
+   if(duplicateEvent&&String(duplicateEvent.status||'').toLowerCase()!=='cancelled'){
+    const {error:duplicateError}=await supabaseClient.from('personal_calendar_events').update({status:'cancelled'}).eq('id',duplicateEvent.id);
+    if(duplicateError)throw duplicateError;
+   }
+  }
   const statusText=String(tr?.status||'').trim().toLowerCase();
   const completed=!!tr?.training_completion_date&&['concluído','concluido','homologado'].includes(statusText);
   const inProgress=!completed&&(statusText==='em andamento'||!!tr?.training_start_date||!!tr?.realization_date);
