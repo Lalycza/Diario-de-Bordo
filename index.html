@@ -3167,32 +3167,65 @@ async function replicateSubmoduleDates(moduleIndex,sourceSubHint,draftSource){
  document.getElementById('repSourceSub').onchange=loadSource;
  loadSource();
 }
-function planModuleDate(i){
+async function planModuleDate(i){
  if(!canEdit())return;
  const m=cur.m[i];if(!m)return;
  const meta=m[2]||{};
  const current=cur.t.find(t=>t.module===m[0]&&!t.submodule);
  const mw=monthWeekFromDate(meta.plannedDate||current?.plannedDate||'');
+ let refs=null,trainingId=null,agendaEvent=null,projectInfo=null,assignedUserId=currentUser?.id||null,trainingCandidates=[];
+ try{
+  if(supabaseSession&&cur?.dbId){
+   refs=await resolveTrainingRefs(m[0],'',meta.dbId||null);
+   if(refs?.moduleId){
+    const {data:trs,error:trErr}=await supabaseClient.from('trainings').select('id,planned_date').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
+    if(trErr)throw trErr;trainingCandidates=trs||[];
+    const {data:events,error:eventErr}=await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('source','manual').eq('event_type','treinamento').limit(1000);
+    if(eventErr)throw eventErr;
+    agendaEvent=(events||[]).find(e=>trainingCandidates.some(t=>String(t.id)===String(e.training_id)))||null;
+    const chosen=trainingCandidates.find(t=>agendaEvent&&String(t.id)===String(agendaEvent.training_id))
+     ||trainingCandidates.find(t=>String(t.planned_date||'').slice(0,10)===String(meta.plannedDate||current?.plannedDate||'').slice(0,10))
+     ||trainingCandidates[0];
+    trainingId=chosen?.id||null;
+    if(!agendaEvent&&trainingId)agendaEvent=(events||[]).find(e=>String(e.training_id)===String(trainingId))||null;
+    const {data:project,error:projectErr}=await supabaseClient.from('projects').select('id,name,client_id').eq('id',refs.projectId).limit(1);
+    if(projectErr)throw projectErr;projectInfo=project?.[0]||null;
+    const {data:analysts,error:analystErr}=await supabaseClient.from('project_analysts').select('profile_id').eq('project_id',refs.projectId).limit(1);
+    if(analystErr)throw analystErr;assignedUserId=analysts?.[0]?.profile_id||currentUser?.id||null;
+   }
+  }
+ }catch(e){console.error(e);return alert('Não foi possível carregar a configuração da Agenda: '+(e?.message||e))}
+ const timeValue=(value)=>{const d=value?new Date(value):null;return d&&Number.isFinite(d.getTime())?agendaPad(d.getHours())+':'+agendaPad(d.getMinutes()):''};
+ const startValue=timeValue(agendaEvent?.starts_at),endValue=timeValue(agendaEvent?.ends_at);
  openSimpleModal('Treinamento — '+m[0],
-  '<div class="task-form"><label>Módulo Fixo</label><input value="'+escAttr(m[0])+'" disabled><div class="row2"><div>'+dateFieldHtml('modulePlannedDate','Data prevista do treinamento',meta.plannedDate||current?.plannedDate||'')+'</div><div><label>Mês / Semana</label><div class="row2"><input id="moduleMonth" value="'+escAttr(mw?.month||'')+'" placeholder="Automático" disabled><input id="moduleWeek" value="'+(mw?.week||'')+'" placeholder="Automático" disabled></div></div></div><div class="hint">A data e o mês/semana são o planejamento inicial do módulo. Os status Em andamento, Replanejado, Concluído e Homologado nascem exclusivamente dos submódulos registrados no Mapa.</div></div>',
+  '<div class="task-form"><label>Módulo Fixo</label><input value="'+escAttr(m[0])+'" disabled><div class="row2"><div>'+dateFieldHtml('modulePlannedDate','Data prevista do treinamento',meta.plannedDate||current?.plannedDate||'')+'</div><div><label>Mês / Semana</label><div class="row2"><input id="moduleMonth" value="'+escAttr(mw?.month||'')+'" placeholder="Automático" disabled><input id="moduleWeek" value="'+(mw?.week||'')+'" placeholder="Automático" disabled></div></div></div><div style="margin-top:12px;padding:12px;border:1px solid var(--border,#334155);border-radius:10px"><label style="display:flex;align-items:center;gap:8px"><input id="moduleIncludeAgenda" type="checkbox" '+(agendaEvent&&agendaEvent.status==='scheduled'?'checked':'')+' style="width:auto"> Incluir na Agenda</label><div id="moduleAgendaTimeFields" style="display:'+(agendaEvent&&agendaEvent.status==='scheduled'?'grid':'none')+';grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><div><label for="moduleAgendaStart">Horário inicial</label><input id="moduleAgendaStart" type="time" value="'+escAttr(startValue)+'"></div><div><label for="moduleAgendaEnd">Horário final</label><input id="moduleAgendaEnd" type="time" value="'+escAttr(endValue)+'"></div></div><div class="hint">O horário é usado somente na Agenda. O Cronograma continua considerando apenas a data prevista. Marque a opção e informe os dois horários para criar o compromisso.</div></div><div class="hint">A data e o mês/semana são o planejamento inicial do módulo. Os status Em andamento, Replanejado, Concluído e Homologado nascem exclusivamente dos submódulos registrados no Mapa.</div></div>',
   async()=>{
    syncAllDateTextFields(document.getElementById('modalbox'));
    if(document.getElementById('modulePlannedDateText')?.classList.contains('date-error'))return alert('Confira a data digitada. Use DD/MM/AAAA ou escolha no calendário.');
    const v=document.getElementById('modulePlannedDate').value;
    if(!isValidISODate(v))return alert('Informe uma data válida.');
+   const includeAgenda=!!document.getElementById('moduleIncludeAgenda')?.checked;
+   const startTime=document.getElementById('moduleAgendaStart')?.value||'';
+   const endTime=document.getElementById('moduleAgendaEnd')?.value||'';
+   if(includeAgenda&&(!startTime||!endTime))return alert('Informe o horário inicial e final para incluir o treinamento na Agenda.');
+   if(includeAgenda&&endTime<=startTime)return alert('O horário final precisa ser posterior ao horário inicial.');
    const x=monthWeekFromDate(v);if(!x)return alert('Informe uma data válida.');
    const metaOriginal=meta.plannedDateOriginal||current?.plannedDateOriginal||meta.plannedDate||current?.plannedDate||v;
    try{
     if(supabaseSession&&cur?.dbId){
-     const refs=await resolveTrainingRefs(m[0],'',meta.dbId||null);
+     refs=refs||await resolveTrainingRefs(m[0],'',meta.dbId||null);
      if(!refs?.moduleId)throw new Error('Módulo não encontrado no Supabase.');
      const {error:pm}=await supabaseClient.from('project_modules').upsert({project_id:refs.projectId,module_id:refs.moduleId,planned_training_date:v},{onConflict:'project_id,module_id'});
      if(pm)throw pm;
-     const {data:tr,error:trErr}=await supabaseClient.from('trainings').select('id').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null).maybeSingle();
+     const {data:trs,error:trErr}=await supabaseClient.from('trainings').select('id,planned_date').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
      if(trErr)throw trErr;
+     trainingCandidates=trs||[];
+     trainingId=trainingCandidates.find(t=>agendaEvent&&String(t.id)===String(agendaEvent.training_id))?.id
+      ||trainingCandidates.find(t=>String(t.planned_date||'').slice(0,10)===String(meta.plannedDate||current?.plannedDate||'').slice(0,10))?.id
+      ||trainingCandidates[0]?.id||trainingId;
      const tp={project_id:refs.projectId,module_id:refs.moduleId,submodule_id:null,subject:null,planned_date:v,planned_month:x.month?cronMonths.indexOf(x.month)+1:null,planned_week:x.week,realization_date:current?.trainingDate||null,responsible:current?.trainingDate?'CLIENTE':'HPRO',status:'Pendente',original_planned_date:current?.plannedDateOriginal||metaOriginal,created_by:currentUser.id};
-     if(tr?.id){const {error}=await supabaseClient.from('trainings').update(tp).eq('id',tr.id);if(error)throw error}
-     else{const {error}=await supabaseClient.from('trainings').insert(tp);if(error)throw error}
+     if(trainingId){const {error}=await supabaseClient.from('trainings').update(tp).eq('id',trainingId);if(error)throw error}
+     else{const {data:created,error}=await supabaseClient.from('trainings').insert(tp).select('id').limit(1);if(error)throw error;trainingId=created?.[0]?.id||null}
      const stageQ=await supabaseClient.from('project_stages').select('id').eq('project_id',refs.projectId).eq('modulo',m[0]);
      if(stageQ.error)throw stageQ.error;
      const stages=stageQ.data||[];
@@ -3200,13 +3233,34 @@ function planModuleDate(i){
      if(stages.length===1){const {error}=await supabaseClient.from('project_stages').update(sp).eq('id',stages[0].id);if(error)throw error}
      else if(stages.length===0){const {error}=await supabaseClient.from('project_stages').insert(sp);if(error)throw error}
      else console.warn('Há etapas duplicadas com este nome; previsão principal foi salva pelo ID do módulo, sem alterar etapas ambíguas.');
+     const {data:events,error:eventErr}=trainingId?await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('source','manual').eq('event_type','treinamento').eq('training_id',trainingId).limit(1):{data:[],error:null};
+     if(eventErr)throw eventErr;
+     agendaEvent=events?.[0]||agendaEvent;
+     if(includeAgenda){
+      if(!trainingId)throw new Error('Não foi possível vincular o compromisso ao treinamento do módulo.');
+      const startsAt=new Date(v+'T'+startTime+':00'),endsAt=new Date(v+'T'+endTime+':00');
+      if(!Number.isFinite(startsAt.getTime())||!Number.isFinite(endsAt.getTime())||endsAt<=startsAt)throw new Error('Data ou horário inválido para a Agenda.');
+      const {data:project,error:projectErr}=await supabaseClient.from('projects').select('id,name,client_id').eq('id',refs.projectId).limit(1);
+      if(projectErr)throw projectErr;projectInfo=project?.[0]||projectInfo;
+      const {data:analysts,error:analystErr}=await supabaseClient.from('project_analysts').select('profile_id').eq('project_id',refs.projectId).limit(1);
+      if(analystErr)throw analystErr;assignedUserId=analysts?.[0]?.profile_id||currentUser?.id||null;
+      const payload={user_id:assignedUserId,client_id:projectInfo?.client_id||null,project_id:refs.projectId,title:m[0],event_type:'treinamento',starts_at:startsAt.toISOString(),ends_at:endsAt.toISOString(),description:'Compromisso incluído manualmente no Mapa de Treinamento do módulo.',source:'manual',training_id:trainingId,training_status:'manual',status:'scheduled'};
+      if(agendaEvent?.id){const {error}=await supabaseClient.from('personal_calendar_events').update(payload).eq('id',agendaEvent.id);if(error)throw error}
+      else{const {error}=await supabaseClient.from('personal_calendar_events').insert(payload);if(error)throw error}
+     }else if(agendaEvent?.id&&agendaEvent.status!=='cancelled'){
+      const description=[String(agendaEvent.description||'').trim(),'[Desativado no Mapa]'].filter(Boolean).join('\n');
+      const {error}=await supabaseClient.from('personal_calendar_events').update({status:'cancelled',description}).eq('id',agendaEvent.id);
+      if(error)throw error;
+     }
     }
     m[2]={...(m[2]||{}),plannedDate:v,plannedDateOriginal:metaOriginal,month:x.month,week:x.week};
     const obj={name:m[0],module:m[0],submodule:'',subject:'',month:x.month,week:x.week,plannedDate:v,plannedDateOriginal:metaOriginal,trainingDate:current?.trainingDate||'',trainingStartDate:current?.trainingStartDate||'',trainingEndDate:current?.trainingEndDate||'',status:current?.status||'PENDENTE',responsible:current?.responsible||'HPRO',homologationDate:current?.homologationDate||'',homologationResponsible:current?.homologationResponsible||''};
     if(current)Object.assign(current,obj);else cur.t.push(obj);
     persistState();closeModal();mapView();
-   }catch(e){console.error(e);alert('Não foi possível salvar a previsão do módulo no Supabase: '+(e?.message||e))}
+   }catch(e){console.error(e);alert('Não foi possível salvar a previsão do módulo ou a configuração da Agenda: '+(e?.message||e))}
   });
+ const include=document.getElementById('moduleIncludeAgenda'),fields=document.getElementById('moduleAgendaTimeFields');
+ if(include&&fields)include.onchange=()=>{fields.style.display=include.checked?'grid':'none'};
  setTimeout(()=>{let d=document.getElementById('modulePlannedDate'),month=document.getElementById('moduleMonth'),week=document.getElementById('moduleWeek');if(d)d.onchange=()=>{let x=monthWeekFromDate(d.value);if(month)month.value=x?.month||'';if(week)week.value=x?.week||''}},0);
 }
 async function removeModuleDate(i){
@@ -5128,66 +5182,13 @@ async function abrirAgenda(){
 }
 async function sincronizarPrevisoesMapaNaAgenda(){
  if(!supabaseSession||!currentUser?.id)return;
- const [pmQ,trQ,prQ,paQ,modQ]=await Promise.all([
-  supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
-  supabaseClient.from('trainings').select('id,project_id,module_id,submodule_id,planned_date,realization_date,training_start_date,training_completion_date,status,calendar_confirmed,responsible').is('submodule_id',null),
-  supabaseClient.from('projects').select('id,name,client_id,status'),
-  supabaseClient.from('project_analysts').select('project_id,profile_id'),
-  supabaseClient.from('modules').select('id,name')
- ]);
- if(pmQ.error)throw pmQ.error;if(trQ.error)throw trQ.error;if(prQ.error)throw prQ.error;if(paQ.error)throw paQ.error;if(modQ.error)throw modQ.error;
- const projectById=new Map((prQ.data||[]).map(p=>[String(p.id),p]));
- const moduleById=new Map((modQ.data||[]).map(m=>[String(m.id),m]));
- const mainTrainingByKey=new Map();for(const t of trQ.data||[]){const k=String(t.project_id)+'|'+String(t.module_id);if(!mainTrainingByKey.has(k))mainTrainingByKey.set(k,[]);mainTrainingByKey.get(k).push(t);}
- const analystsByProject=new Map();
- for(const a of paQ.data||[]){const k=String(a.project_id);if(!analystsByProject.has(k))analystsByProject.set(k,[]);analystsByProject.get(k).push(a.profile_id)}
- const existingQ=await supabaseClient.from('personal_calendar_events').select('id,training_id,project_id,source,status,starts_at,ends_at,description').eq('source','cronograma').limit(2000);
- if(existingQ.error)throw existingQ.error;
- const existingByTraining=new Map((existingQ.data||[]).filter(e=>e.training_id).map(e=>[String(e.training_id),e]));
- const forecasts=[];
- for(const pm of pmQ.data||[]){
-  const project=projectById.get(String(pm.project_id));if(!project)continue;
-  const candidates=mainTrainingByKey.get(String(pm.project_id)+'|'+String(pm.module_id))||[];
-  const plannedKey=String(pm.planned_training_date||'').slice(0,10);
-  const tr=candidates.find(t=>plannedKey&&String(existingByTraining.get(String(t.id))?.starts_at||'').slice(0,10)===plannedKey)
-   ||candidates.find(t=>plannedKey&&String(t.planned_date||'').slice(0,10)===plannedKey&&existingByTraining.has(String(t.id))&&String(existingByTraining.get(String(t.id)).status||'').toLowerCase()!=='cancelled')
-   ||candidates.find(t=>plannedKey&&String(t.planned_date||'').slice(0,10)===plannedKey)
-   ||candidates.find(t=>existingByTraining.has(String(t.id))&&String(existingByTraining.get(String(t.id)).status||'').toLowerCase()!=='cancelled')
-   ||candidates[0];
-  const linkedEvent=tr?.id?existingByTraining.get(String(tr.id)):null;
-  if(linkedEvent?.description?.includes('[Oculto manualmente da Agenda]'))continue;
-  for(const duplicate of candidates){if(!tr||String(duplicate.id)===String(tr.id))continue;const duplicateEvent=existingByTraining.get(String(duplicate.id));if(duplicateEvent&&String(duplicateEvent.status||'').toLowerCase()!=='cancelled'){const {error:duplicateError}=await supabaseClient.from('personal_calendar_events').update({status:'cancelled'}).eq('id',duplicateEvent.id);if(duplicateError)throw duplicateError;}}
-  const statusText=String(tr?.status||'').trim().toLowerCase();
-  const completed=!!tr?.training_completion_date&&['concluído','concluido','homologado'].includes(statusText);
-  const inProgress=!completed&&(statusText==='em andamento'||!!tr?.training_start_date||!!tr?.realization_date);
-  const date=completed?tr.training_completion_date:inProgress?(tr.training_start_date||tr.realization_date||pm.planned_training_date||tr.planned_date):pm.planned_training_date;
-  if(!tr?.id)continue;
-  if(!date||!/^\d{4}-\d{2}-\d{2}/.test(String(date))){const stale=existingByTraining.get(String(tr.id));if(stale&&String(stale.status||'').toLowerCase()!=='cancelled'){const {error:staleError}=await supabaseClient.from('personal_calendar_events').update({status:'cancelled'}).eq('id',stale.id);if(staleError)throw staleError;}continue;}
-  const confirmed=!completed&&!inProgress&&tr.calendar_confirmed===true;
-  const trainingStatus=completed?'completed':inProgress?'in_progress':confirmed?'confirmed':'pending_confirmation';
-  const moduleName=moduleById.get(String(pm.module_id))?.name||('Módulo '+String(pm.module_id));
-  forecasts.push({pm,project,tr,dateKey:String(date).slice(0,10),trainingStatus,moduleName,title:moduleName,existing:existingByTraining.get(String(tr.id))});
- }
- forecasts.sort((a,b)=>a.dateKey.localeCompare(b.dateKey)||String(a.project.name||'').localeCompare(String(b.project.name||''))||a.moduleName.localeCompare(b.moduleName));
- const slotByDate=new Map();
- for(const item of forecasts){
-  const slot=slotByDate.get(item.dateKey)||0;slotByDate.set(item.dateKey,slot+1);
-  const slotStart=new Date(item.dateKey+'T08:00:00');slotStart.setMinutes(slotStart.getMinutes()+slot*60);
-  const slotEnd=new Date(slotStart.getTime()+60*60000);
-  const existing=item.existing;
-  let startsAt=slotStart.toISOString();
-  let endsAt=slotEnd.toISOString();
-  if(existing){const previousStart=new Date(existing.starts_at),previousEnd=new Date(existing.ends_at);if(Number.isFinite(previousStart.getTime())&&agendaDateKey(previousStart)!==item.dateKey){const correctedStart=new Date(item.dateKey+'T'+agendaPad(previousStart.getHours())+':'+agendaPad(previousStart.getMinutes())+':00');const duration=Number.isFinite(previousEnd.getTime())&&previousEnd>previousStart?previousEnd-previousStart:60*60000;startsAt=correctedStart.toISOString();endsAt=new Date(correctedStart.getTime()+duration).toISOString();}else{startsAt=existing.starts_at;endsAt=existing.ends_at;}}
-  const assigned=(analystsByProject.get(String(item.project.id))||[])[0]||currentUser.id;
-  const payload={user_id:assigned,client_id:item.project.client_id||null,project_id:item.project.id,title:item.title,event_type:'treinamento',starts_at:startsAt,ends_at:endsAt,description:'Origem: Mapa do projeto. Previsão visual de 1 hora; ajuste o horário após combinar com o cliente.',source:'cronograma',training_id:item.tr.id,training_status:item.trainingStatus,status:'scheduled'};
-  if(existing){
-   // Corrige a data quando a previsão do Mapa muda, preservando o horário ajustado pelo analista.
-   const {error}=await supabaseClient.from('personal_calendar_events').update(payload).eq('id',existing.id);
-   if(error)throw error;
-  }else{
-   const {error}=await supabaseClient.from('personal_calendar_events').insert(payload);
-   if(error)throw error;
-  }
+ // A Agenda não deve mais criar horários genéricos a partir de datas do Cronograma.
+ // Arquiva os compromissos gerados anteriormente; eventos manuais são preservados.
+ const {data:generated,error}=await supabaseClient.from('personal_calendar_events').select('id,user_id').eq('source','cronograma').eq('status','scheduled').limit(2000);
+ if(error)throw error;
+ for(const ev of generated||[]){
+  const {error:updateError}=await supabaseClient.from('personal_calendar_events').update({status:'cancelled'}).eq('id',ev.id).eq('user_id',ev.user_id);
+  if(updateError)throw updateError;
  }
 }
 async function carregarEventosAgenda(){
