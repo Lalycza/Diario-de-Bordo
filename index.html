@@ -634,6 +634,28 @@ body>.agenda-drag-ghost{opacity:.98!important;z-index:2147483647!important;point
 #app:not(.theme-dark) #agendaPage .agenda-month-event[data-source="mapa"] *,
 #app:not(.theme-dark) #agendaPage .agenda-month-event[data-source="cronograma"] *{color:#5c3b00!important;-webkit-text-fill-color:#5c3b00!important;opacity:1!important}
 
+
+/* Agenda: botões de ação legíveis sobre cartões âmbar do Mapa/Cronograma. */
+#app #agendaPage .agenda-event[data-source="mapa"] .agenda-event-actions button,
+#app #agendaPage .agenda-event[data-source="cronograma"] .agenda-event-actions button,
+#app #agendaPage .agenda-month-event[data-source="mapa"] .agenda-event-actions button,
+#app #agendaPage .agenda-month-event[data-source="cronograma"] .agenda-event-actions button{background:#17243a!important;box-shadow:0 0 0 1px rgba(255,255,255,.22),0 1px 4px rgba(0,0,0,.35)!important;opacity:1!important}
+#app #agendaPage .agenda-event[data-source="mapa"] .agenda-action-edit,
+#app #agendaPage .agenda-event[data-source="cronograma"] .agenda-action-edit,
+#app #agendaPage .agenda-month-event[data-source="mapa"] .agenda-action-edit,
+#app #agendaPage .agenda-month-event[data-source="cronograma"] .agenda-action-edit{color:#7dd3fc!important;-webkit-text-fill-color:#7dd3fc!important;border-color:#7dd3fc!important}
+#app #agendaPage .agenda-event[data-source="mapa"] .agenda-action-confirm,
+#app #agendaPage .agenda-event[data-source="cronograma"] .agenda-action-confirm,
+#app #agendaPage .agenda-month-event[data-source="mapa"] .agenda-action-confirm,
+#app #agendaPage .agenda-month-event[data-source="cronograma"] .agenda-action-confirm{color:#86efac!important;-webkit-text-fill-color:#86efac!important;border-color:#86efac!important}
+#app #agendaPage .agenda-event[data-source="mapa"] .agenda-action-delete,
+#app #agendaPage .agenda-event[data-source="cronograma"] .agenda-action-delete,
+#app #agendaPage .agenda-month-event[data-source="mapa"] .agenda-action-delete,
+#app #agendaPage .agenda-month-event[data-source="cronograma"] .agenda-action-delete{color:#fca5a5!important;-webkit-text-fill-color:#fca5a5!important;border-color:#fca5a5!important}
+#app #agendaPage .agenda-event[data-source="mapa"] .agenda-event-actions button:hover,
+#app #agendaPage .agenda-event[data-source="cronograma"] .agenda-event-actions button:hover,
+#app #agendaPage .agenda-month-event[data-source="mapa"] .agenda-event-actions button:hover,
+#app #agendaPage .agenda-month-event[data-source="cronograma"] .agenda-event-actions button:hover{background:#263a55!important;box-shadow:0 0 0 2px rgba(255,255,255,.35),0 2px 6px rgba(0,0,0,.4)!important}
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
