@@ -5142,12 +5142,15 @@ async function sincronizarPrevisoesMapaNaAgenda(){
  for(const pm of pmQ.data||[]){
   const project=projectById.get(String(pm.project_id));if(!project)continue;
   const tr=mainTrainingByKey.get(String(pm.project_id)+'|'+String(pm.module_id));
-  const date=(tr?.training_completion_date&&['concluído','concluido','homologado'].includes(String(tr.status||'').toLowerCase())?tr.training_completion_date:null)
-   ||tr?.training_start_date||tr?.realization_date||tr?.planned_date||pm.planned_training_date;
-  if(!date||!/^\d{4}-\d{2}-\d{2}/.test(String(date))||!tr?.id)continue;
-  const statusText=String(tr.status||'').trim().toLowerCase();
-  const completed=!!tr.training_completion_date&&['concluído','concluido','homologado'].includes(statusText);
-  const inProgress=!completed&&(statusText==='em andamento'||!!tr.training_start_date||!!tr.realization_date);
+  const statusText=String(tr?.status||'').trim().toLowerCase();
+  const completed=!!tr?.training_completion_date&&['concluído','concluido','homologado'].includes(statusText);
+  const inProgress=!completed&&(statusText==='em andamento'||!!tr?.training_start_date||!!tr?.realization_date);
+  // Para previsões futuras, respeitar a data específica de cada módulo no Mapa/Cronograma.
+  // Início/conclusão reais só prevalecem quando o treinamento já começou/concluiu.
+  const date=completed?tr.training_completion_date
+   :inProgress?(tr.training_start_date||tr.realization_date||pm.planned_training_date||tr.planned_date)
+   :(pm.planned_training_date||tr?.planned_date||tr?.training_start_date||tr?.realization_date);
+  if(!date||!/^d{4}-d{2}-d{2}/.test(String(date))||!tr?.id)continue;
   const confirmed=!completed&&!inProgress&&tr.calendar_confirmed===true;
   const trainingStatus=completed?'completed':inProgress?'in_progress':confirmed?'confirmed':'pending_confirmation';
   const moduleName=moduleById.get(String(pm.module_id))?.name||('Módulo '+String(pm.module_id));
@@ -5160,6 +5163,8 @@ async function sincronizarPrevisoesMapaNaAgenda(){
   const slotStart=new Date(item.dateKey+'T08:00:00');slotStart.setMinutes(slotStart.getMinutes()+slot*60);
   const slotEnd=new Date(slotStart.getTime()+60*60000);
   const existing=item.existing;
+  // Uma previsão ocultada na Agenda não deve ser recriada; a previsão original segue no Cronograma.
+  if(existing&&String(existing.status||'').toLowerCase()==='cancelled')continue;
   const startsAt=slotStart.toISOString();
   const endsAt=slotEnd.toISOString();
   const assigned=(analystsByProject.get(String(item.project.id))||[])[0]||currentUser.id;
@@ -5379,9 +5384,13 @@ async function salvarEventoAgenda(){
 async function excluirEventoAgenda(id){
  if(!currentUser?.id||!id)return;
  const ev=agendaEvents.find(e=>String(e.id)===String(id));if(!ev||!agendaCanEditEvent(ev)){alert('Você só pode excluir compromissos criados por você.');return;}
- if(!confirm('Excluir este compromisso da agenda?'))return;
- let deletion=supabaseClient.from('personal_calendar_events').delete().eq('id',id).eq('user_id',currentUser.id);const {error}=await deletion;
- if(error){alert('Não foi possível excluir: '+error.message);return}agendaEditingId=null;agendaVoltarCalendario();await carregarEventosAgenda();
+ const fromForecast=ev.source==='cronograma';
+ if(!confirm(fromForecast?'Ocultar esta previsão somente da Agenda? Ela continuará no Cronograma.':'Excluir este compromisso da agenda?'))return;
+ const result=fromForecast
+  ?await supabaseClient.from('personal_calendar_events').update({status:'cancelled'}).eq('id',id).eq('user_id',currentUser.id)
+  :await supabaseClient.from('personal_calendar_events').delete().eq('id',id).eq('user_id',currentUser.id);
+ if(result.error){alert('Não foi possível '+(fromForecast?'ocultar a previsão: ':'excluir o compromisso: ')+result.error.message);return}
+ agendaEditingId=null;agendaVoltarCalendario();await carregarEventosAgenda();
 }
 function perfil(){openSimpleModal('Meu perfil','<div class="task-form"><label>Nome</label><input value="'+escAttr(currentUser?.name||'')+'" readonly><label>Sigla</label><input value="'+escAttr(currentUser?.sigla||'')+'" readonly><label>E-mail</label><input value="'+escAttr(currentUser?.email||'')+'" readonly><label>Permissão</label><input value="'+escAttr(roleNames[currentUser?.role]||currentUser?.role||'')+'" readonly><div class="hint">A sigla identifica o colaborador nos registros do sistema.</div><button type="button" class="secondary" style="margin-top:10px" onclick="closeModal();alterarSenha(false)">🔑 Alterar senha</button></div>')}
 async function alterarSenha(forced){
