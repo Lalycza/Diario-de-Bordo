@@ -472,8 +472,84 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
   text-shadow:none!important;
 }
 
-/* Dashboard exclusivo da carteira do analista */
-.analyst-portfolio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin:16px 0}.analyst-portfolio-kpi{position:relative;overflow:hidden;border:1px solid #d9e4f2;border-radius:14px;padding:16px;background:linear-gradient(135deg,#fff 0%,#f2f7ff 100%);box-shadow:0 8px 22px rgba(30,64,110,.07)}.analyst-portfolio-kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#168cff}.analyst-portfolio-kpi small{display:block;color:#64748b;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em}.analyst-portfolio-kpi strong{display:block;font-size:29px;margin-top:8px;color:#14243a}.analyst-portfolio-panel{border:1px solid #dce5f0;border-radius:14px;padding:16px;margin:14px 0;background:#fff;box-shadow:0 8px 22px rgba(30,64,110,.045)}.analyst-portfolio-panel h3{margin:0 0 12px}.analyst-portfolio-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf1f6}.analyst-portfolio-row:last-child{border-bottom:0}.analyst-portfolio-row small{display:block;color:#64748b;margin-top:3px}.analyst-portfolio-table{width:100%;border-collapse:collapse;min-width:680px}.analyst-portfolio-table th{background:#eaf2fc;color:#29415f;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em}.analyst-portfolio-table th,.analyst-portfolio-table td{padding:11px 10px;border-bottom:1px solid #e7edf5}.app.theme-dark .analyst-portfolio-kpi,.app.theme-dark .analyst-portfolio-panel{background:linear-gradient(135deg,#151a22,#111722)!important;border-color:#2b3a50!important;color:#e5e7eb}.app.theme-dark .analyst-portfolio-kpi strong{color:#fff}.app.theme-dark .analyst-portfolio-kpi small,.app.theme-dark .analyst-portfolio-row small{color:#aebbd0}.app.theme-dark .analyst-portfolio-row,.app.theme-dark .analyst-portfolio-table td{border-color:#2b3a50}.app.theme-dark .analyst-portfolio-table th{background:#0d1726;color:#b9d6f7}@media(max-width:600px){.analyst-portfolio-panel{padding:12px}.analyst-portfolio-kpi{padding:13px}.analyst-portfolio-kpi strong{font-size:25px}}
+/* Dashboard exclusivo da carteira do analista — estilos consolidados no bloco original. */
+#analystPortfolio>.top{
+  position:relative;overflow:hidden;margin:0 0 20px;padding:24px 26px!important;
+  border:1px solid rgba(56,139,255,.22)!important;border-radius:18px!important;
+  background:linear-gradient(125deg,#f8fbff 0%,#edf4ff 62%,#e7f1ff 100%)!important;
+  box-shadow:0 8px 24px rgba(25,65,120,.07)!important;
+}
+#analystPortfolio>.top:after{
+  content:"";position:absolute;right:-42px;top:-86px;width:210px;height:210px;border-radius:50%;
+  border:1px solid rgba(52,127,227,.2);box-shadow:0 0 0 22px rgba(52,127,227,.045),0 0 0 46px rgba(52,127,227,.025);pointer-events:none;
+}
+#analystPortfolio>.top h1{font-size:clamp(24px,3vw,31px)!important;line-height:1.2;font-weight:800!important;letter-spacing:-.035em!important;color:#172b47!important}
+#analystPortfolio>.top p{margin-top:7px!important;max-width:680px;font-size:13px!important;line-height:1.65;color:#5d718c!important}
+#analystPortfolio>.top button{position:relative;z-index:1;border-radius:10px!important;min-height:38px}
+.analyst-portfolio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:13px;margin:16px 0}
+.analyst-portfolio-kpi{
+  --kpi-accent:#347fe3;position:relative;isolation:isolate;overflow:hidden;min-width:0;
+  border:1px solid color-mix(in srgb,var(--kpi-accent) 24%,#d9e4f2);border-radius:15px;
+  padding:17px 17px 16px 19px;background:linear-gradient(145deg,#fff 0%,color-mix(in srgb,var(--kpi-accent) 5%,#f4f8ff) 100%);
+  box-shadow:0 5px 17px rgba(30,64,110,.055);transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.analyst-portfolio-kpi:before{content:"";position:absolute;z-index:-1;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--kpi-accent),color-mix(in srgb,var(--kpi-accent) 22%,white))}
+.analyst-portfolio-kpi:after{content:"";position:absolute;z-index:-1;right:-35px;top:-45px;width:105px;height:105px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--kpi-accent) 12%,transparent),transparent 72%);pointer-events:none}
+.analyst-portfolio-kpi:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--kpi-accent) 45%,#d9e4f2);box-shadow:0 9px 23px rgba(30,64,110,.09)}
+.analyst-portfolio-kpi small{display:block;max-width:100%;color:#64748b;font-weight:750;font-size:10px;text-transform:uppercase;letter-spacing:.075em;line-height:1.5}
+.analyst-portfolio-kpi strong{display:block;font-size:30px;line-height:1.15;margin-top:10px;color:#172b47;font-variant-numeric:tabular-nums;letter-spacing:-.035em}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(1){--kpi-accent:#347fe3}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(2){--kpi-accent:#20a574}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(3){--kpi-accent:#d89a18}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(4){--kpi-accent:#b887e8}
+.analyst-portfolio-panel{
+  min-width:0;border:1px solid #dce5f0;border-radius:16px;padding:18px;margin:15px 0;
+  background:linear-gradient(145deg,#fff 0%,#f9fbff 100%);box-shadow:0 6px 20px rgba(30,64,110,.045);
+}
+.analyst-portfolio-panel h3{margin:0 0 14px;padding-bottom:11px;border-bottom:1px solid #e6edf6;color:#1d3554;font-size:15px;font-weight:780;letter-spacing:-.015em}
+.analyst-portfolio-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #edf1f6}
+.analyst-portfolio-row:last-child{border-bottom:0}
+.analyst-portfolio-row small{display:block;color:#64748b;margin-top:3px}
+.analyst-portfolio-table{width:100%;border-collapse:separate;border-spacing:0;min-width:680px;font-size:12px}
+.analyst-portfolio-table th{background:#eaf2fc;color:#29415f;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.055em;font-weight:800}
+.analyst-portfolio-table th,.analyst-portfolio-table td{padding:12px 11px;border-bottom:1px solid #e7edf5}
+.analyst-portfolio-table th:first-child{border-radius:8px 0 0 8px}
+.analyst-portfolio-table th:last-child{border-radius:0 8px 8px 0}
+.analyst-portfolio-table td{color:#344861;vertical-align:top}
+.analyst-portfolio-table tbody tr:hover td{background:#f1f6fd}
+.analyst-portfolio-table td b{color:#1b3556}
+#analystPortfolioBody select{border-radius:9px!important;min-height:38px}
+#analystPortfolio>button{margin-top:2px;border-radius:10px!important;min-height:40px}
+.app.theme-dark #analystPortfolio>.top{
+  border-color:rgba(74,137,232,.28)!important;background:linear-gradient(125deg,#172437 0%,#121d2d 65%,#101a29 100%)!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.18)!important;
+}
+.app.theme-dark #analystPortfolio>.top h1{color:#f0f6ff!important}
+.app.theme-dark #analystPortfolio>.top p{color:#aebed3!important}
+.app.theme-dark #analystPortfolio>.top:after{border-color:rgba(81,151,255,.22);box-shadow:0 0 0 22px rgba(57,127,228,.055),0 0 0 46px rgba(57,127,228,.03)}
+.app.theme-dark .analyst-portfolio-kpi,.app.theme-dark .analyst-portfolio-panel{
+  background:linear-gradient(145deg,#172130 0%,#111a28 100%)!important;border-color:rgba(113,151,197,.22)!important;color:#e5edf8;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 8px 20px rgba(0,0,0,.14)!important;
+}
+.app.theme-dark .analyst-portfolio-kpi small,.app.theme-dark .analyst-portfolio-row small{color:#aebbd0}
+.app.theme-dark .analyst-portfolio-kpi strong{color:#f0f6ff}
+.app.theme-dark .analyst-portfolio-panel h3{color:#eaf2ff;border-bottom-color:rgba(148,163,184,.16)}
+.app.theme-dark .analyst-portfolio-row,.app.theme-dark .analyst-portfolio-table td{border-color:#2b3a50}
+.app.theme-dark .analyst-portfolio-table th{background:#0d1726;color:#b9d6f7}
+.app.theme-dark .analyst-portfolio-table td{color:#cbd7e6}
+.app.theme-dark .analyst-portfolio-table td b{color:#f0f6ff}
+.app.theme-dark .analyst-portfolio-table tbody tr:hover td{background:rgba(57,127,228,.09)}
+.app.theme-dark #analystPortfolioBody select{background:#111927!important;color:#e5edf8!important;border-color:#34445b!important}
+@media(max-width:700px){
+  #analystPortfolio>.top{padding:19px 17px!important}
+  .analyst-portfolio-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .analyst-portfolio-kpi{padding:14px 12px 14px 15px;border-radius:12px}
+  .analyst-portfolio-kpi small{font-size:9px;letter-spacing:.045em}
+  .analyst-portfolio-kpi strong{font-size:25px;margin-top:8px}
+  .analyst-portfolio-panel{padding:13px;border-radius:13px}
+}
+@media(max-width:390px){.analyst-portfolio-grid{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.analyst-portfolio-kpi{transition:none!important}.analyst-portfolio-kpi:hover{transform:none!important}}
 
 /* LZ-PROJECT-HISTORY-POLISH: tema claro/escuro com contraste explícito */
 #projectHistory{--hist-accent:#2583ff}
