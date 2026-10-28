@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ChevronDown,
+  CalendarDays,\n  ChevronDown,
   ChevronRight,
   DatabaseBackup,
   FolderKanban,
@@ -81,6 +81,12 @@ function MenuItems({
               <FolderKanban className="size-4" />
               Meus projetos
             </Link>
+            {(isAdmin || isSupervisor || isAnalista) ? (
+              <Link to="/teams-calendar" onClick={onNavigate} className={itemClass}>
+                <CalendarDays className="size-4" />
+                Microsoft 365
+              </Link>
+            ) : null}
             <a href="/projetos?novo=1" onClick={onNavigate} className={itemClass}>
               <Plus className="size-4" />
               Novo Projeto
@@ -167,7 +173,7 @@ export function AppShell({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, isSupervisor, isCS, isLoading: roleLoading } = useRole();
+  const { isAdmin, isSupervisor, isCS, isAnalista, isLoading: roleLoading } = useRole();
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
