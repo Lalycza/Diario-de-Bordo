@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays,\n  ChevronDown,
+  CalendarDays,
+  ChevronDown,
   ChevronRight,
   DatabaseBackup,
   FolderKanban,
