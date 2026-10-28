@@ -4071,12 +4071,18 @@ async function syncProjectAnalystToSupabase(p){
    if(!byEmail.data)throw new Error('Analista não encontrado no cadastro de usuários.');
    profileId=String(byEmail.data.id);
  }
+ const {data:links,error:le}=await supabaseClient.from('project_analysts').select('profile_id').eq('project_id',p.dbId);
+ if(le)throw new Error('Leitura do vínculo do analista: '+le.message);
+ const alreadyLinked=(links||[]).some(row=>String(row.profile_id)===profileId);
+ if(!alreadyLinked){
+   // Insere primeiro: se a RLS negar a alteração, não remove o vínculo existente.
+   const {error:ie}=await supabaseClient.from('project_analysts').insert({project_id:p.dbId,profile_id:profileId});
+   if(ie)throw new Error('Vínculo do analista: '+ie.message);
+   const {error:de}=await supabaseClient.from('project_analysts').delete().eq('project_id',p.dbId).neq('profile_id',profileId);
+   if(de)throw new Error('Limpeza do vínculo anterior: '+de.message);
+ }
  const {error:pe}=await supabaseClient.from('projects').update({owner_id:profileId}).eq('id',p.dbId);
  if(pe)throw new Error('Responsável do projeto: '+pe.message);
- const {error:de}=await supabaseClient.from('project_analysts').delete().eq('project_id',p.dbId);
- if(de)throw new Error('Analista do projeto: '+de.message);
- const {error:ie}=await supabaseClient.from('project_analysts').insert({project_id:p.dbId,profile_id:profileId});
- if(ie)throw new Error('Vínculo do analista: '+ie.message);
  p.operatorIds=[profileId];
  if(byId.data?.email)p.owner=byId.data.email;
  return profileId;
