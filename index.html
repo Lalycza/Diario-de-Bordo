@@ -5142,12 +5142,15 @@ async function sincronizarPrevisoesMapaNaAgenda(){
  for(const pm of pmQ.data||[]){
   const project=projectById.get(String(pm.project_id));if(!project)continue;
   const tr=mainTrainingByKey.get(String(pm.project_id)+'|'+String(pm.module_id));
-  const date=(tr?.training_completion_date&&['concluído','concluido','homologado'].includes(String(tr.status||'').toLowerCase())?tr.training_completion_date:null)
-   ||tr?.training_start_date||tr?.realization_date||tr?.planned_date||pm.planned_training_date;
+  const statusText=String(tr?.status||'').trim().toLowerCase();
+  const completed=!!tr?.training_completion_date&&['concluído','concluido','homologado'].includes(statusText);
+  const inProgress=!completed&&(statusText==='em andamento'||!!tr?.training_start_date||!!tr?.realization_date);
+  // Para previsões ainda não iniciadas, a data do Cronograma (project_modules) é a referência principal.
+  // Datas de início/realização só prevalecem quando o treinamento já começou; conclusão prevalece quando concluído.
+  const date=completed?tr.training_completion_date
+   :inProgress?(tr?.training_start_date||tr?.realization_date||pm.planned_training_date||tr?.planned_date)
+   :(pm.planned_training_date||tr?.planned_date||tr?.training_start_date||tr?.realization_date);
   if(!date||!/^\d{4}-\d{2}-\d{2}/.test(String(date))||!tr?.id)continue;
-  const statusText=String(tr.status||'').trim().toLowerCase();
-  const completed=!!tr.training_completion_date&&['concluído','concluido','homologado'].includes(statusText);
-  const inProgress=!completed&&(statusText==='em andamento'||!!tr.training_start_date||!!tr.realization_date);
   const confirmed=!completed&&!inProgress&&tr.calendar_confirmed===true;
   const trainingStatus=completed?'completed':inProgress?'in_progress':confirmed?'confirmed':'pending_confirmation';
   const moduleName=moduleById.get(String(pm.module_id))?.name||('Módulo '+String(pm.module_id));
