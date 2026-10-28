@@ -5340,7 +5340,7 @@ function renderAgendaTimeGrid(){
   const titleLines=managerCompact?1:Math.max(1,Math.ceil((String(ev.title||'').length+6)/15));
   const contentHeight=managerCompact?42:36+titleLines*14+(ev.client_id?13:0)+(agendaIsManager()?13:0)+30;
   const visibleMinutes=Math.max(0,Math.min(end.getTime(),start.getTime()+(lastMinutes-minutes)*60000)-Math.max(start.getTime(),new Date(start).setHours(firstHour,0,0,0)))/60000;
-  const duration=managerCompact?slotH:Math.max(0,Math.min((end-start)/60000,lastMinutes-Math.max(minutes,firstMinutes))*pxPerMin);
+  const duration=Math.max(0,Math.min((end-start)/60000,lastMinutes-Math.max(minutes,firstMinutes))*pxPerMin);
   const holder=document.createElement('div');holder.className='agenda-event'+(managerCompact?' agenda-manager-compact':'')+(analystLayout?' agenda-analyst-event':'');holder.dataset.agendaEventId=String(ev.id);holder.dataset.type=ev.event_type;holder.dataset.source=ev.source||'manual';holder.dataset.trainingStatus=ev.training_status||'manual';holder.dataset.agendaDraggable=(ev.source!=='cronograma'&&agendaCanEditEvent(ev))?'true':'false';
   holder.style.position='absolute';holder.style.left=analystLayout?'calc('+laneWidth+'% * '+lane+' + 2px)':'3px';holder.style.width=analystLayout?'calc('+laneWidth+'% - 4px)':'auto';holder.style.right=analystLayout?'auto':'3px';holder.style.top=top+'px';holder.style.height=(managerCompact?Math.max(42,duration-4):Math.max(24,duration))+'px';holder.style.zIndex='5';holder.style.display='flex';holder.style.flexDirection='column';holder.style.visibility='visible';
   const analystTitle=ev.client_id?agendaClientName(ev.client_id):String(ev.title||'');
