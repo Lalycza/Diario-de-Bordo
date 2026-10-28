@@ -3183,7 +3183,8 @@ async function planModuleDate(i){
     if(trErr)throw trErr;trainingCandidates=trs||[];
     const {data:events,error:eventErr}=await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('event_type','treinamento').limit(1000);
     if(eventErr)throw eventErr;
-    agendaEvent=(events||[]).find(e=>trainingCandidates.some(t=>String(t.id)===String(e.training_id)))||null;
+    agendaEvent=(events||[]).find(e=>e.status==='scheduled'&&trainingCandidates.some(t=>String(t.id)===String(e.training_id)))||(events||[]).find(e=>trainingCandidates.some(t=>String(t.id)===String(e.training_id)))||null;
+     if(!agendaEvent)agendaEvent=(events||[]).find(e=>e.status==='scheduled'&&e.source==='manual'&&String(e.title||'').trim()===String(m[0]).trim()&&String(e.description||'').includes('Compromisso incluído manualmente no Mapa de Treinamento do módulo.'))||null;
     const chosen=trainingCandidates.find(t=>agendaEvent&&String(t.id)===String(agendaEvent.training_id))
      ||trainingCandidates.find(t=>String(t.planned_date||'').slice(0,10)===String(meta.plannedDate||current?.plannedDate||'').slice(0,10))
      ||trainingCandidates[0];
@@ -3236,7 +3237,7 @@ async function planModuleDate(i){
      else console.warn('Há etapas duplicadas com este nome; previsão principal foi salva pelo ID do módulo, sem alterar etapas ambíguas.');
      const {data:events,error:eventErr}=trainingId?await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('event_type','treinamento').eq('training_id',trainingId).limit(1):{data:[],error:null};
      if(eventErr)throw eventErr;
-     agendaEvent=events?.[0]||agendaEvent;
+     agendaEvent=agendaEvent||events?.[0]||null;
      if(includeAgenda){
       if(!trainingId)throw new Error('Não foi possível vincular o compromisso ao treinamento do módulo.');
       const startsAt=new Date(v+'T'+startTime+':00'),endsAt=new Date(v+'T'+endTime+':00');
