@@ -3180,7 +3180,7 @@ async function planModuleDate(i){
    if(refs?.moduleId){
     const {data:trs,error:trErr}=await supabaseClient.from('trainings').select('id,planned_date').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
     if(trErr)throw trErr;trainingCandidates=trs||[];
-    const {data:events,error:eventErr}=await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('source','manual').eq('event_type','treinamento').limit(1000);
+    const {data:events,error:eventErr}=await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('event_type','treinamento').limit(1000);
     if(eventErr)throw eventErr;
     agendaEvent=(events||[]).find(e=>trainingCandidates.some(t=>String(t.id)===String(e.training_id)))||null;
     const chosen=trainingCandidates.find(t=>agendaEvent&&String(t.id)===String(agendaEvent.training_id))
@@ -3196,9 +3196,9 @@ async function planModuleDate(i){
   }
  }catch(e){console.error(e);return alert('Não foi possível carregar a configuração da Agenda: '+(e?.message||e))}
  const timeValue=(value)=>{const d=value?new Date(value):null;return d&&Number.isFinite(d.getTime())?agendaPad(d.getHours())+':'+agendaPad(d.getMinutes()):''};
- const startValue=timeValue(agendaEvent?.starts_at),endValue=timeValue(agendaEvent?.ends_at);
+ const startValue=agendaEvent?.source==='manual'?timeValue(agendaEvent?.starts_at):'',endValue=agendaEvent?.source==='manual'?timeValue(agendaEvent?.ends_at):'';
  openSimpleModal('Treinamento — '+m[0],
-  '<div class="task-form"><label>Módulo Fixo</label><input value="'+escAttr(m[0])+'" disabled><div class="row2"><div>'+dateFieldHtml('modulePlannedDate','Data prevista do treinamento',meta.plannedDate||current?.plannedDate||'')+'</div><div><label>Mês / Semana</label><div class="row2"><input id="moduleMonth" value="'+escAttr(mw?.month||'')+'" placeholder="Automático" disabled><input id="moduleWeek" value="'+(mw?.week||'')+'" placeholder="Automático" disabled></div></div></div><div style="margin-top:12px;padding:12px;border:1px solid var(--border,#334155);border-radius:10px"><label style="display:flex;align-items:center;gap:8px"><input id="moduleIncludeAgenda" type="checkbox" '+(agendaEvent&&agendaEvent.status==='scheduled'?'checked':'')+' style="width:auto"> Incluir na Agenda</label><div id="moduleAgendaTimeFields" style="display:'+(agendaEvent&&agendaEvent.status==='scheduled'?'grid':'none')+';grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><div><label for="moduleAgendaStart">Horário inicial</label><input id="moduleAgendaStart" type="time" value="'+escAttr(startValue)+'"></div><div><label for="moduleAgendaEnd">Horário final</label><input id="moduleAgendaEnd" type="time" value="'+escAttr(endValue)+'"></div></div><div class="hint">O horário é usado somente na Agenda. O Cronograma continua considerando apenas a data prevista. Marque a opção e informe os dois horários para criar o compromisso.</div></div><div class="hint">A data e o mês/semana são o planejamento inicial do módulo. Os status Em andamento, Replanejado, Concluído e Homologado nascem exclusivamente dos submódulos registrados no Mapa.</div></div>',
+  '<div class="task-form"><label>Módulo Fixo</label><input value="'+escAttr(m[0])+'" disabled><div class="row2"><div>'+dateFieldHtml('modulePlannedDate','Data prevista do treinamento',meta.plannedDate||current?.plannedDate||'')+'</div><div><label>Mês / Semana</label><div class="row2"><input id="moduleMonth" value="'+escAttr(mw?.month||'')+'" placeholder="Automático" disabled><input id="moduleWeek" value="'+(mw?.week||'')+'" placeholder="Automático" disabled></div></div></div><div style="margin-top:12px;padding:12px;border:1px solid var(--border,#334155);border-radius:10px"><label style="display:flex;align-items:center;gap:8px"><input id="moduleIncludeAgenda" type="checkbox" '+(agendaEvent&&agendaEvent.source==='manual'&&agendaEvent.status==='scheduled'?'checked':'')+' style="width:auto"> Incluir na Agenda</label><div id="moduleAgendaTimeFields" style="display:'+(agendaEvent&&agendaEvent.source==='manual'&&agendaEvent.status==='scheduled'?'grid':'none')+';grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><div><label for="moduleAgendaStart">Horário inicial</label><input id="moduleAgendaStart" type="time" value="'+escAttr(startValue)+'"></div><div><label for="moduleAgendaEnd">Horário final</label><input id="moduleAgendaEnd" type="time" value="'+escAttr(endValue)+'"></div></div><div class="hint">O horário é usado somente na Agenda. O Cronograma continua considerando apenas a data prevista. Marque a opção e informe os dois horários para criar o compromisso.</div></div><div class="hint">A data e o mês/semana são o planejamento inicial do módulo. Os status Em andamento, Replanejado, Concluído e Homologado nascem exclusivamente dos submódulos registrados no Mapa.</div></div>',
   async()=>{
    syncAllDateTextFields(document.getElementById('modalbox'));
    if(document.getElementById('modulePlannedDateText')?.classList.contains('date-error'))return alert('Confira a data digitada. Use DD/MM/AAAA ou escolha no calendário.');
@@ -3233,7 +3233,7 @@ async function planModuleDate(i){
      if(stages.length===1){const {error}=await supabaseClient.from('project_stages').update(sp).eq('id',stages[0].id);if(error)throw error}
      else if(stages.length===0){const {error}=await supabaseClient.from('project_stages').insert(sp);if(error)throw error}
      else console.warn('Há etapas duplicadas com este nome; previsão principal foi salva pelo ID do módulo, sem alterar etapas ambíguas.');
-     const {data:events,error:eventErr}=trainingId?await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('source','manual').eq('event_type','treinamento').eq('training_id',trainingId).limit(1):{data:[],error:null};
+     const {data:events,error:eventErr}=trainingId?await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('event_type','treinamento').eq('training_id',trainingId).limit(1):{data:[],error:null};
      if(eventErr)throw eventErr;
      agendaEvent=events?.[0]||agendaEvent;
      if(includeAgenda){
@@ -5184,10 +5184,11 @@ async function sincronizarPrevisoesMapaNaAgenda(){
  if(!supabaseSession||!currentUser?.id)return;
  // A Agenda não deve mais criar horários genéricos a partir de datas do Cronograma.
  // Arquiva os compromissos gerados anteriormente; eventos manuais são preservados.
- const {data:generated,error}=await supabaseClient.from('personal_calendar_events').select('id,user_id').eq('source','cronograma').eq('status','scheduled').limit(2000);
+ const {data:generated,error}=await supabaseClient.from('personal_calendar_events').select('id,user_id,status').eq('source','cronograma').limit(2000);
  if(error)throw error;
  for(const ev of generated||[]){
-  const {error:updateError}=await supabaseClient.from('personal_calendar_events').update({status:'cancelled'}).eq('id',ev.id).eq('user_id',ev.user_id);
+  if(String(ev.status||'').toLowerCase()==='cancelled')continue;
+  const {error:updateError}=await supabaseClient.from('personal_calendar_events').update({status:'cancelled'}).eq('id',ev.id);
   if(updateError)throw updateError;
  }
 }
