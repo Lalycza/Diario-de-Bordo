@@ -615,6 +615,25 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 #app #agendaPage .agenda-event.agenda-dragging{cursor:grabbing;opacity:.72!important;z-index:9999!important;box-shadow:0 12px 28px rgba(0,0,0,.3);pointer-events:none}
 body>.agenda-drag-ghost{opacity:.98!important;z-index:2147483647!important;pointer-events:none!important;filter:drop-shadow(0 12px 18px rgba(0,0,0,.28))!important}
 #app #agendaPage .agenda-day-column.agenda-drop-target{outline:2px solid #38bdf8;outline-offset:-2px;background:rgba(56,189,248,.10)}
+
+/* Agenda: contraste sólido para previsões Mapa/Cronograma nos dois temas. */
+#app.theme-dark #agendaPage .agenda-event[data-source="mapa"],
+#app.theme-dark #agendaPage .agenda-event[data-source="cronograma"],
+#app.theme-dark #agendaPage .agenda-month-event[data-source="mapa"],
+#app.theme-dark #agendaPage .agenda-month-event[data-source="cronograma"]{background:#68470b!important;color:#fff1c2!important;-webkit-text-fill-color:#fff1c2!important;border-left:4px solid #ffc247!important;opacity:1!important}
+#app.theme-dark #agendaPage .agenda-event[data-source="mapa"] *,
+#app.theme-dark #agendaPage .agenda-event[data-source="cronograma"] *,
+#app.theme-dark #agendaPage .agenda-month-event[data-source="mapa"] * ,
+#app.theme-dark #agendaPage .agenda-month-event[data-source="cronograma"] *{color:#fff1c2!important;-webkit-text-fill-color:#fff1c2!important;opacity:1!important}
+#app:not(.theme-dark) #agendaPage .agenda-event[data-source="mapa"],
+#app:not(.theme-dark) #agendaPage .agenda-event[data-source="cronograma"],
+#app:not(.theme-dark) #agendaPage .agenda-month-event[data-source="mapa"],
+#app:not(.theme-dark) #agendaPage .agenda-month-event[data-source="cronograma"]{background:#ffe7a3!important;color:#5c3b00!important;-webkit-text-fill-color:#5c3b00!important;border-left:4px solid #c98500!important;opacity:1!important}
+#app:not(.theme-dark) #agendaPage .agenda-event[data-source="mapa"] *,
+#app:not(.theme-dark) #agendaPage .agenda-event[data-source="cronograma"] *,
+#app:not(.theme-dark) #agendaPage .agenda-month-event[data-source="mapa"] *,
+#app:not(.theme-dark) #agendaPage .agenda-month-event[data-source="cronograma"] *{color:#5c3b00!important;-webkit-text-fill-color:#5c3b00!important;opacity:1!important}
+
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
 .app:not(.theme-dark){background:#f5f7fb!important;color:#182236}
