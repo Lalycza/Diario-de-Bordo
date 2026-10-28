@@ -5150,7 +5150,7 @@ async function sincronizarPrevisoesMapaNaAgenda(){
   const date=completed?tr.training_completion_date
    :inProgress?(tr.training_start_date||tr.realization_date||pm.planned_training_date||tr.planned_date)
    :(pm.planned_training_date||tr?.planned_date||tr?.training_start_date||tr?.realization_date);
-  if(!date||!/^d{4}-d{2}-d{2}/.test(String(date))||!tr?.id)continue;
+  if(!date||!/^\d{4}-\d{2}-\d{2}/.test(String(date))||!tr?.id)continue;
   const confirmed=!completed&&!inProgress&&tr.calendar_confirmed===true;
   const trainingStatus=completed?'completed':inProgress?'in_progress':confirmed?'confirmed':'pending_confirmation';
   const moduleName=moduleById.get(String(pm.module_id))?.name||('Módulo '+String(pm.module_id));
@@ -5170,9 +5170,14 @@ async function sincronizarPrevisoesMapaNaAgenda(){
   const assigned=(analystsByProject.get(String(item.project.id))||[])[0]||currentUser.id;
   const payload={user_id:assigned,client_id:item.project.client_id||null,project_id:item.project.id,title:item.title,event_type:'treinamento',starts_at:startsAt,ends_at:endsAt,description:'Origem: Mapa do projeto. Previsão visual de 1 hora; ajuste o horário após combinar com o cliente.',source:'cronograma',training_id:item.tr.id,training_status:item.trainingStatus,status:'scheduled'};
   if(existing){
-   // Atualiza os dados do treinamento sem sobrescrever o horário que o analista ajustou manualmente.
-   const {starts_at,ends_at,...metadataPayload}=payload;
-   const {error}=await supabaseClient.from('personal_calendar_events').update(metadataPayload).eq('id',existing.id);
+   // Mantém o horário escolhido na Agenda, mas corrige o DIA para a previsão específica do módulo.
+   const oldStart=new Date(existing.starts_at),oldEnd=new Date(existing.ends_at);
+   const [yy,mm,dd]=item.dateKey.split('-').map(Number);
+   const correctedStart=new Date(oldStart);correctedStart.setFullYear(yy,mm-1,dd);
+   const correctedEnd=new Date(oldEnd);correctedEnd.setFullYear(yy,mm-1,dd);
+   // Se a data do evento já corresponde à previsão, não altera o horário nem a duração.
+   const dateChanged=Number.isFinite(oldStart.getTime())&&oldStart.getFullYear()!==yy||Number.isFinite(oldStart.getTime())&&(oldStart.getMonth()+1)!==mm||Number.isFinite(oldStart.getTime())&&oldStart.getDate()!==dd;
+   const {error}=await supabaseClient.from('personal_calendar_events').update({...payload,starts_at:dateChanged?correctedStart.toISOString():existing.starts_at,ends_at:dateChanged?correctedEnd.toISOString():existing.ends_at}).eq('id',existing.id);
    if(error)throw error;
   }else{
    const {error}=await supabaseClient.from('personal_calendar_events').insert(payload);
