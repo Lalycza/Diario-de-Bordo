@@ -5132,7 +5132,8 @@ async function sincronizarPrevisoesMapaNaAgenda(){
  if(pmQ.error)throw pmQ.error;if(trQ.error)throw trQ.error;if(prQ.error)throw prQ.error;if(paQ.error)throw paQ.error;if(modQ.error)throw modQ.error;
  const projectById=new Map((prQ.data||[]).map(p=>[String(p.id),p]));
  const moduleById=new Map((modQ.data||[]).map(m=>[String(m.id),m]));
- const mainTrainingByKey=new Map((trQ.data||[]).map(t=>[String(t.project_id)+'|'+String(t.module_id),t]));
+ const mainTrainingsByKey=new Map();
+ for(const t of trQ.data||[]){const k=String(t.project_id)+'|'+String(t.module_id);if(!mainTrainingsByKey.has(k))mainTrainingsByKey.set(k,[]);mainTrainingsByKey.get(k).push(t);}
  const analystsByProject=new Map();
  for(const a of paQ.data||[]){const k=String(a.project_id);if(!analystsByProject.has(k))analystsByProject.set(k,[]);analystsByProject.get(k).push(a.profile_id)}
  const existingQ=await supabaseClient.from('personal_calendar_events').select('id,training_id,project_id,source,status,starts_at,ends_at,description').eq('source','cronograma').limit(2000);
@@ -5141,7 +5142,11 @@ async function sincronizarPrevisoesMapaNaAgenda(){
  const forecasts=[];
  for(const pm of pmQ.data||[]){
   const project=projectById.get(String(pm.project_id));if(!project)continue;
-  const tr=mainTrainingByKey.get(String(pm.project_id)+'|'+String(pm.module_id));
+  const candidates=mainTrainingsByKey.get(String(pm.project_id)+'|'+String(pm.module_id))||[];
+  // Pode haver mais de um registro principal por módulo legado: prioriza o que corresponde à data do Mapa.
+  const tr=candidates.find(t=>pm.planned_training_date&&String(t.planned_date||'').slice(0,10)===String(pm.planned_training_date).slice(0,10))
+   ||candidates.find(t=>existingByTraining.has(String(t.id))&&String(existingByTraining.get(String(t.id)).status||'').toLowerCase()!=='cancelled')
+   ||candidates[0];
   const statusText=String(tr?.status||'').trim().toLowerCase();
   const completed=!!tr?.training_completion_date&&['concluído','concluido','homologado'].includes(statusText);
   const inProgress=!completed&&(statusText==='em andamento'||!!tr?.training_start_date||!!tr?.realization_date);
