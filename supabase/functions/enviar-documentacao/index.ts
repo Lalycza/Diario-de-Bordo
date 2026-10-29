@@ -3,6 +3,25 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb, PDFTextField } from "npm:pdf-lib@1.17.1";
 
 type DocType = "mapa" | "cronograma" | "diario";
+function formatDiaryParticipants(raw:any, companyName:any){
+  const value=String(raw||"").trim(); if(!value) return "";
+  const prefix="DB_PARTICIPANTS_V1:";
+  let groups:any;
+  if(value.startsWith(prefix)){
+    try { groups=JSON.parse(value.slice(prefix.length)); } catch { return value; }
+    const out=[]; if(groups.cliente) out.push(clean(companyName||"Cliente")+": "+clean(groups.cliente));
+    if(groups.hpro) out.push("HPro: "+clean(groups.hpro)); if(groups.outros) out.push("Outros: "+clean(groups.outros));
+    return out.join("\n");
+  }
+  const pieces=value.split(/\s+\/\s+/); const clientRaw=pieces.shift()||"";
+  const match=clientRaw.match(/\(([^()]*)\)\s*$/);
+  const client=match?clientRaw.slice(0,match.index).trim().replace(/[;,]+$/,""):clientRaw;
+  const company=match&&match[1].trim()!=="HPro"?match[1].trim():(companyName||"Cliente");
+  const out=[]; if(client) out.push(clean(company)+": "+clean(client));
+  const hpro=pieces.join(" / "); if(hpro) out.push("HPro: "+clean(hpro));
+  return out.join("\n");
+}
+
 const TEMPLATE_URL: Record<DocType, string> = {
   cronograma: "https://raw.githubusercontent.com/Lalycza/Diario-de-Bordo/main/docs/modelos/Cronograma%20.pdf",
   mapa: "https://raw.githubusercontent.com/Lalycza/Diario-de-Bordo/main/docs/modelos/Mapa.pdf",
@@ -62,7 +81,7 @@ async function makePdf(type:DocType,project:any,rows:any[]){
     const first=await output.copyPages(template,[0]);let p=first[0];output.addPage(p);p.drawRectangle({x:10,y:0,width:W-20,height:H-70,color:white});const logoArea=H-42;txt(p,new Date().toLocaleString('pt-BR'),W/2-45,logoArea-22,8,true,teal);let y=logoArea-36;
     const ident=[['Cliente',project.cliente],['Projeto',project.name],['Analista Implantador',project.analista],['Responsável Cliente',project.responsavel_cliente||''],['Data Início',dateBR(project.start_date)],['Data Entrega',dateBR(project.delivery_date)],['Data Original Entrega',dateBR(project.original_delivery_date||project.delivery_date)]];for(const [a,b] of ident){cell(p,18,y,105,18,a,{bold:true,color:teal,center:true,size:7});cell(p,123,y,W-41,18,clean(b),{size:7});y-=18}
     txt(p,'Ponderações/Orientações:',18,y-2,8,true);y-=14;const orient=['◆Todo o andamento do processo de implantação será registrado neste documento;','◆O cliente receberá a versão atualizada sempre quando for registrado nova movimentação;','◆O cliente deverá ler atentamente as informações registradas neste documento;','◆O cliente poderá questionar ou solicitar esclarecimentos assim que receber a nova versão;'];for(const o of orient){txt(p,o,18,y,7);y-=11}y-=4;
-    const addEntry=(r:any)=>{const date=dateBR(r.data_reuniao||r.date),time=clean(r.hora_reuniao||r.time),h=42+Math.min(130,wrap(clean(r.pauta||''),105).length*9)+Math.min(60,wrap(clean(r.tarefas_hpro||r.hpro||''),105).length*9)+Math.min(60,wrap(clean(r.tarefas_cliente||r.client||''),105).length*9);if(y-h<30){p=newPage();y=H-35}cell(p,18,y,W-36,18,date,{fill:teal,color:white,bold:true,center:true,size:8});y-=18;cell(p,18,y,W-36,17,time,{fill:teal,color:white,bold:true,center:true,size:7});y-=17;const rr=[['Participantes:',r.participantes||r.participants||''],['Pauta:',r.pauta||''],['Tarefas HPro:',r.tarefas_hpro||r.hpro||''],['Tarefas Cliente:',r.tarefas_cliente||r.client||''],['Próxima Visita:',r.proxima_visita||r.next||''],['Gerar cobrança:',r.gerar_cobranca||r.billing||'']];for(const [a,b] of rr){const lines=wrap(clean(b),105),hh=Math.max(17,lines.length*9);cell(p,18,y,105,hh,a,{fill:teal,color:white,bold:true,center:true,size:7});cell(p,123,y,W-41,hh,clean(b),{size:7,max:105});y-=hh}y-=8};for(const r of rows) addEntry(r);
+    const addEntry=(r:any)=>{const date=dateBR(r.data_reuniao||r.date),time=clean(r.hora_reuniao||r.time),h=42+Math.min(130,wrap(clean(r.pauta||''),105).length*9)+Math.min(60,wrap(clean(r.tarefas_hpro||r.hpro||''),105).length*9)+Math.min(60,wrap(clean(r.tarefas_cliente||r.client||''),105).length*9);if(y-h<30){p=newPage();y=H-35}cell(p,18,y,W-36,18,date,{fill:teal,color:white,bold:true,center:true,size:8});y-=18;cell(p,18,y,W-36,17,time,{fill:teal,color:white,bold:true,center:true,size:7});y-=17;const rr=[['Participantes:',formatDiaryParticipants(r.participantes||r.participants,project.cliente||project.name)],['Pauta:',r.pauta||''],['Tarefas HPro:',r.tarefas_hpro||r.hpro||''],['Tarefas Cliente:',r.tarefas_cliente||r.client||''],['Próxima Visita:',r.proxima_visita||r.next||''],['Gerar cobrança:',r.gerar_cobranca||r.billing||'']];for(const [a,b] of rr){const lines=wrap(clean(b),105),hh=Math.max(17,lines.length*9);cell(p,18,y,105,hh,a,{fill:teal,color:white,bold:true,center:true,size:7});cell(p,123,y,W-41,hh,clean(b),{size:7,max:105});y-=hh}y-=8};for(const r of rows) addEntry(r);
   }
   return output.save();
 }
