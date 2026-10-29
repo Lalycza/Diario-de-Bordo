@@ -15,8 +15,10 @@ function formatDiaryParticipants(raw:any, companyName:any){
   }
   const pieces=value.split(/\s+\/\s+/); const clientRaw=pieces.shift()||"";
   const match=clientRaw.match(/\(([^()]*)\)\s*$/);
-  const client=match?clientRaw.slice(0,match.index).trim().replace(/[;,]+$/,""):clientRaw;
   const company=match&&match[1].trim()!=="HPro"?match[1].trim():(companyName||"Cliente");
+  let client=match?clientRaw.slice(0,match.index).trim().replace(/[;,]+$/,""):clientRaw;
+  const companySuffix=String(companyName||"").trim();
+  if(!match&&companySuffix&&client.toLowerCase().endsWith(companySuffix.toLowerCase())) client=client.slice(0,client.length-companySuffix.length).trim().replace(/[;,]+$/,"");
   const out=[]; if(client) out.push(clean(company)+": "+clean(client));
   const hpro=pieces.join(" / "); if(hpro) out.push("HPro: "+clean(hpro));
   return out.join("\n");
