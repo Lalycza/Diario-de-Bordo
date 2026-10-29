@@ -56,7 +56,7 @@ async function makePdf(type:DocType,project:any,rows:any[]){
   const template=await loadTemplate(type), output=await PDFDocument.create();
   const base=template.getPage(0), size=base.getSize(); const W=size.width,H=size.height;
   const font=await output.embedFont(StandardFonts.Helvetica), bold=await output.embedFont(StandardFonts.HelveticaBold);
-  const blue=rgb(0.14,0.25,0.36), teal=rgb(0.14,0.25,0.36), grid=rgb(0.72,0.77,0.81), light=rgb(0.92,0.94,0.96), white=rgb(1,1,1), black=rgb(.12,.15,.18);
+  let blue=rgb(0.03,0.47,0.74), teal=rgb(0.16,0.59,0.56), grid=rgb(0.55,0.55,0.55), light=rgb(0.93,0.93,0.93), white=rgb(1,1,1), black=rgb(.08,.08,.08);if(type==='diario'){blue=rgb(0.14,0.25,0.36);teal=rgb(0.14,0.25,0.36);grid=rgb(0.72,0.77,0.81);light=rgb(0.92,0.94,0.96);black=rgb(.12,.15,.18)}
   const statusStyle=(v:string)=>{const s=statusLabel(v);if(s==='Pendente')return {fill:rgb(.97,.71,.73),text:rgb(.62,.16,.19)};if(s==='Em andamento')return {fill:rgb(1,.89,.60),text:rgb(.50,.36,.10)};if(s==='Concluída'||s==='Concluído')return {fill:rgb(.83,.92,.82),text:rgb(.24,.44,.25)};if(s==='Homologada'||s==='Homologado')return {fill:rgb(.85,.78,.93),text:rgb(.39,.25,.54)};return {fill:rgb(.95,.88,.67),text:rgb(.50,.36,.10)}};
   const txt=(p:any,t:string,x:number,y:number,size=8,b=false,color=black)=>p.drawText(clean(t),{x,y,size,font:b?bold:font,color,maxWidth:W-x-18});
   const fit=(t:string,max:number)=>{let v=clean(t);if(v.length<=max)return v;return v.slice(0,Math.max(0,max-1))+'…'};
