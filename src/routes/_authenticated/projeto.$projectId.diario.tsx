@@ -47,7 +47,9 @@ type LogForm = {
   data_reuniao: string;
   hora_reuniao: string;
   analista: string;
-  participantes: string;
+  participantes_cliente: string;
+  participantes_hpro: string;
+  participantes_outros: string;
   pauta: string;
   tarefa_cliente: string;
   tarefa_hpro: string;
@@ -59,13 +61,37 @@ const emptyLog: LogForm = {
   data_reuniao: new Date().toISOString().slice(0, 10),
   hora_reuniao: "",
   analista: "",
-  participantes: "",
+  participantes_cliente: "",
+  participantes_hpro: "",
+  participantes_outros: "",
   pauta: "",
   tarefa_cliente: "",
   tarefa_hpro: "",
   proximo_treinamento: "",
   observacoes: "",
 };
+
+const PARTICIPANTS_PREFIX = "DB_PARTICIPANTS_V1:";
+function parseParticipants(raw: string | null | undefined, companyName = "Cliente") {
+  const empty = { cliente: "", hpro: "", outros: "", company: companyName };
+  if (!raw) return empty;
+  if (raw.startsWith(PARTICIPANTS_PREFIX)) {
+    try { const parsed = JSON.parse(raw.slice(PARTICIPANTS_PREFIX.length)); return { cliente: String(parsed.cliente ?? ""), hpro: String(parsed.hpro ?? ""), outros: String(parsed.outros ?? ""), company: companyName }; }
+    catch { return { ...empty, cliente: raw }; }
+  }
+  const parts = raw.split(/\s+\/\s+/);
+  const clientRaw = parts.shift() ?? "";
+  const companyMatch = clientRaw.match(/\(([^()]*)\)\s*$/);
+  const cliente = companyMatch ? clientRaw.slice(0, companyMatch.index).trim().replace(/[;,]+$/, "") : clientRaw;
+  return { cliente, hpro: parts.join(" / "), outros: "", company: companyMatch?.[1]?.trim() || companyName };
+}
+function encodeParticipants(values: Pick<LogForm, "participantes_cliente" | "participantes_hpro" | "participantes_outros">) {
+  return PARTICIPANTS_PREFIX + JSON.stringify({ cliente: values.participantes_cliente.trim(), hpro: values.participantes_hpro.trim(), outros: values.participantes_outros.trim() });
+}
+function displayParticipants(raw: string | null | undefined, companyName = "Cliente") {
+  const parsed = parseParticipants(raw, companyName);
+  return [parsed.cliente ? parsed.company + ": " + parsed.cliente : "", parsed.hpro ? "HPro: " + parsed.hpro : "", parsed.outros ? "Outros: " + parsed.outros : ""].filter(Boolean).join(" · ");
+}
 
 function DiarioPage() {
   const { projectId } = Route.useParams();
@@ -98,7 +124,7 @@ function DiarioPage() {
         data_reuniao: values.data_reuniao,
         hora_reuniao: values.hora_reuniao || null,
         analista: values.analista || null,
-        participantes: values.participantes || null,
+        participantes: encodeParticipants(values),
         pauta: values.pauta || null,
         tarefa_cliente: values.tarefa_cliente || null,
         tarefa_hpro: values.tarefa_hpro || null,
@@ -136,7 +162,7 @@ function DiarioPage() {
     if (ate && log.data_reuniao > ate) return false;
     if (busca) {
       const haystack = [
-        log.participantes,
+        displayParticipants(log.participantes, project.data?.cliente ?? "Cliente"),
         log.pauta,
         log.tarefa_cliente,
         log.tarefa_hpro,
@@ -224,7 +250,7 @@ function DiarioPage() {
                   {log.participantes ? (
                     <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                       <Users className="size-3.5" />
-                      {log.participantes}
+                      {displayParticipants(log.participantes, project.data?.cliente ?? "Cliente")}
                     </p>
                   ) : null}
                   {log.analista ? (
@@ -244,7 +270,7 @@ function DiarioPage() {
                         data_reuniao: log.data_reuniao,
                         hora_reuniao: formatTime(log.hora_reuniao),
                         analista: log.analista ?? "",
-                        participantes: log.participantes ?? "",
+                        ...(() => { const p = parseParticipants(log.participantes, project.data?.cliente ?? "Cliente"); return { participantes_cliente: p.cliente, participantes_hpro: p.hpro, participantes_outros: p.outros }; })(),
                         pauta: log.pauta ?? "",
                         tarefa_cliente: log.tarefa_cliente ?? "",
                         tarefa_hpro: log.tarefa_hpro ?? "",
@@ -323,14 +349,11 @@ function DiarioPage() {
                   onChange={(e) => setForm({ ...form, analista: e.target.value })}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="participantes">Participantes</Label>
-                <Input
-                  id="participantes"
-                  value={form.participantes}
-                  onChange={(e) => setForm({ ...form, participantes: e.target.value })}
-                  placeholder="Nomes separados por vírgula"
-                />
+              <div className="space-y-3 rounded-lg border p-4">
+                <div><h3 className="text-sm font-semibold">Participantes</h3><p className="text-xs text-muted-foreground">Separe as pessoas por empresa/equipe. Os registros antigos continuam preservados.</p></div>
+                <div className="space-y-1.5"><Label htmlFor="participantes-cliente">{project.data?.cliente || "Empresa cliente"}</Label><Textarea id="participantes-cliente" value={form.participantes_cliente} onChange={(e) => setForm({ ...form, participantes_cliente: e.target.value })} placeholder="Nomes dos participantes do cliente" /></div>
+                <div className="space-y-1.5"><Label htmlFor="participantes-hpro">HPro</Label><Textarea id="participantes-hpro" value={form.participantes_hpro} onChange={(e) => setForm({ ...form, participantes_hpro: e.target.value })} placeholder="Nomes dos participantes da HPro" /></div>
+                <div className="space-y-1.5"><Label htmlFor="participantes-outros">Outros (contabilidade, consultores externos etc.)</Label><Textarea id="participantes-outros" value={form.participantes_outros} onChange={(e) => setForm({ ...form, participantes_outros: e.target.value })} placeholder="Nomes dos participantes externos" /></div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="pauta">Pauta do dia</Label>
