@@ -4791,6 +4791,33 @@ function renderDashboardGerencial(){
  const healthBadge=x=>x.status==='Atrasado'?'danger':x.status==='Atenção'?'warning':x.status==='Em dia'?'ok':'';
  const healthRows=healthRisk.slice(0,10).map(x=>'<button type="button" class="lz-health-row" onclick="openP('+JSON.stringify(x.p.id)+')"><span class="lz-health-main"><b>'+esc(x.p.n||x.p.c||'Projeto')+'</b><small>'+esc(x.p.c||'Cliente não informado')+'</small><small>'+(x.status==='Atrasado'?x.overdue+' atividade(s) com prazo vencido':x.status==='Atenção'?x.soon+' atividade(s) vencem em até 7 dias':x.active+' atividade(s) sem prazo cadastrado')+'</small></span><span class="lz-health-status '+healthBadge(x)+'">'+esc(x.status)+'</span></button>').join('');
  document.getElementById('dashboardBody').insertAdjacentHTML('beforeend','<section class="lz-portfolio-health"><div class="lz-health-heading"><div><h3>Saúde da carteira</h3><p>Diagnóstico baseado nos prazos ativos do Cronograma. Cada classificação mostra o motivo e permite abrir o projeto.</p></div><span class="lz-health-total">'+arr.length+' projetos analisados</span></div><div class="lz-health-kpis"><div class="lz-health-kpi is-danger"><strong>'+healthCount['Atrasado']+'</strong><span>Atrasados</span></div><div class="lz-health-kpi is-warning"><strong>'+healthCount['Atenção']+'</strong><span>Atenção · 7 dias</span></div><div class="lz-health-kpi is-good"><strong>'+healthCount['Em dia']+'</strong><span>Em dia</span></div><div class="lz-health-kpi is-neutral"><strong>'+healthCount['Sem prazo definido']+'</strong><span>Sem prazo definido</span></div><div class="lz-health-kpi is-complete"><strong>'+healthCount['Concluído']+'</strong><span>Concluídos</span></div></div><div class="lz-health-list"><h4>Projetos para acompanhamento</h4>'+(healthRows||'<p class="muted">Nenhum projeto exige acompanhamento por prazo neste momento.</p>')+'</div><p class="lz-health-footnote">Importante: “Sem prazo definido” não significa atraso. Indica atividades ainda sem data cadastrada. Projetos finalizados ou homologados são classificados separadamente.</p></section>');
+ // Saúde do cliente: consolidação por cliente, sem transformar falta de registro em risco.
+ const clientHealthMap=new Map();
+ healthItems.forEach(item=>{
+   const clientName=String(item.p.c||'Cliente não informado').trim()||'Cliente não informado';
+   const key=clientName.toLocaleUpperCase('pt-BR');
+   const group=clientHealthMap.get(key)||{name:clientName,projects:[],lastDiary:''};
+   group.projects.push(item);
+   (Array.isArray(item.p.d)?item.p.d:[]).forEach(entry=>{
+     const raw=String(entry.date||'').trim();
+     const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(raw);
+     const iso=m?m[3]+'-'+m[2]+'-'+m[1]:'';
+     if(iso>group.lastDiary)group.lastDiary=iso;
+   });
+   clientHealthMap.set(key,group);
+ });
+ const clientHealth=[...clientHealthMap.values()].map(group=>{
+   const states=group.projects.map(x=>x.status);
+   const status=states.includes('Atrasado')?'Crítico':states.includes('Atenção')?'Atenção':states.every(x=>['Em dia','Concluído'].includes(x))?'Saudável':'Sem informação';
+   return {...group,status};
+ }).sort((a,b)=>['Crítico','Atenção','Sem informação','Saudável'].indexOf(a.status)-['Crítico','Atenção','Sem informação','Saudável'].indexOf(b.status)||a.name.localeCompare(b.name,'pt-BR'));
+ const clientHealthRows=clientHealth.slice(0,12).map(group=>{
+   const first=group.projects[0]?.p;
+   const label=group.status==='Crítico'?'danger':group.status==='Atenção'?'warning':group.status==='Saudável'?'ok':'';
+   const diaryLabel=group.lastDiary?new Date(group.lastDiary+'T00:00:00').toLocaleDateString('pt-BR'):'Sem registro no Diário';
+   return '<button type="button" class="lz-health-row" onclick="openP('+JSON.stringify(first?.id)+')"><span class="lz-health-main"><b>'+esc(group.name)+'</b><small>'+group.projects.length+' projeto(s) ativo(s) · Última movimentação: '+esc(diaryLabel)+'</small></span><span class="lz-health-status '+label+'">'+esc(group.status)+'</span></button>';
+ }).join('');
+ document.getElementById('dashboardBody').insertAdjacentHTML('beforeend','<section class="lz-portfolio-health"><div class="lz-health-heading"><div><h3>Saúde do cliente</h3><p>Visão consolidada por cliente, considerando os prazos ativos do Cronograma e a última movimentação registrada no Diário de Bordo.</p></div><span class="lz-health-total">'+clientHealth.length+' clientes analisados</span></div><div class="lz-health-kpis"><div class="lz-health-kpi is-danger"><strong>'+clientHealth.filter(x=>x.status==='Crítico').length+'</strong><span>Críticos</span></div><div class="lz-health-kpi is-warning"><strong>'+clientHealth.filter(x=>x.status==='Atenção').length+'</strong><span>Atenção</span></div><div class="lz-health-kpi is-good"><strong>'+clientHealth.filter(x=>x.status==='Saudável').length+'</strong><span>Saudáveis</span></div><div class="lz-health-kpi is-neutral"><strong>'+clientHealth.filter(x=>x.status==='Sem informação').length+'</strong><span>Sem informação</span></div></div><div class="lz-health-list"><h4>Clientes para acompanhamento</h4>'+(clientHealthRows||'<p class="muted">Nenhum cliente com projeto ativo para analisar.</p>')+'</div><p class="lz-health-footnote">Classificação consolidada pelos projetos ativos: um projeto atrasado torna o cliente crítico; prazos nos próximos 7 dias indicam atenção. Sem dados suficientes, não presumimos saúde nem risco. A última movimentação é informativa, não um critério automático de risco.</p></section>');
 }
 function clearBIFilters(){['biClientFilter','biAnalystFilter','biStatusFilter','biBillingFilter'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=id==='biBillingFilter'?'all':''});['biBillingStart','biBillingEnd'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});const p=document.getElementById('biPeriodFilter');if(p)p.value='all';renderBI()}
 function catalogo(type){if(type==='clients'){if(!canEditClient()&&currentUser.role!=='operator'&&currentUser.role!=='analyst'&&currentUser.role!=='client')return;hideSections();document.getElementById('clients').classList.remove('hidden');renderClients();return}if(!hasAdminAccess())return;hideSections();if(type==='catalog'){document.getElementById('catalog').classList.remove('hidden');renderUnifiedCatalog()}else if(type==='users'){document.getElementById('users').classList.remove('hidden');renderUsers()}}
