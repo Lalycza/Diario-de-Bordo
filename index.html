@@ -7042,4 +7042,115 @@ document.addEventListener('click',function(e){
 .app.theme-dark #portfolioHealthBody .lz-health-row{background:rgba(255,255,255,.025);border-color:rgba(113,151,197,.17)}
 .app.theme-dark #portfolioHealthBody .lz-health-row:hover{background:rgba(57,134,232,.12);border-color:rgba(57,134,232,.5)}
 @media(max-width:720px){#portfolioHealthBody .lz-portfolio-health{padding:15px}#portfolioHealthBody .lz-health-heading{align-items:flex-start;flex-direction:column}#portfolioHealthBody .lz-health-row{align-items:flex-start}#portfolioHealthBody .lz-health-status{white-space:nowrap}}
+
+
+/* LZ VISUAL POLISH — Gestão da Carteira | cards executivos, profundidade e contraste */
+#portfolioHealth>.top{
+  position:relative;isolation:isolate;overflow:hidden;margin:0 0 20px;padding:25px 28px;
+  border:1px solid rgba(64,145,255,.22);border-radius:19px;
+  background:linear-gradient(112deg,#101d30 0%,#14263e 58%,#10243b 100%);
+  box-shadow:0 12px 30px rgba(10,25,48,.18),inset 0 1px 0 rgba(255,255,255,.055)
+}
+#portfolioHealth>.top:after{
+  content:"";position:absolute;z-index:-1;right:-35px;top:-105px;width:270px;height:270px;border-radius:50%;
+  border:1px solid rgba(74,157,255,.25);box-shadow:0 0 0 22px rgba(64,145,255,.045),0 0 0 48px rgba(64,145,255,.03),inset 0 0 55px rgba(45,130,235,.08)
+}
+#portfolioHealth>.top h1{color:#f2f7ff!important;font-size:clamp(24px,3vw,32px);font-weight:800;letter-spacing:-.04em}
+#portfolioHealth>.top p{color:#a9bdd6!important;font-size:13px;line-height:1.6;margin-top:6px}
+#portfolioHealth>.top button{position:relative;z-index:1;border:1px solid rgba(100,174,255,.35);border-radius:10px;background:rgba(48,112,190,.18);color:#dcecff}
+#portfolioHealthBody{gap:20px}
+#portfolioHealthBody .lz-portfolio-health{
+  position:relative;isolation:isolate;overflow:hidden;padding:23px 24px;border-radius:19px;
+  border:1px solid rgba(83,145,219,.22);
+  background:linear-gradient(145deg,#fff 0%,#f7faff 58%,#f1f6ff 100%);
+  box-shadow:0 10px 28px rgba(24,55,96,.065),inset 0 1px 0 rgba(255,255,255,.9)
+}
+#portfolioHealthBody .lz-portfolio-health:before{
+  content:"";position:absolute;z-index:-1;right:-100px;top:-135px;width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(54,139,239,.09),transparent 68%);pointer-events:none
+}
+#portfolioHealthBody .lz-health-heading{padding-bottom:15px;border-bottom:1px solid rgba(95,132,177,.17)}
+#portfolioHealthBody .lz-health-heading h3{color:#183453;font-size:19px;font-weight:850;letter-spacing:-.035em}
+#portfolioHealthBody .lz-health-heading p{color:#627792;font-size:12px;line-height:1.65}
+#portfolioHealthBody .lz-health-total{padding:7px 12px;border-color:rgba(54,128,215,.24);background:linear-gradient(135deg,#eaf3ff,#f6faff);color:#2863a6;font-weight:800}
+#portfolioHealthBody .lz-health-kpis{gap:12px;margin-top:17px}
+#portfolioHealthBody .lz-health-kpi{
+  --health-accent:#3b82e6;position:relative;isolation:isolate;overflow:hidden;min-height:112px;
+  justify-content:flex-end;gap:8px;padding:17px 17px 15px 19px;border-radius:15px;
+  border:1px solid color-mix(in srgb,var(--health-accent) 27%,#dce6f2);
+  background:linear-gradient(145deg,#fff 0%,color-mix(in srgb,var(--health-accent) 7%,#f5f8fd) 100%);
+  box-shadow:0 5px 16px rgba(27,61,105,.055),inset 0 1px 0 rgba(255,255,255,.9);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease
+}
+#portfolioHealthBody .lz-health-kpi:before{content:"";position:absolute;z-index:-1;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--health-accent),color-mix(in srgb,var(--health-accent) 28%,white))}
+#portfolioHealthBody .lz-health-kpi:after{content:"";position:absolute;z-index:-1;right:-24px;top:-34px;width:105px;height:105px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--health-accent) 17%,transparent),transparent 70%)}
+#portfolioHealthBody .lz-health-kpi:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--health-accent) 48%,#dce6f2);box-shadow:0 10px 22px rgba(27,61,105,.11)}
+#portfolioHealthBody .lz-health-kpi strong{font-size:34px;line-height:1;color:#183453;font-weight:850;letter-spacing:-.055em}
+#portfolioHealthBody .lz-health-kpi span{font-size:10px;color:#617792;font-weight:850;letter-spacing:.075em}
+#portfolioHealthBody .lz-health-kpi.is-danger{--health-accent:#e45d69}
+#portfolioHealthBody .lz-health-kpi.is-warning{--health-accent:#e2a52c}
+#portfolioHealthBody .lz-health-kpi.is-good{--health-accent:#25ad83}
+#portfolioHealthBody .lz-health-kpi.is-neutral{--health-accent:#5794d8}
+#portfolioHealthBody .lz-health-kpi.is-complete{--health-accent:#9878df}
+#portfolioHealthBody .lz-health-charts{margin-top:17px}
+#portfolioHealthBody .lz-health-charts .lz-chart-card{
+  position:relative;overflow:hidden;padding:18px 19px;border-radius:16px;
+  border:1px solid rgba(83,145,219,.2);background:linear-gradient(145deg,#fff,#f6f9fe);
+  box-shadow:0 5px 16px rgba(27,61,105,.045)
+}
+#portfolioHealthBody .lz-health-list{margin-top:21px}
+#portfolioHealthBody .lz-health-list h4{
+  display:flex;align-items:center;gap:9px;margin-bottom:13px;padding-bottom:11px;
+  border-bottom:1px solid rgba(95,132,177,.18);color:#1c385a;font-size:13px;font-weight:850;letter-spacing:.055em;text-transform:uppercase
+}
+#portfolioHealthBody .lz-health-list h4:before{content:"";width:4px;height:16px;border-radius:4px;background:linear-gradient(180deg,#58a6ff,#276ed0);box-shadow:0 0 10px rgba(54,139,239,.3)}
+#portfolioHealthBody .lz-health-row{
+  position:relative;overflow:hidden;min-height:72px;margin:9px 0;padding:14px 16px 14px 18px;
+  border:1px solid rgba(96,139,190,.2);border-radius:14px;
+  background:linear-gradient(110deg,#fff 0%,#f7faff 100%);
+  box-shadow:0 3px 10px rgba(27,61,105,.035);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease
+}
+#portfolioHealthBody .lz-health-row:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:4px;background:linear-gradient(180deg,#55a5ff,#2d73d2);opacity:.75}
+#portfolioHealthBody .lz-health-row:hover{transform:translateY(-2px);border-color:rgba(57,134,232,.5);background:linear-gradient(110deg,#fff 0%,#eef5ff 100%);box-shadow:0 8px 18px rgba(32,83,145,.09)}
+#portfolioHealthBody .lz-health-main{gap:4px;padding-left:2px}
+#portfolioHealthBody .lz-health-main b{color:#203d60;font-size:13px;font-weight:800;line-height:1.4}
+#portfolioHealthBody .lz-health-main small{color:#6b7f98;font-size:11px;line-height:1.5}
+#portfolioHealthBody .lz-health-status{padding:7px 11px;border-radius:999px;font-size:10px;font-weight:850;letter-spacing:.035em}
+#portfolioHealthBody .lz-health-status.danger{color:#bd3e49;background:rgba(228,93,105,.1);border-color:rgba(228,93,105,.3)}
+#portfolioHealthBody .lz-health-status.warning{color:#9b690e;background:rgba(226,165,44,.12);border-color:rgba(226,165,44,.35)}
+#portfolioHealthBody .lz-health-status.ok{color:#147b5b;background:rgba(37,173,131,.1);border-color:rgba(37,173,131,.3)}
+#portfolioHealthBody .lz-health-footnote{margin-top:15px;padding:12px 14px;border:1px solid rgba(96,139,190,.14);border-radius:12px;background:rgba(76,125,184,.055);color:#657b95;font-size:11px;line-height:1.6}
+.app.theme-dark #portfolioHealth>.top{background:linear-gradient(112deg,#0b1422 0%,#13243a 58%,#0c1c30 100%);border-color:rgba(83,153,238,.28);box-shadow:0 12px 32px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.045)}
+.app.theme-dark #portfolioHealth>.top h1{color:#f3f7ff!important}
+.app.theme-dark #portfolioHealth>.top p{color:#a9bdd6!important}
+.app.theme-dark #portfolioHealth>.top button{background:rgba(49,112,190,.2);color:#dcecff;border-color:rgba(100,174,255,.32)}
+.app.theme-dark #portfolioHealthBody .lz-portfolio-health{background:linear-gradient(145deg,#172438 0%,#111d2d 58%,#101a29 100%);border-color:rgba(105,153,207,.22);box-shadow:0 12px 30px rgba(0,0,0,.19),inset 0 1px 0 rgba(255,255,255,.035)}
+.app.theme-dark #portfolioHealthBody .lz-portfolio-health:before{background:radial-gradient(circle,rgba(56,137,230,.14),transparent 68%)}
+.app.theme-dark #portfolioHealthBody .lz-health-heading{border-bottom-color:rgba(145,174,210,.15)}
+.app.theme-dark #portfolioHealthBody .lz-health-heading h3,.app.theme-dark #portfolioHealthBody .lz-health-list h4{color:#edf5ff}
+.app.theme-dark #portfolioHealthBody .lz-health-heading p,.app.theme-dark #portfolioHealthBody .lz-health-kpi span{color:#a8bad1}
+.app.theme-dark #portfolioHealthBody .lz-health-total{background:rgba(54,125,205,.14);border-color:rgba(89,157,238,.28);color:#bcdcff}
+.app.theme-dark #portfolioHealthBody .lz-health-kpi{background:linear-gradient(145deg,#1b2b40 0%,#142235 100%);border-color:color-mix(in srgb,var(--health-accent) 32%,#31445d);box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 7px 18px rgba(0,0,0,.13)}
+.app.theme-dark #portfolioHealthBody .lz-health-kpi strong{color:#f1f6ff}
+.app.theme-dark #portfolioHealthBody .lz-health-charts .lz-chart-card{background:linear-gradient(145deg,#18283c,#121f30);border-color:rgba(105,153,207,.2)}
+.app.theme-dark #portfolioHealthBody .lz-health-list h4{border-bottom-color:rgba(145,174,210,.15)}
+.app.theme-dark #portfolioHealthBody .lz-health-row{background:linear-gradient(110deg,rgba(26,43,64,.96),rgba(18,31,48,.96));border-color:rgba(105,153,207,.19);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.app.theme-dark #portfolioHealthBody .lz-health-row:hover{background:linear-gradient(110deg,rgba(31,58,88,.98),rgba(20,39,62,.98));border-color:rgba(76,151,239,.48);box-shadow:0 9px 20px rgba(0,0,0,.2)}
+.app.theme-dark #portfolioHealthBody .lz-health-main b{color:#e8f1ff}
+.app.theme-dark #portfolioHealthBody .lz-health-main small{color:#a6b8d0}
+.app.theme-dark #portfolioHealthBody .lz-health-footnote{background:rgba(79,128,187,.09);border-color:rgba(105,153,207,.15);color:#aabbd0}
+@media(max-width:720px){
+  #portfolioHealth>.top{padding:19px 17px}
+  #portfolioHealthBody .lz-portfolio-health{padding:17px}
+  #portfolioHealthBody .lz-health-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  #portfolioHealthBody .lz-health-kpi{min-height:94px;padding:14px 12px 13px 15px}
+  #portfolioHealthBody .lz-health-kpi strong{font-size:29px}
+  #portfolioHealthBody .lz-health-row{gap:9px;padding:12px 11px 12px 14px}
+}
+@media(prefers-reduced-motion:reduce){
+  #portfolioHealthBody .lz-health-kpi,#portfolioHealthBody .lz-health-row{transition:none!important}
+  #portfolioHealthBody .lz-health-kpi:hover,#portfolioHealthBody .lz-health-row:hover{transform:none!important}
+}
+
 </style>
