@@ -7172,3 +7172,35 @@ document.addEventListener('click',function(e){
   #portfolioHealthBody > .lz-portfolio-health:nth-child(2) .lz-health-main b{font-size:14px}
 }
 </style>
+
+/* LZ FIX — contadores da Gestão da Carteira com o mesmo fundo do Dashboard */
+#portfolioHealthBody .lz-health-kpi{
+  background:color-mix(in srgb,var(--card,#fff) 88%,#64748b 12%);
+  border-color:var(--border,#dce5f0);
+  box-shadow:none;
+}
+#portfolioHealthBody .lz-health-kpi.is-danger{
+  border-color:rgba(220,83,94,.3);
+  background:color-mix(in srgb,var(--card,#fff) 91%,#dc535e 9%);
+}
+#portfolioHealthBody .lz-health-kpi.is-warning{
+  border-color:rgba(217,153,32,.32);
+  background:color-mix(in srgb,var(--card,#fff) 91%,#d99920 9%);
+}
+#portfolioHealthBody .lz-health-kpi.is-good{
+  border-color:rgba(32,165,116,.3);
+  background:color-mix(in srgb,var(--card,#fff) 91%,#20a574 9%);
+}
+#portfolioHealthBody .lz-health-kpi.is-complete{
+  border-color:rgba(139,112,220,.28);
+  background:color-mix(in srgb,var(--card,#fff) 92%,#8b70dc 8%);
+}
+.app.theme-dark #portfolioHealthBody .lz-health-kpi{
+  border-color:rgba(113,151,197,.2);
+  background:rgba(10,19,32,.5);
+  box-shadow:none;
+}
+.app.theme-dark #portfolioHealthBody .lz-health-kpi.is-danger{background:rgba(220,83,94,.1);border-color:rgba(220,83,94,.25)}
+.app.theme-dark #portfolioHealthBody .lz-health-kpi.is-warning{background:rgba(217,153,32,.1);border-color:rgba(217,153,32,.25)}
+.app.theme-dark #portfolioHealthBody .lz-health-kpi.is-good{background:rgba(32,165,116,.1);border-color:rgba(32,165,116,.25)}
+.app.theme-dark #portfolioHealthBody .lz-health-kpi.is-complete{background:rgba(139,112,220,.1);border-color:rgba(139,112,220,.25)}
