@@ -4778,7 +4778,7 @@ function renderDashboardGerencial(){
  const healthItems=arr.map(p=>{
    const tasks=(Array.isArray(p.t)?p.t:[]).map(taskObj);
    const active=tasks.filter(t=>!['CONCLUIDO','HOMOLOGADO','CANCELADO'].includes(normalizeProjectStatus(t.status)));
-   const dated=active.map(t=>({task:t,date:parseBRDate(t.rescheduledDate||t.plannedDate||t.plannedDateOriginal||'')})).filter(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(x.date||'')));
+   const dated=active.map(t=>({task:t,date:parseBRDate(t.rescheduledDate||t.plannedDate||t.plannedDateOriginal||'')})).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x.date||'')));
    const overdue=dated.filter(x=>x.date<healthTodayIso);
    const soon=dated.filter(x=>x.date>=healthTodayIso&&x.date<=healthNextWeekIso);
    const concluded=projectIsFinalized(p)||p.homologacao?.status==='Homologado'||projectImplantationStatus(p)==='Concluído';
