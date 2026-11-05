@@ -7153,4 +7153,22 @@ document.addEventListener('click',function(e){
   #portfolioHealthBody .lz-health-kpi:hover,#portfolioHealthBody .lz-health-row:hover{transform:none!important}
 }
 
+
+/* LZ FIX — proporção dos indicadores e legibilidade dos clientes */
+#portfolioHealthBody .lz-health-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px}
+#portfolioHealthBody .lz-health-kpi{min-height:82px;justify-content:center;gap:6px;padding:12px 13px 12px 16px;border-radius:13px}
+#portfolioHealthBody .lz-health-kpi strong{font-size:27px;line-height:1.05}
+#portfolioHealthBody .lz-health-kpi span{font-size:10px;line-height:1.35;letter-spacing:.055em}
+#portfolioHealthBody > .lz-portfolio-health:nth-child(2) .lz-health-row{min-height:78px;padding-top:15px;padding-bottom:15px}
+#portfolioHealthBody > .lz-portfolio-health:nth-child(2) .lz-health-main b{font-size:15px;line-height:1.45}
+#portfolioHealthBody > .lz-portfolio-health:nth-child(2) .lz-health-main small{font-size:12px;line-height:1.55}
+@media(max-width:1050px){
+  #portfolioHealthBody .lz-health-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:650px){
+  #portfolioHealthBody .lz-health-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  #portfolioHealthBody .lz-health-kpi{min-height:76px;padding:11px 10px 11px 14px}
+  #portfolioHealthBody .lz-health-kpi strong{font-size:25px}
+  #portfolioHealthBody > .lz-portfolio-health:nth-child(2) .lz-health-main b{font-size:14px}
+}
 </style>
