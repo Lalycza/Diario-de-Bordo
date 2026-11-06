@@ -4190,13 +4190,30 @@ function generateVisitControl(entry){
  '#pdfPreviewSurface .visit-form .signature-name,#printDoc .visit-form .signature-name{position:absolute;left:8%;right:4%;bottom:1mm;text-align:center;font-family:"Segoe Script","Brush Script MT",cursive;font-size:17pt;color:#24558a!important;-webkit-text-fill-color:#24558a!important}'+
  '@media print{@page{size:A4 portrait;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important}.visit-form{break-inside:avoid;page-break-inside:avoid}}'+
  '</style>'+
- '<div class="visit-form"><div class="visit-header"><div class="visit-brand"><img src="'+logo+'" alt="HPro"><div class="visit-contact teal"><div>☎ 19 3412.1919 &nbsp;/&nbsp; 0800 591 4795</div><div style="margin-top:2mm">⌖ Av. Rui Barbosa, 444 | Vila Rezende<br> &nbsp;&nbsp; Piracicaba/SP | 13405-218</div><div style="margin-top:2mm">◎ www.hpro.com.br</div></div></div><div class="visit-date teal"><div>Data: &nbsp; '+esc(pdfDate(entry.date))+'</div><div>Chegada: &nbsp; '+esc(start)+'</div><div>Saída: &nbsp; '+esc(end)+'</div></div></div>'+
+ '<div class="visit-form"><div class="visit-header"><div class="visit-brand"><img src="'+logoData+'" alt="HPro"><div class="visit-contact teal"><div>☎ 19 3412.1919 &nbsp;/&nbsp; 0800 591 4795</div><div style="margin-top:2mm">⌖ Av. Rui Barbosa, 444 | Vila Rezende<br> &nbsp;&nbsp; Piracicaba/SP | 13405-218</div><div style="margin-top:2mm">◎ www.hpro.com.br</div></div></div><div class="visit-date teal"><div>Data: &nbsp; '+esc(pdfDate(entry.date))+'</div><div>Chegada: &nbsp; '+esc(start)+'</div><div>Saída: &nbsp; '+esc(end)+'</div></div></div>'+
  '<div class="visit-company teal"><div class="visit-field"><b>Empresa:</b> &nbsp; '+esc(company)+'</div><div class="visit-field"><b>Contato:</b> &nbsp; '+esc(clientNames)+'</div></div>'+
  '<div class="visit-lines"><div class="visit-rule-text"><b>Assunto:</b> '+esc(subject)+'</div>'+line+'<div class="visit-rule-text"><b>Participantes:</b> '+esc(participantLine)+'</div>'+line+Array.from({length:8},()=>line).join('')+'</div>'+
  '<div class="visit-footer"><div class="visit-attest teal">Atesto para os devidos fins que o analista da HPro esteve na empresa prestando serviços e/ou retirando equipamentos para análise técnica</div><div class="visit-analyst teal"><b>Analista:</b><div style="position:absolute;left:24%;right:2%;bottom:2mm;text-align:center;color:#111!important;-webkit-text-fill-color:#111!important">'+esc(analyst)+'</div></div></div>'+
  '<div class="visit-sign teal"><div><b>Visto:</b></div><div><b>Visto:</b><div class="signature-name">'+esc(analyst)+'</div></div></div></div>';
  printProjectPdf('Controle de Visitas',body);return true;
-}async function reissueVisitControl(i){const entry=cur?.d?.[i];if(!entry)return;const meta=diaryVisitMeta(entry.notes||'');const subject=meta.subject||prompt('Informe o assunto do Controle de Visitas:','');if(subject===null)return;if(!String(subject).trim()){alert('O assunto é obrigatório para emitir o Controle de Visitas.');return}entry.visitSubject=String(subject).trim();entry.notes=diaryVisitNotes(entry.notes||'',entry.visitSubject);try{await syncDiaryEntryToSupabase(entry);persistState();generateVisitControl(entry)}catch(e){console.error(e);alert('Não foi possível salvar o assunto do Controle de Visitas. O Diário original foi preservado.\\n\\n'+(e?.message||e))}}
+}function reissueVisitControl(i){
+ const entry=cur?.d?.[i];if(!entry)return;
+ const meta=diaryVisitMeta(entry.notes||'');
+ const subject=String(meta.subject||entry.visitSubject||'');
+ openSimpleModal('Reemitir Controle de Visitas',
+  '<div class="field"><label for="visitReissueSubject">Assunto da visita</label><input id="visitReissueSubject" type="text" maxlength="180" value="'+esc(subject)+'" placeholder="Informe o assunto da visita" required></div>',
+  async()=>{
+   const input=document.getElementById('visitReissueSubject');
+   const value=String(input?.value||'').trim();
+   if(!value){alert('Informe o assunto do Controle de Visitas.');input?.focus();return}
+   const previousNotes=entry.notes,previousSubject=entry.visitSubject;
+   entry.visitSubject=value;entry.notes=diaryVisitNotes(entry.notes||'',value);
+   const save=document.getElementById('simpleModalSave');if(save){save.disabled=true;save.textContent='Gerando...'}
+   try{await syncDiaryEntryToSupabase(entry);persistState();closeModal();generateVisitControl(entry)}
+   catch(e){entry.notes=previousNotes;entry.visitSubject=previousSubject;if(save){save.disabled=false;save.textContent='Gerar PDF'}console.error(e);alert('Não foi possível salvar o assunto do Controle de Visitas. O Diário original foi preservado.\\n\\n'+(e?.message||e))}
+  });
+ const save=document.getElementById('simpleModalSave');if(save)save.textContent='Gerar PDF';
+}
 function pdfDate(v){if(!v)return '';const s=String(v);if(/^\d{2}\/\d{2}\/\d{4}$/.test(s))return s;return formatDateBR(s)}
 function pdfStatusClass(status){return cronStatusClass(status||'PENDENTE')}
 function pdfStatusCell(status){const s=status||'PENDENTE';return '<span class="pdf-official-status '+pdfStatusClass(s)+'">'+esc(s)+'</span>'}
