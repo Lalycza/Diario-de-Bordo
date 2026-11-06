@@ -2632,9 +2632,12 @@ async function hydrateFromSupabase(){
     for(const projectRow of (pg.data||[])){
       const projectId=String(projectRow.id);
       const projectProducts=projectProductIdsByProject.get(projectId)||[];
+      const clientProducts=clientProductIdsByDb.get(String(projectRow.client_id||''))||[];
+      // Nunca misturar todos os produtos do cliente no Mapa de um projeto.
+      // Sem vínculo explícito, só herdamos o produto quando houver exatamente um ativo.
       const productIds=projectProducts.length
         ? projectProducts
-        : (clientProductIdsByDb.get(String(projectRow.client_id||''))||[]);
+        : (clientProducts.length===1?clientProducts:[]);
       const allowedProducts=new Set(productIds.map(String));
       if(!allowedProducts.size)continue;
       for(const moduleRow of (mo.data||[])){
@@ -2725,15 +2728,16 @@ async function hydrateFromSupabase(){
       const p=ps.find(v=>String(v.id)===String(projectByDb.get(x.project_id)));
       const rawModule=(mo.data||[]).find(v=>String(v.id)===String(x.module_id));
       const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(x.module_id)));
-      // Primeiro respeita project_products. Se ele estiver ausente no legado,
-      // valida contra client_products do cliente do próprio projeto.
+      // Produto explícito do projeto tem prioridade. Sem esse vínculo,
+      // só aceitamos herança do cliente quando ele possui um único produto ativo.
       const projectDbProductIds=new Set((pp.data||[])
         .filter(v=>String(v.project_id)===String(x.project_id))
         .map(v=>String(v.product_id)));
-      if(p){
-        const projectRow=(pg.data||[]).find(v=>String(v.id)===String(x.project_id));
-        (clientProductsByClientDb.get(String(projectRow?.client_id||''))||[]).forEach(id=>projectDbProductIds.add(String(id)));
-      }
+      const linkedProjectRow=(pg.data||[]).find(v=>String(v.id)===String(x.project_id));
+      const linkedClientProducts=clientProductsByClientDb.get(String(linkedProjectRow?.client_id||''))||[];
+      if(!projectDbProductIds.size&&linkedClientProducts.length===1)projectDbProductIds.add(String(linkedClientProducts[0]));
+      const linkedModuleIsProjectScoped=String(rawModule?.project_id||'')===String(x.project_id);
+      if(rawModule?.product_id!=null&&!linkedModuleIsProjectScoped&&!projectDbProductIds.has(String(rawModule.product_id)))continue;
       // Um vínculo explícito em project_modules já confirma que o módulo pertence ao Mapa
       // deste projeto. Módulos personalizados não devem depender de project_products.
       // A exclusão persistida tem prioridade sobre vínculos antigos em project_modules.
@@ -2768,7 +2772,8 @@ async function hydrateFromSupabase(){
       const projectProductIds=new Set((pp.data||[])
         .filter(v=>String(v.project_id)===String(projectRow.id))
         .map(v=>String(v.product_id)));
-      (clientProductsByClientDb.get(String(projectRow.client_id||''))||[]).forEach(id=>projectProductIds.add(String(id)));
+      const clientProductsForProject=clientProductsByClientDb.get(String(projectRow.client_id||''))||[];
+      if(!projectProductIds.size&&clientProductsForProject.length===1)projectProductIds.add(String(clientProductsForProject[0]));
       for(const rawModule of (mo.data||[])){
         if(!rawModule?.product_id||!projectProductIds.has(String(rawModule.product_id)))continue;
         if(excludedProjectModuleKeys.has(String(projectRow.id)+'::'+String(rawModule.id)))continue;
