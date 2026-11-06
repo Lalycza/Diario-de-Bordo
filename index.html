@@ -2436,41 +2436,52 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
 </style>
 
 <style id="lz-product-catalog-readability">
-/* LZ — legibilidade reforçada da estrutura de módulos no catálogo Admin */
-#catalog .catalog-product{border-radius:12px!important}
-#catalog .catalog-product-head{padding:13px 16px!important;min-height:52px!important}
-#catalog .catalog-product-title{font-size:16px!important;font-weight:750!important;letter-spacing:.01em!important}
-#catalog .catalog-product-tools{padding:10px 13px!important}
-#catalog .catalog-module{padding:13px 14px!important;margin:0!important}
-#catalog .catalog-module + .catalog-module{border-top-width:1px!important}
-#catalog .catalog-module-head{gap:14px!important}
-#catalog .catalog-module-name{gap:10px!important;flex-wrap:wrap!important}
-#catalog .catalog-module-name b{font-size:15px!important;font-weight:750!important;line-height:1.4!important}
-#catalog .catalog-module-count{font-size:12px!important;font-weight:650!important}
-#catalog .catalog-sub-toggle{font-size:12px!important;font-weight:700!important;padding:7px 11px!important;margin-top:8px!important}
-#catalog .catalog-actions button{font-size:12px!important;padding:7px 10px!important}
-#catalog .catalog-subs{padding:9px 0 2px 18px!important}
-#catalog .catalog-sub{font-size:12px!important;line-height:1.45!important;padding:8px 10px!important;margin:5px 0!important}
-#catalog .catalog-sub-label{font-weight:550!important}
-.app.theme-dark #catalog .catalog-module{background:#171d26!important;border:1px solid #344253!important;border-radius:9px!important}
-.app.theme-dark #catalog .catalog-module-name b{color:#f4f7fb!important}
-.app.theme-dark #catalog .catalog-module-count{color:#b7c4d4!important}
-.app.theme-dark #catalog .catalog-sub-toggle{background:#172b40!important;color:#9dceff!important;border:1px solid #287bc0!important;border-radius:8px!important}
-.app.theme-dark #catalog .catalog-sub{background:#101720!important;color:#e3eaf2!important;border-color:#354354!important}
-.app.theme-dark #catalog .catalog-sub-label{color:#e3eaf2!important}
-.app:not(.theme-dark) #catalog .catalog-module{background:#f4f7fb!important;border:1px solid #c4d4e6!important;border-radius:9px!important}
-.app:not(.theme-dark) #catalog .catalog-module-name b{color:#17365d!important}
-.app:not(.theme-dark) #catalog .catalog-module-count{color:#496786!important}
-.app:not(.theme-dark) #catalog .catalog-sub-toggle{background:#e5effb!important;color:#174b86!important;border:1px solid #a9c7e8!important;border-radius:8px!important}
-.app:not(.theme-dark) #catalog .catalog-sub{background:#fff!important;color:#203a56!important;border-color:#cbd9e8!important}
-.app:not(.theme-dark) #catalog .catalog-sub-label{color:#203a56!important}
+/* LZ — correção de legibilidade: classes reais da estrutura do catálogo */
+.catalog-product .catalog-module,
+#catalog .catalog-module,
+#productDetailBody .catalog-module{
+  border:1px solid var(--catalog-module-border,#34465b)!important;
+  border-radius:10px!important;
+  padding:13px 15px!important;
+  margin:6px 0!important;
+  background:var(--catalog-module-bg,#111c2a)!important;
+  color:var(--catalog-module-text,#edf3fa)!important;
+}
+.catalog-module-head{align-items:flex-start!important;gap:12px!important}
+.catalog-module-main{min-width:0!important;flex:1 1 auto!important}
+.catalog-module-name{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:7px 10px!important}
+.catalog-module-name b{display:inline-block!important;font-size:15px!important;font-weight:750!important;line-height:1.4!important;color:var(--catalog-module-title,#f3f7fc)!important;visibility:visible!important;opacity:1!important}
+.catalog-module-count{font-size:12px!important;font-weight:650!important;color:var(--catalog-module-muted,#b6c4d5)!important}
+.catalog-sub-toggle{display:inline-flex!important;align-items:center!important;margin-top:9px!important;padding:7px 11px!important;border-radius:8px!important;font-size:12px!important;font-weight:700!important;background:var(--catalog-toggle-bg,#172e46)!important;color:var(--catalog-toggle-text,#b8dcff)!important;border:1px solid var(--catalog-toggle-border,#38648e)!important}
+.catalog-subs{padding:9px 0 2px 16px!important}
+.catalog-sub{background:var(--catalog-sub-bg,#0d1520)!important;color:var(--catalog-sub-text,#e0e8f1)!important;border:1px solid var(--catalog-sub-border,#34465b)!important;border-radius:7px!important}
+.catalog-sub-label{color:inherit!important;font-size:12px!important;line-height:1.4!important}
+.catalog-actions button{font-size:12px!important}
+.app.theme-dark{
+ --catalog-module-bg:#151d28;--catalog-module-border:#35465b;
+ --catalog-module-text:#edf3fa;--catalog-module-title:#f3f7fc;--catalog-module-muted:#b6c4d5;
+ --catalog-toggle-bg:#172e46;--catalog-toggle-text:#b8dcff;--catalog-toggle-border:#38648e;
+ --catalog-sub-bg:#0d1520;--catalog-sub-text:#e0e8f1;--catalog-sub-border:#34465b;
+}
+.app:not(.theme-dark){
+ --catalog-module-bg:#eaf1f8;--catalog-module-border:#b9cadd;
+ --catalog-module-text:#243b54;--catalog-module-title:#17365d;--catalog-module-muted:#526b84;
+ --catalog-toggle-bg:#dceafa;--catalog-toggle-text:#174b86;--catalog-toggle-border:#a9c7e8;
+ --catalog-sub-bg:#f8fbff;--catalog-sub-text:#29445f;--catalog-sub-border:#c5d5e5;
+}
+.app:not(.theme-dark) .catalog-product,
+.app:not(.theme-dark) #catalog .catalog-product,
+.app:not(.theme-dark) #productDetailBody .catalog-product{background:#f4f7fb!important;color:#243b54!important}
+.app:not(.theme-dark) .catalog-product-head,
+.app:not(.theme-dark) #catalog .catalog-product-head,
+.app:not(.theme-dark) #productDetailBody .catalog-product-head{background:#e8eff7!important;color:#17365d!important}
+.app:not(.theme-dark) .catalog-product-title{color:#17365d!important}
 @media(max-width:720px){
- #catalog .catalog-module{padding:11px!important}
- #catalog .catalog-module-name{align-items:flex-start!important;flex-direction:row!important}
- #catalog .catalog-module-name b{font-size:14px!important}
- #catalog .catalog-actions{max-width:none!important}
- #catalog .catalog-actions button{font-size:11px!important;padding:6px 8px!important}
- #catalog .catalog-subs{padding-left:8px!important}
+ .catalog-module{padding:11px!important}
+ .catalog-module-name{flex-direction:row!important;align-items:center!important}
+ .catalog-module-name b{font-size:14px!important}
+ .catalog-actions{max-width:none!important}
+ .catalog-subs{padding-left:8px!important}
 }
 </style>
 </head><body>
