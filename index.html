@@ -4180,7 +4180,8 @@ function generateVisitControl(entry){
  '#pdfPreviewSurface .visit-form .visit-contact,#printDoc .visit-form .visit-contact{font-size:9pt;font-weight:700;line-height:1.35}'+
  '#pdfPreviewSurface .visit-form .visit-date,#printDoc .visit-form .visit-date{display:grid;grid-template-rows:repeat(3,1fr)}'+
  '#pdfPreviewSurface .visit-form .visit-date>div,#printDoc .visit-form .visit-date>div{border-left:2px solid '+teal+';border-bottom:2px solid '+teal+';padding:1mm 1.5mm;font-size:10pt;font-weight:700;box-sizing:border-box}'+
- '#pdfPreviewSurface .visit-form .visit-company,#printDoc .visit-form .visit-company{display:grid;grid-template-columns:53% 47%;gap:1mm;margin-top:1mm}'+
+ '#pdfPreviewSurface .visit-form .visit-date>div,#printDoc .visit-form .visit-date>div{color:#596575!important;-webkit-text-fill-color:#596575!important}'+
+ '#pdfPreviewSurface .visit-form .visit-company,#printDoc .visit-form .visit-company{display:grid;grid-template-columns:48% 32% 20%;gap:1mm;margin-top:1mm}'+
  '#pdfPreviewSurface .visit-form .visit-field,#printDoc .visit-form .visit-field{height:9mm;border:2px solid '+teal+';padding:1mm 1.5mm;font-size:11pt;box-sizing:border-box}'+
  '#pdfPreviewSurface .visit-form .visit-lines,#printDoc .visit-form .visit-lines{border:2px solid '+teal+';margin-top:1mm}'+
  '#pdfPreviewSurface .visit-form .visit-rule-text,#printDoc .visit-form .visit-rule-text{font-size:9pt;line-height:6.2mm;padding:0 2mm;text-align:left!important;white-space:pre-wrap;overflow-wrap:anywhere;overflow:visible;color:'+teal+'!important;-webkit-text-fill-color:'+teal+'!important}'+
@@ -4193,7 +4194,7 @@ function generateVisitControl(entry){
  '@media print{@page{size:A4 portrait;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important}.visit-form{break-inside:avoid;page-break-inside:avoid}}'+
  '</style>'+
  '<div class="visit-form"><div class="visit-header"><div class="visit-brand"><img src="'+logoData+'" alt="HPro"><div class="visit-contact teal"><div>☎ 19 3412.1919 &nbsp;/&nbsp; 0800 591 4795</div><div style="margin-top:2mm">⌖ Av. Rui Barbosa, 444 | Vila Rezende<br> &nbsp;&nbsp; Piracicaba/SP | 13405-218</div><div style="margin-top:2mm">◎ www.hpro.com.br</div></div></div><div class="visit-date teal"><div>Data: &nbsp; '+esc(pdfDate(entry.date))+'</div><div>Chegada: &nbsp; '+esc(start)+'</div><div>Saída: &nbsp; '+esc(end)+'</div></div></div>'+
- '<div class="visit-company teal"><div class="visit-field"><b>Empresa:</b> &nbsp; '+esc(company)+'</div><div class="visit-field"><b>Contato:</b> &nbsp; '+esc(clientNames)+'</div></div>'+
+ '<div class="visit-company teal"><div class="visit-field"><b>Empresa:</b> &nbsp; '+esc(company)+'</div><div class="visit-field"><b>Contato:</b> &nbsp; '+esc(clientNames)+'</div><div class="visit-field"><b>Bilhetado:</b> &nbsp; '+(String(entry.billing||'').trim().toLowerCase()==='sim'?'Sim':'Não')+'</div></div>'+
  '<div class="visit-lines"><div class="visit-rule-text" style="min-height:'+Math.max(1,subjectLines)*6.2+'mm"><b>Assunto:</b> '+subjectHtml+'</div>'+Array.from({length:Math.max(0,10-subjectLines)},()=>line).join('')+'</div>'+
  '<div class="visit-footer"><div class="visit-attest teal">Atesto para os devidos fins que o analista da HPro esteve na empresa prestando serviços e/ou retirando equipamentos para análise técnica</div><div class="visit-analyst teal"><b>Analista:</b><div style="position:absolute;left:24%;right:2%;bottom:2mm;text-align:center;color:#111!important;-webkit-text-fill-color:#111!important">'+esc(analyst)+'</div></div></div>'+
  '<div class="visit-sign teal"><div><b>Visto:</b></div><div><b>Visto:</b><div class="signature-name">'+esc(analyst)+'</div></div></div></div>';
