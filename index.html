@@ -4162,6 +4162,8 @@ function generateVisitControl(entry){
  const meta=pdfProjectModelMeta(),company=String(meta.cli?.name||cur.c||'Cliente');
  const participants=diaryParticipantsParse(entry.participants,company);
  const subject=String(entry.visitSubject||diaryVisitMeta(entry.notes||'').subject||'').trim();
+ const subjectLines=subject.split(/\r\n|\r|\n/).length;
+ const subjectHtml=esc(subject).replace(/\r\n|\r|\n/g,'<br>');
  if(!subject){alert('Informe o assunto do Controle de Visitas antes de emitir.');return false}
  const start=normalizeDiaryTime(entry.time)||'',end=normalizeDiaryTime(entry.timeEnd)||'';
  const clientNames=participants.client||'';
@@ -4181,7 +4183,7 @@ function generateVisitControl(entry){
  '#pdfPreviewSurface .visit-form .visit-company,#printDoc .visit-form .visit-company{display:grid;grid-template-columns:53% 47%;gap:1mm;margin-top:1mm}'+
  '#pdfPreviewSurface .visit-form .visit-field,#printDoc .visit-form .visit-field{height:9mm;border:2px solid '+teal+';padding:1mm 1.5mm;font-size:11pt;box-sizing:border-box}'+
  '#pdfPreviewSurface .visit-form .visit-lines,#printDoc .visit-form .visit-lines{border:2px solid '+teal+';margin-top:1mm}'+
- '#pdfPreviewSurface .visit-form .visit-rule-text,#printDoc .visit-form .visit-rule-text{font-size:9pt;line-height:6.2mm;padding:0 2mm;text-align:left!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:'+teal+'!important;-webkit-text-fill-color:'+teal+'!important}'+
+ '#pdfPreviewSurface .visit-form .visit-rule-text,#printDoc .visit-form .visit-rule-text{font-size:9pt;line-height:6.2mm;padding:0 2mm;text-align:left!important;white-space:pre-wrap;overflow-wrap:anywhere;overflow:visible;color:'+teal+'!important;-webkit-text-fill-color:'+teal+'!important}'+
  '#pdfPreviewSurface .visit-form .visit-footer,#printDoc .visit-form .visit-footer{display:grid;grid-template-columns:53% 47%;gap:1mm;margin-top:1mm}'+
  '#pdfPreviewSurface .visit-form .visit-attest,#printDoc .visit-form .visit-attest{height:13.5mm;border:2px solid '+teal+';display:flex;align-items:center;justify-content:center;text-align:center;padding:1mm 3mm;font-size:9pt;line-height:1.3;box-sizing:border-box}'+
  '#pdfPreviewSurface .visit-form .visit-analyst,#printDoc .visit-form .visit-analyst{height:13.5mm;border:2px solid '+teal+';padding:1mm 1.5mm;font-size:11pt;box-sizing:border-box;position:relative}'+
@@ -4192,7 +4194,7 @@ function generateVisitControl(entry){
  '</style>'+
  '<div class="visit-form"><div class="visit-header"><div class="visit-brand"><img src="'+logoData+'" alt="HPro"><div class="visit-contact teal"><div>☎ 19 3412.1919 &nbsp;/&nbsp; 0800 591 4795</div><div style="margin-top:2mm">⌖ Av. Rui Barbosa, 444 | Vila Rezende<br> &nbsp;&nbsp; Piracicaba/SP | 13405-218</div><div style="margin-top:2mm">◎ www.hpro.com.br</div></div></div><div class="visit-date teal"><div>Data: &nbsp; '+esc(pdfDate(entry.date))+'</div><div>Chegada: &nbsp; '+esc(start)+'</div><div>Saída: &nbsp; '+esc(end)+'</div></div></div>'+
  '<div class="visit-company teal"><div class="visit-field"><b>Empresa:</b> &nbsp; '+esc(company)+'</div><div class="visit-field"><b>Contato:</b> &nbsp; '+esc(clientNames)+'</div></div>'+
- '<div class="visit-lines"><div class="visit-rule-text"><b>Assunto:</b> '+esc(subject)+'</div>'+line+Array.from({length:9},()=>line).join('')+'</div>'+
+ '<div class="visit-lines"><div class="visit-rule-text" style="min-height:'+Math.max(1,subjectLines)*6.2+'mm"><b>Assunto:</b> '+subjectHtml+'</div>'+Array.from({length:Math.max(0,10-subjectLines)},()=>line).join('')+'</div>'+
  '<div class="visit-footer"><div class="visit-attest teal">Atesto para os devidos fins que o analista da HPro esteve na empresa prestando serviços e/ou retirando equipamentos para análise técnica</div><div class="visit-analyst teal"><b>Analista:</b><div style="position:absolute;left:24%;right:2%;bottom:2mm;text-align:center;color:#111!important;-webkit-text-fill-color:#111!important">'+esc(analyst)+'</div></div></div>'+
  '<div class="visit-sign teal"><div><b>Visto:</b></div><div><b>Visto:</b><div class="signature-name">'+esc(analyst)+'</div></div></div></div>';
  printProjectPdf('Controle de Visitas',body);return true;
@@ -4201,7 +4203,7 @@ function generateVisitControl(entry){
  const meta=diaryVisitMeta(entry.notes||'');
  const subject=String(meta.subject||entry.visitSubject||'');
  openSimpleModal('Reemitir Controle de Visitas',
-  '<div class="field"><label for="visitReissueSubject">Assunto da visita</label><input id="visitReissueSubject" type="text" maxlength="180" value="'+esc(subject)+'" placeholder="Informe o assunto da visita" required></div>',
+  '<div class="field"><label for="visitReissueSubject">Assunto da visita</label><textarea id="visitReissueSubject" rows="4" maxlength="500" placeholder="Informe o assunto da visita" required>'+esc(subject)+'</textarea></div>',
   async()=>{
    const input=document.getElementById('visitReissueSubject');
    const value=String(input?.value||'').trim();
