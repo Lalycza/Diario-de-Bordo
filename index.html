@@ -563,6 +563,15 @@ body.lz-modal-open .lz-scroll-nav{display:none!important}
 @media(max-width:900px){.analyst-all-projects-kpis>.analyst-portfolio-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:620px){.analyst-all-projects-kpis>.analyst-portfolio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.analyst-all-projects-project-grid{grid-template-columns:minmax(0,1fr)}}
 .app.theme-dark .analyst-all-projects-section-title{color:#e5eefb}
+/* LZ — Gestão visual de Todos os projetos: quatro faixas em largura total */
+#list>.analyst-all-projects-row{display:block!important;grid-column:1/-1!important; width:100%!important;max-width:none!important;min-width:0!important; margin:0 0 18px!important;}
+#list>.analyst-all-projects-kpis>.analyst-portfolio-grid{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important;width:100%!important;margin:0!important;}
+#list>.analyst-all-projects-health>.lz-chart-card{display:block!important;width:100%!important;max-width:none!important;margin:0!important;}
+#list>.analyst-all-projects-attention>.analyst-portfolio-panel{display:block!important;width:100%!important;max-width:none!important;margin:0!important;}
+#list>.analyst-all-projects-projects>.analyst-all-projects-project-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))!important;gap:13px!important;width:100%!important;}
+#list .analyst-all-projects-project-grid>.analyst-portfolio-panel{min-width:0!important;margin:0!important;}
+@media(max-width:900px){#list>.analyst-all-projects-kpis>.analyst-portfolio-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:620px){#list>.analyst-all-projects-kpis>.analyst-portfolio-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#list>.analyst-all-projects-projects>.analyst-all-projects-project-grid{grid-template-columns:minmax(0,1fr)!important}}
 /* LZ-PROJECT-HISTORY-POLISH: tema claro/escuro com contraste explícito */
 #projectHistory{--hist-accent:#2583ff}
 #projectHistory>.top{padding:26px 28px;margin:0 0 20px;border-radius:18px;position:relative;overflow:hidden}
