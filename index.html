@@ -8348,4 +8348,119 @@ document.addEventListener('click',function(e){
 .app:not(.theme-dark) .side .menu-accordion:has(#produtosMenu)>.menu-toggle{border:1px solid #d8e3f0!important;border-radius:8px!important;background:transparent!important}
 .app:not(.theme-dark) .side .menu-accordion:has(#produtosMenu)>.menu-toggle[aria-expanded="true"]{background:#edf5ff!important;border-color:#c4d9ef!important}
 </style>
+
+<style id="lz-products-menu-parity-and-submodule-groups-2026-11-09">
+/* Products nav: use the exact shared menu treatment, not a product-only palette. */
+.app .side .menu-accordion:has(#produtosMenu)>.menu-toggle,
+.app.theme-dark .side .menu-accordion:has(#produtosMenu)>.menu-toggle,
+.app:not(.theme-dark) .side .menu-accordion:has(#produtosMenu)>.menu-toggle{
+ min-height:39px!important;padding:10px 11px!important;
+ border:1px solid rgba(104,151,207,.2)!important;border-left:2px solid rgba(104,151,207,.58)!important;
+ border-radius:8px!important;
+ background:linear-gradient(100deg,rgba(24,40,61,.78),rgba(15,26,41,.68))!important;
+ color:#c8d6e8!important;box-shadow:none!important;
+}
+.app .side .menu-accordion:has(#produtosMenu)>.menu-toggle:hover,
+.app .side .menu-accordion:has(#produtosMenu)>.menu-toggle[aria-expanded="true"]{
+ border-color:rgba(91,164,237,.48)!important;border-left-color:#63aaff!important;
+ background:linear-gradient(100deg,rgba(43,91,145,.36),rgba(20,40,64,.82))!important;color:#f2f8ff!important;
+}
+.app:not(.theme-dark) .side .menu-accordion:has(#produtosMenu)>.menu-toggle{
+ background:linear-gradient(100deg,#f0f6fd,#e8f0f9)!important;
+ border-color:#cfdeed!important;border-left-color:#79a9e0!important;color:#344e6d!important;
+}
+.app:not(.theme-dark) .side .menu-accordion:has(#produtosMenu)>.menu-toggle:hover,
+.app:not(.theme-dark) .side .menu-accordion:has(#produtosMenu)>.menu-toggle[aria-expanded="true"]{
+ background:linear-gradient(100deg,#e3effd,#f3f8fe)!important;border-color:#a9c8e9!important;color:#174c80!important;
+}
+/* Product links inherit the same neutral color, radius and hover as other menu children. */
+.app .side #productMenu .product-menu-item{
+ min-height:32px!important;margin:2px 0!important;padding:7px 10px 7px 15px!important;
+ border:1px solid transparent!important;border-radius:7px!important;
+ background:transparent!important;color:#b8c8dc!important;
+ font-size:12px!important;font-weight:560!important;letter-spacing:0!important;
+ box-shadow:none!important;text-transform:none!important;
+}
+.app .side #productMenu .product-menu-item:hover{
+ background:rgba(49,111,177,.15)!important;border-color:rgba(83,154,224,.22)!important;
+ color:#f3f8ff!important;box-shadow:inset 2px 0 #4da7f5!important;
+}
+.app .side #productMenu .product-menu-item.active,
+.app .side #productMenu .product-menu-item[aria-current="page"]{
+ background:linear-gradient(90deg,rgba(44,119,195,.22),rgba(35,83,132,.08))!important;
+ border-color:rgba(89,160,226,.32)!important;color:#eef7ff!important;
+ box-shadow:inset 2px 0 #5bb5ff!important;
+}
+.app:not(.theme-dark) .side #productMenu .product-menu-item{color:#526985!important}
+.app:not(.theme-dark) .side #productMenu .product-menu-item:hover{
+ background:#edf5ff!important;border-color:#d4e5f6!important;color:#174f85!important;
+ box-shadow:inset 2px 0 #398fe0!important;
+}
+.app:not(.theme-dark) .side #productMenu .product-menu-item.active,
+.app:not(.theme-dark) .side #productMenu .product-menu-item[aria-current="page"]{
+ background:#e4f0fd!important;border-color:#bfd7f0!important;color:#174f85!important;
+ box-shadow:inset 2px 0 #398fe0!important;
+}
+/* Keep product > module > submodule as a visibly nested hierarchy. */
+.app.theme-dark .side #productMenu .product-menu-modules{
+ margin:3px 0 7px 12px!important;padding:3px 0 5px 10px!important;
+ border-left:1px solid rgba(100,151,208,.2)!important;
+}
+.app.theme-dark .side #productMenu .product-menu-module-toggle{
+ min-height:29px!important;padding:6px 10px 6px 12px!important;margin:1px 0!important;
+ border:1px solid transparent!important;border-radius:7px!important;
+ background:transparent!important;color:#aebed3!important;box-shadow:none!important;
+}
+.app.theme-dark .side #productMenu .product-menu-module-toggle:hover{
+ background:rgba(49,111,177,.12)!important;color:#f3f8ff!important;
+}
+.app.theme-dark .side #productMenu .product-menu-subs{
+ margin:2px 0 5px 15px!important;padding:3px 8px 4px 12px!important;
+ border-left:1px solid rgba(100,151,208,.16)!important;
+ background:rgba(9,20,33,.24)!important;border-radius:0 7px 7px 0!important;
+}
+.app.theme-dark .side #productMenu .product-menu-sub{padding:4px 0!important;color:#91a5bf!important}
+.app:not(.theme-dark) .side #productMenu .product-menu-modules{
+ margin:3px 0 7px 12px!important;padding:3px 0 5px 10px!important;border-left:1px solid #d2dfed!important;
+}
+.app:not(.theme-dark) .side #productMenu .product-menu-module-toggle{
+ min-height:29px!important;padding:6px 10px 6px 12px!important;border:1px solid transparent!important;
+ border-radius:7px!important;background:transparent!important;color:#526985!important;
+}
+.app:not(.theme-dark) .side #productMenu .product-menu-module-toggle:hover{background:#edf5ff!important;color:#174f85!important}
+.app:not(.theme-dark) .side #productMenu .product-menu-subs{
+ margin:2px 0 5px 15px!important;padding:3px 8px 4px 12px!important;
+ border-left:1px solid #dbe6f1!important;background:#f5f9fe!important;border-radius:0 7px 7px 0!important;
+}
+.app:not(.theme-dark) .side #productMenu .product-menu-sub{padding:4px 0!important;color:#647b98!important}
+/* In product structures, submodules form one inset group inside their parent module. */
+.app.theme-dark .main #catalogBody .catalog-subs,
+.app.theme-dark .main #productDetailBody .catalog-subs{
+ margin:8px 0 2px 18px!important;padding:7px 10px 7px 12px!important;
+ border:1px solid rgba(91,145,204,.2)!important;border-left:2px solid rgba(39,143,232,.55)!important;
+ border-radius:8px!important;background:rgba(8,18,30,.52)!important;
+}
+.app.theme-dark .main #catalogBody .catalog-sub,
+.app.theme-dark .main #productDetailBody .catalog-sub{
+ margin:2px 0!important;padding:7px 8px!important;border:0!important;
+ border-bottom:1px solid rgba(91,145,204,.13)!important;border-radius:0!important;
+ background:transparent!important;color:#cbd8e8!important;
+}
+.app.theme-dark .main #catalogBody .catalog-sub:last-child,
+.app.theme-dark .main #productDetailBody .catalog-sub:last-child{border-bottom:0!important}
+.app:not(.theme-dark) .main #catalogBody .catalog-subs,
+.app:not(.theme-dark) .main #productDetailBody .catalog-subs{
+ margin:8px 0 2px 18px!important;padding:7px 10px 7px 12px!important;
+ border:1px solid #d5e1ee!important;border-left:2px solid #398edb!important;
+ border-radius:8px!important;background:#f3f7fc!important;
+}
+.app:not(.theme-dark) .main #catalogBody .catalog-sub,
+.app:not(.theme-dark) .main #productDetailBody .catalog-sub{
+ margin:2px 0!important;padding:7px 8px!important;border:0!important;
+ border-bottom:1px solid #e0e8f1!important;border-radius:0!important;
+ background:transparent!important;color:#405772!important;
+}
+.app:not(.theme-dark) .main #catalogBody .catalog-sub:last-child,
+.app:not(.theme-dark) .main #productDetailBody .catalog-sub:last-child{border-bottom:0!important}
+</style>
 </body></html>
