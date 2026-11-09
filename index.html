@@ -5106,18 +5106,17 @@ function lzChartColor(label){
  const n=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  if(n.includes('NAO BILHETAD')||n.includes('NAO-BILHETAD')||raw.includes('NÃO BILHETAD')||raw.includes('NÃO-BILHETAD'))return '#22c1c3';
  if(n.includes('BILHETAD'))return '#a78bfa';
- if(n.includes('PRECISAM DE ATENCAO'))return '#f2b84b';
- if(n.includes('PRODUCAO')||n.includes('CONCLUIDO'))return '#35c58a';
- if(n.includes('ATRAS')||n.includes('PENDENTE')||n.includes('ATENCAO'))return '#f06b72';
- if(n.includes('EM DIA'))return '#35c58a';
- if(n.includes('CONCLUID'))return '#a78bfa';
- if(n.includes('CONGELAD'))return '#64748b';
- if(n.includes('SEM PRAZO'))return '#94a3b8';
- if(n.includes('PENDENT'))return '#f06b72';
- if(n.includes('ANDAMENTO')||n.includes('REPLANEJ'))return '#f2b84b';
- if(n.includes('HOMOLOG'))return '#a78bfa';
+ if(n.includes('CONGELAD'))return '#0e7490';
+ if(n.includes('SEM PRAZO'))return '#a1a1aa';
+ if(n.includes('ATRAS'))return '#e05252';
+ if(n.includes('PRECISAM DE ATENCAO')||n.includes('ATENCAO'))return '#e39a27';
+ if(n.includes('EM DIA'))return '#20a574';
+ if(n.includes('PRODUCAO'))return '#1696a7';
+ if(n.includes('CONCLUID')||n.includes('HOMOLOG'))return '#8b6bd6';
+ if(n.includes('PENDENTE')||n.includes('PENDENT'))return '#d65f9e';
+ if(n.includes('ANDAMENTO')||n.includes('REPLANEJ'))return '#d89a18';
  if(n.includes('CONSULT'))return '#c084fc';
- if(n.includes('IMPLANT'))return '#f97316';
+ if(n.includes('IMPLANT'))return '#e27632';
  return ['#f97316','#35c58a','#f2b84b','#a78bfa','#f06b72','#22c1c3'][Math.abs(String(label||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0))%6];
 }
 function lzDonutHtml(title,counts){
@@ -8488,5 +8487,17 @@ document.addEventListener('click',function(e){
 }
 #modalbox .task-form .select-list label:hover{background:rgba(75,145,220,.09)!important}
 #modalbox .task-form .select-list label+label{margin-top:1px!important}
+</style>
+
+<style id="lz-analyst-kpi-distinct-palette-2026-11-09">
+/* Eight portfolio KPI cards: one consistent, clearly distinct accent per metric. */
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(1){--kpi-accent:#347fe3}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(2){--kpi-accent:#20a574}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(3){--kpi-accent:#d89a18}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(4){--kpi-accent:#9b6bd3}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(5){--kpi-accent:#1696a7}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(6){--kpi-accent:#d65f9e}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(7){--kpi-accent:#64748b}
+#analystPortfolioBody>.analyst-portfolio-grid:first-child>.analyst-portfolio-kpi:nth-child(8){--kpi-accent:#e27632}
 </style>
 </body></html>
