@@ -853,6 +853,7 @@ export type Database = {
       profiles: {
         Row: {
           active: boolean
+          business_unit: string
           client_id: string | null
           created_at: string
           email: string
@@ -864,6 +865,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          business_unit?: string
           client_id?: string | null
           created_at?: string
           email?: string
@@ -875,6 +877,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          business_unit?: string
           client_id?: string | null
           created_at?: string
           email?: string
@@ -1287,6 +1290,7 @@ export type Database = {
           analista: string | null
           arquivado: boolean
           base_date: string | null
+          business_unit: string
           client_id: string | null
           cliente: string | null
           coordenacao: string | null
@@ -1320,6 +1324,7 @@ export type Database = {
           analista?: string | null
           arquivado?: boolean
           base_date?: string | null
+          business_unit?: string
           client_id?: string | null
           cliente?: string | null
           coordenacao?: string | null
@@ -1353,6 +1358,7 @@ export type Database = {
           analista?: string | null
           arquivado?: boolean
           base_date?: string | null
+          business_unit?: string
           client_id?: string | null
           cliente?: string | null
           coordenacao?: string | null
@@ -1686,6 +1692,131 @@ export type Database = {
         Relationships: []
       }
     }
+      area_access_grants: {
+        Row: {
+          id: string
+          user_id: string
+          business_unit: string
+          client_id: string | null
+          project_id: string | null
+          reason: string
+          granted_by: string
+          granted_at: string
+          expires_at: string | null
+          revoked_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          business_unit: string
+          client_id?: string | null
+          project_id?: string | null
+          reason: string
+          granted_by: string
+          granted_at?: string
+          expires_at?: string | null
+          revoked_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          business_unit?: string
+          client_id?: string | null
+          project_id?: string | null
+          reason?: string
+          granted_by?: string
+          granted_at?: string
+          expires_at?: string | null
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_access_grants_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_access_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_access_grants_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_access_grants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_service_contracts: {
+        Row: {
+          id: string
+          client_id: string
+          business_unit: string
+          contract_status: string
+          contract_reference: string | null
+          starts_on: string | null
+          ends_on: string | null
+          notes: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          business_unit: string
+          contract_status?: string
+          contract_reference?: string | null
+          starts_on?: string | null
+          ends_on?: string | null
+          notes?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          business_unit?: string
+          contract_status?: string
+          contract_reference?: string | null
+          starts_on?: string | null
+          ends_on?: string | null
+          notes?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_service_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_service_contracts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     Views: {
       [_ in never]: never
     }
@@ -1694,6 +1825,7 @@ export type Database = {
         Args: { p_legacy_id: string }
         Returns: boolean
       }
+      can_manage_business_unit: { Args: { _business_unit: string }; Returns: boolean }
       can_access_project: { Args: { _project_id: string }; Returns: boolean }
       can_edit_project: { Args: { pid: string }; Returns: boolean }
       can_view_project: { Args: { pid: string }; Returns: boolean }
