@@ -4725,7 +4725,7 @@ function cronQuarterHtmlOfficial(months){
   months.forEach(m=>{for(let w=1;w<=5;w++){
    const cell=moduleCronCell(name,all,m,w);
    if(!cell){h+='<td></td>';continue}
-   h+='<td class="cron-week '+pdfStatusClass(cell.status)+'"><b>'+esc(cell.status)+'</b>'+(cell.originalPlannedDate?'<small>Prev.: '+esc(pdfDate(cell.originalPlannedDate))+'</small>':'')+(cell.currentDate&&cell.currentDate!==cell.originalPlannedDate?'<small>Real.: '+esc(pdfDate(cell.currentDate))+'</small>':'')+'</td>';
+   const pdfHasReschedule=!!(cell.scheduledDate&&cell.originalPlannedDate&&cell.scheduledDate!==cell.originalPlannedDate);const pdfDateInfo=pdfHasReschedule?'<small>Prev. original: '+esc(pdfDate(cell.originalPlannedDate))+'</small><small>Nova previsão: '+esc(pdfDate(cell.scheduledDate))+'</small>':(cell.scheduledDate?'<small>Prev.: '+esc(pdfDate(cell.scheduledDate))+'</small>':'');h+='<td class="cron-week '+pdfStatusClass(cell.status)+'"><b>'+esc(cell.status)+'</b>'+pdfDateInfo+(cell.currentDate&&cell.currentDate!==cell.scheduledDate?'<small>Real.: '+esc(pdfDate(cell.currentDate))+'</small>':'')+'</td>';
   }});
   h+='</tr>';
  });
