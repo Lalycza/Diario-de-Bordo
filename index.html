@@ -3472,21 +3472,25 @@ function moduleCronStatus(name,records){
  return 'PENDENTE';
 }
 function moduleCronCell(name,records,month,week){
- // A previsão da linha principal vem exclusivamente do registro do módulo.
- // Realização só pode vir de um submódulo com data real; datas residuais do
- // registro principal ou mês/semana legados não devem criar células.
+ // A célula planejada acompanha a data vigente do módulo.
+ // A data original permanece somente como histórico do replanejamento.
+ // Realizações continuam vindo exclusivamente de submódulos com data real.
+ const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+ const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&norm(m[0])===norm(name));
+ const meta=entry?.[2]||{};
  const moduleRows=records.filter(t=>!t.submodule);
  const subRows=records.filter(t=>!!t.submodule);
+ const scheduledDate=meta.plannedDate||moduleRows.slice(-1).map(t=>t.rescheduledDate||t.plannedDate||t.plannedDateOriginal).find(Boolean)||'';
+ const originalPlannedDate=meta.plannedDateOriginal||moduleRows.map(t=>t.plannedDateOriginal||t.plannedDate).find(Boolean)||scheduledDate;
+ const plannedWeek=monthWeekFromDate(scheduledDate);
  const actualOf=t=>monthWeekFromDate(t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate);
- const plannedOf=t=>monthWeekFromDate(t.plannedDateOriginal||t.plannedDate);
- const byActual=subRows.find(t=>{const x=actualOf(t);return x&&x.month===month&&x.week===week});
- const byPlanned=moduleRows.find(t=>{const x=plannedOf(t);return x&&x.month===month&&x.week===week});
+ const byActual=subRows.some(t=>{const x=actualOf(t);return x&&x.month===month&&x.week===week});
+ const byPlanned=!!plannedWeek&&plannedWeek.month===month&&plannedWeek.week===week;
  if(!byActual&&!byPlanned)return null;
  const status=moduleCronStatus(name,records);
- const originalPlannedDate=moduleRows.map(x=>x.plannedDateOriginal||x.plannedDate).filter(Boolean).sort()[0]||'';
  const actualDates=subRows.map(x=>x.homologationDate||x.trainingEndDate||x.trainingStartDate||x.trainingDate).filter(Boolean).sort();
  const currentDate=actualDates[actualDates.length-1]||'';
- return {status,originalPlannedDate,currentDate};
+ return {status,originalPlannedDate,scheduledDate,currentDate};
 }
 function cronQuarterHtml(title,months,displayRecords,year){
  // O Cronograma lista apenas módulos com previsão principal no Mapa.
@@ -3501,7 +3505,7 @@ function cronQuarterHtml(title,months,displayRecords,year){
  const modules=plannedModules.map((m,index)=>({key:m[0],name:m[0],plannedDate:m[2].plannedDate,meta:m[2],originalIndex:index})).sort((a,b)=>String(a.plannedDate||'').localeCompare(String(b.plannedDate||''))||a.originalIndex-b.originalIndex);
  modules.forEach(a=>{const all=records.filter(t=>normModule(t.module||t.name)===normModule(a.key));if(!all.some(t=>!t.submodule&&(t.plannedDateOriginal||t.plannedDate))){all.push({module:a.name,submodule:'',plannedDate:a.plannedDate,plannedDateOriginal:a.plannedDate,status:'PENDENTE'});}const status=moduleCronStatus(a.key,all);const resp=status==='HOMOLOGADO'?'CLIENTE':all.some(t=>t.trainingStartDate||t.trainingDate)?'CLIENTE':'HPRO';
  h+='<tr><td class="activity-cell">'+esc(a.name)+'</td><td class="responsible-cell">'+esc(resp)+'</td>';
- months.forEach(m=>{for(let w=1;w<=5;w++){const cell=moduleCronCell(a.key,all,m,w);if(!cell){h+='<td class="week-cell status-vazio"></td>';continue}const sc=cronStatusClass(cell.status);const bg=sc==='status-andamento'?'#f7e5bd':sc==='status-concluido'?'#dcefdc':sc==='status-homologado'?'#e5dcf4':sc==='status-replanejado'?'#f6e3b5':sc==='status-pendente'?'#f9d8d5':'#fff';const fg=sc==='status-andamento'?'#8a6825':sc==='status-concluido'?'#47734a':sc==='status-homologado'?'#6b4c8f':sc==='status-replanejado'?'#8a6825':sc==='status-pendente'?'#9f3d38':'transparent';const info=(cell.originalPlannedDate?'<span class="cron-training">Prev.: '+esc(formatDateBR(cell.originalPlannedDate))+'</span>':'')+(cell.currentDate&&cell.currentDate!==cell.originalPlannedDate?'<span class="cron-training">Real.: '+esc(formatDateBR(cell.currentDate))+'</span>':'');h+='<td class="week-cell '+sc+'" data-status="'+escAttr(cell.status)+'" style="background-color:'+bg+'!important;color:'+fg+'!important;box-shadow:inset 0 0 0 1px rgba(80,80,80,.10)" title="'+escAttr(a.name)+'"><span class="cron-status" style="color:'+fg+'!important">'+esc(cell.status)+'</span>'+info+'</td>'}});
+ months.forEach(m=>{for(let w=1;w<=5;w++){const cell=moduleCronCell(a.key,all,m,w);if(!cell){h+='<td class="week-cell status-vazio"></td>';continue}const sc=cronStatusClass(cell.status);const bg=sc==='status-andamento'?'#f7e5bd':sc==='status-concluido'?'#dcefdc':sc==='status-homologado'?'#e5dcf4':sc==='status-replanejado'?'#f6e3b5':sc==='status-pendente'?'#f9d8d5':'#fff';const fg=sc==='status-andamento'?'#8a6825':sc==='status-concluido'?'#47734a':sc==='status-homologado'?'#6b4c8f':sc==='status-replanejado'?'#8a6825':sc==='status-pendente'?'#9f3d38':'transparent';const hasReschedule=!!(cell.scheduledDate&&cell.originalPlannedDate&&cell.scheduledDate!==cell.originalPlannedDate);const info=(hasReschedule?'<span class="cron-training">Prev. original: '+esc(formatDateBR(cell.originalPlannedDate))+'</span><span class="cron-training">Nova previsão: '+esc(formatDateBR(cell.scheduledDate))+'</span>':(cell.scheduledDate?'<span class="cron-training">Prev.: '+esc(formatDateBR(cell.scheduledDate))+'</span>':''))+(cell.currentDate&&cell.currentDate!==cell.scheduledDate?'<span class="cron-training">Real.: '+esc(formatDateBR(cell.currentDate))+'</span>':'');h+='<td class="week-cell '+sc+'" data-status="'+escAttr(cell.status)+'" style="background-color:'+bg+'!important;color:'+fg+'!important;box-shadow:inset 0 0 0 1px rgba(80,80,80,.10)" title="'+escAttr(a.name)+'"><span class="cron-status" style="color:'+fg+'!important">'+esc(cell.status)+'</span>'+info+'</td>'}});
  h+='</tr>'});return h+'</tbody></table></div>'}
 function cronSummaryHtml(){
  let mods=[...(cur?.m||[])].map(m=>Array.isArray(m)?m[0]:null).filter(Boolean);
@@ -3808,12 +3812,12 @@ async function planModuleDate(i){
  const meta=m[2]||{};
  const current=cur.t.find(t=>t.module===m[0]&&!t.submodule);
  const mw=monthWeekFromDate(meta.plannedDate||current?.plannedDate||'');
- let refs=null,trainingId=null,agendaEvent=null,projectInfo=null,assignedUserId=currentUser?.id||null,trainingCandidates=[];
+ let refs=null,trainingId=null,agendaEvent=null,projectInfo=null,assignedUserId=currentUser?.id||null,trainingCandidates=[],selectedTraining=null;
  try{
   if(supabaseSession&&cur?.dbId){
    refs=await resolveTrainingRefs(m[0],'',meta.dbId||null);
    if(refs?.moduleId){
-    const {data:trs,error:trErr}=await supabaseClient.from('trainings').select('id,planned_date').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
+    const {data:trs,error:trErr}=await supabaseClient.from('trainings').select('id,planned_date,original_planned_date,rescheduled_date,rescheduled_at,rescheduled_by,status,status_before_reschedule').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
     if(trErr)throw trErr;trainingCandidates=trs||[];
     const {data:events,error:eventErr}=await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('event_type','treinamento').limit(1000);
     if(eventErr)throw eventErr;
@@ -3821,7 +3825,7 @@ async function planModuleDate(i){
     const chosen=trainingCandidates.find(t=>agendaEvent&&String(t.id)===String(agendaEvent.training_id))
      ||trainingCandidates.find(t=>String(t.planned_date||'').slice(0,10)===String(meta.plannedDate||current?.plannedDate||'').slice(0,10))
      ||trainingCandidates[0];
-    trainingId=chosen?.id||null;
+    selectedTraining=chosen||null;trainingId=chosen?.id||null;
     if(!agendaEvent&&trainingId)agendaEvent=(events||[]).find(e=>String(e.training_id)===String(trainingId))||null;
     const {data:project,error:projectErr}=await supabaseClient.from('projects').select('id,name,client_id').eq('id',refs.projectId).limit(1);
     if(projectErr)throw projectErr;projectInfo=project?.[0]||null;
@@ -3845,28 +3849,35 @@ async function planModuleDate(i){
    if(includeAgenda&&(!startTime||!endTime))return alert('Informe o horário inicial e final para incluir o treinamento na Agenda.');
    if(includeAgenda&&endTime<=startTime)return alert('O horário final precisa ser posterior ao horário inicial.');
    const x=monthWeekFromDate(v);if(!x)return alert('Informe uma data válida.');
-   const metaOriginal=meta.plannedDateOriginal||current?.plannedDateOriginal||meta.plannedDate||current?.plannedDate||v;
+   const previousPlannedDate=String(meta.plannedDate||current?.plannedDate||selectedTraining?.planned_date||'').slice(0,10);
+   const metaOriginal=String(meta.plannedDateOriginal||current?.plannedDateOriginal||selectedTraining?.original_planned_date||previousPlannedDate||v).slice(0,10);
+   const isReschedule=!!previousPlannedDate&&previousPlannedDate!==v;
+   const rescheduledDate=v===metaOriginal?null:v;
+   const rescheduledAt=isReschedule?new Date().toISOString():(rescheduledDate?(selectedTraining?.rescheduled_at||current?.rescheduledAt||null):null);
+   const rescheduledBy=isReschedule?(currentUser?.id||null):(rescheduledDate?(selectedTraining?.rescheduled_by||current?.rescheduledBy||null):null);
+   const statusBeforeReschedule=isReschedule?(selectedTraining?.status_before_reschedule||selectedTraining?.status||current?.status||'Pendente'):(rescheduledDate?(selectedTraining?.status_before_reschedule||current?.statusBeforeReschedule||null):null);
    try{
     if(supabaseSession&&cur?.dbId){
      refs=refs||await resolveTrainingRefs(m[0],'',meta.dbId||null);
      if(!refs?.moduleId)throw new Error('Módulo não encontrado no Supabase.');
      const {error:pm}=await supabaseClient.from('project_modules').upsert({project_id:refs.projectId,module_id:refs.moduleId,planned_training_date:v},{onConflict:'project_id,module_id'});
      if(pm)throw pm;
-     const {data:trs,error:trErr}=await supabaseClient.from('trainings').select('id,planned_date').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
+     const {data:trs,error:trErr}=await supabaseClient.from('trainings').select('id,planned_date,original_planned_date,rescheduled_date,rescheduled_at,rescheduled_by,status,status_before_reschedule').eq('project_id',refs.projectId).eq('module_id',refs.moduleId).is('submodule_id',null);
      if(trErr)throw trErr;
      trainingCandidates=trs||[];
-     trainingId=trainingCandidates.find(t=>agendaEvent&&String(t.id)===String(agendaEvent.training_id))?.id
-      ||trainingCandidates.find(t=>String(t.planned_date||'').slice(0,10)===String(meta.plannedDate||current?.plannedDate||'').slice(0,10))?.id
-      ||trainingCandidates[0]?.id||trainingId;
-     const tp={project_id:refs.projectId,module_id:refs.moduleId,submodule_id:null,subject:null,planned_date:v,planned_month:x.month?cronMonths.indexOf(x.month)+1:null,planned_week:x.week,realization_date:current?.trainingDate||null,responsible:current?.trainingDate?'CLIENTE':'HPRO',status:'Pendente',original_planned_date:current?.plannedDateOriginal||metaOriginal,created_by:currentUser.id};
+     selectedTraining=trainingCandidates.find(t=>agendaEvent&&String(t.id)===String(agendaEvent.training_id))
+      ||trainingCandidates.find(t=>String(t.planned_date||'').slice(0,10)===String(meta.plannedDate||current?.plannedDate||'').slice(0,10))
+      ||trainingCandidates.find(t=>String(t.id)===String(trainingId))||trainingCandidates[0]||selectedTraining;
+     trainingId=selectedTraining?.id||trainingId;
+     const tp={project_id:refs.projectId,module_id:refs.moduleId,submodule_id:null,subject:null,planned_date:v,planned_month:x.month?cronMonths.indexOf(x.month)+1:null,planned_week:x.week,realization_date:current?.trainingDate||null,responsible:current?.trainingDate?'CLIENTE':'HPRO',status:selectedTraining?.status||'Pendente',original_planned_date:metaOriginal,rescheduled_date:rescheduledDate,rescheduled_at:rescheduledAt,rescheduled_by:rescheduledBy,status_before_reschedule:statusBeforeReschedule,created_by:currentUser.id};
      if(trainingId){const {error}=await supabaseClient.from('trainings').update(tp).eq('id',trainingId);if(error)throw error}
      else{const {data:created,error}=await supabaseClient.from('trainings').insert(tp).select('id').limit(1);if(error)throw error;trainingId=created?.[0]?.id||null}
-     const stageQ=await supabaseClient.from('project_stages').select('id').eq('project_id',refs.projectId).eq('modulo',m[0]);
+     const stageQ=await supabaseClient.from('project_stages').select('id,data_prevista,data_prevista_original,status').eq('project_id',refs.projectId).eq('modulo',m[0]);
      if(stageQ.error)throw stageQ.error;
      const stages=stageQ.data||[];
-     const sp={project_id:refs.projectId,nome:m[0],modulo:m[0],responsavel:'HPRO',data_prevista:v,status:'nao_iniciada',created_by:currentUser.id};
-     if(stages.length===1){const {error}=await supabaseClient.from('project_stages').update(sp).eq('id',stages[0].id);if(error)throw error}
-     else if(stages.length===0){const {error}=await supabaseClient.from('project_stages').insert(sp);if(error)throw error}
+     const stageOriginal=stages.length===1?(stages[0].data_prevista_original||stages[0].data_prevista||metaOriginal):metaOriginal;
+     if(stages.length===1){const {error}=await supabaseClient.from('project_stages').update({data_prevista:v,data_prevista_original:stageOriginal}).eq('id',stages[0].id);if(error)throw error}
+     else if(stages.length===0){const {error}=await supabaseClient.from('project_stages').insert({project_id:refs.projectId,nome:m[0],modulo:m[0],responsavel:'HPRO',data_prevista:v,data_prevista_original:metaOriginal,status:'nao_iniciada',created_by:currentUser.id});if(error)throw error}
      else console.warn('Há etapas duplicadas com este nome; previsão principal foi salva pelo ID do módulo, sem alterar etapas ambíguas.');
      const {data:events,error:eventErr}=trainingId?await supabaseClient.from('personal_calendar_events').select('id,user_id,client_id,project_id,title,starts_at,ends_at,status,description,source,training_id').eq('project_id',refs.projectId).eq('event_type','treinamento').eq('training_id',trainingId).limit(1):{data:[],error:null};
      if(eventErr)throw eventErr;
@@ -3888,8 +3899,8 @@ async function planModuleDate(i){
       if(error)throw error;
      }
     }
-    m[2]={...(m[2]||{}),plannedDate:v,plannedDateOriginal:metaOriginal,month:x.month,week:x.week};
-    const obj={name:m[0],module:m[0],submodule:'',subject:'',month:x.month,week:x.week,plannedDate:v,plannedDateOriginal:metaOriginal,trainingDate:current?.trainingDate||'',trainingStartDate:current?.trainingStartDate||'',trainingEndDate:current?.trainingEndDate||'',status:current?.status||'PENDENTE',responsible:current?.responsible||'HPRO',homologationDate:current?.homologationDate||'',homologationResponsible:current?.homologationResponsible||''};
+    m[2]={...(m[2]||{}),plannedDate:v,plannedDateOriginal:metaOriginal,rescheduledDate:rescheduledDate||'',month:x.month,week:x.week};
+    const obj={name:m[0],module:m[0],submodule:'',subject:'',month:x.month,week:x.week,plannedDate:v,plannedDateOriginal:metaOriginal,rescheduledDate:rescheduledDate||'',rescheduledAt:rescheduledAt||'',rescheduledBy:rescheduledBy||'',status:current?.status||'PENDENTE',responsible:current?.responsible||'HPRO',trainingDate:current?.trainingDate||'',trainingStartDate:current?.trainingStartDate||'',trainingEndDate:current?.trainingEndDate||'',homologationDate:current?.homologationDate||'',homologationResponsible:current?.homologationResponsible||''};
     if(current)Object.assign(current,obj);else cur.t.push(obj);
     persistState();closeModal();mapView();
    }catch(e){console.error(e);alert('Não foi possível salvar a previsão do módulo ou a configuração da Agenda: '+(e?.message||e))}
