@@ -5200,6 +5200,8 @@ function renderBI(){
  const goLives=arr.flatMap(p=>{const moduleGoLives=projectGoLiveFor(p).map(g=>({...g,project:p,client:clientName(p),analyst:analystName(p)}));if(moduleGoLives.some(g=>g.date))return moduleGoLives;const date=String(p.endDate||p.deliveryDate||'').slice(0,10);return date?[{name:'Go Live do projeto',status:'Go Live programado',date,support:false,project:p,client:clientName(p),analyst:analystName(p)}]:moduleGoLives;});
  const projectAlerts=[];
  arr.forEach(p=>{
+   // Consultoria com escopo somente Diário não possui Mapa/Cronograma nem pendências de treinamento.
+   if(p.projectType==='consultoria'&&p.documentationScope==='diario')return;
    const moduleReasons=[];
    (p.m||[]).forEach(m=>{
      const moduleName=Array.isArray(m)?String(m[0]||'').trim():String(m?.name||'').trim();if(!moduleName)return;
@@ -5278,6 +5280,8 @@ function renderDashboardGerencial(){
  const today=new Date();today.setHours(0,0,0,0);
  const projectAlerts=[];
  arr.forEach(p=>{
+   // Consultoria com escopo somente Diário não possui Mapa/Cronograma nem pendências de treinamento.
+   if(p.projectType==='consultoria'&&p.documentationScope==='diario')return;
    const moduleReasons=[];
    (p.m||[]).forEach(m=>{
      const moduleName=Array.isArray(m)?String(m[0]||'').trim():String(m?.name||'').trim();
