@@ -1826,6 +1826,7 @@ export type Database = {
         Returns: boolean
       }
       can_manage_business_unit: { Args: { _business_unit: string }; Returns: boolean }
+      is_central_admin: { Args: never; Returns: boolean }
       can_access_project: { Args: { _project_id: string }; Returns: boolean }
       can_edit_project: { Args: { pid: string }; Returns: boolean }
       can_view_project: { Args: { pid: string }; Returns: boolean }
