@@ -5205,6 +5205,8 @@ function renderBI(){
  const goLives=arr.flatMap(p=>{const moduleGoLives=projectGoLiveFor(p).map(g=>({...g,project:p,client:clientName(p),analyst:analystName(p)}));if(moduleGoLives.some(g=>g.date))return moduleGoLives;const date=String(p.endDate||p.deliveryDate||'').slice(0,10);return date?[{name:'Go Live do projeto',status:'Go Live programado',date,support:false,project:p,client:clientName(p),analyst:analystName(p)}]:moduleGoLives;});
  const projectAlerts=[];
  arr.forEach(p=>{
+   // Projetos congelados estão pausados e não entram em alertas de atenção.
+   if(normalizeProjectStatus(p.projectStatus||'')==='CONGELADO')return;
    // Consultoria com escopo somente Diário não possui Mapa/Cronograma nem pendências de treinamento.
    if(p.projectType==='consultoria'&&p.documentationScope==='diario')return;
    const moduleReasons=[];
@@ -5269,7 +5271,7 @@ function renderAnalystPortfolio(){
  const healthTodayIso=healthNow.getFullYear()+'-'+String(healthNow.getMonth()+1).padStart(2,'0')+'-'+String(healthNow.getDate()).padStart(2,'0');
  const healthNextWeek=new Date(healthNow.getTime()+7*86400000);
  const healthNextWeekIso=healthNextWeek.getFullYear()+'-'+String(healthNextWeek.getMonth()+1).padStart(2,'0')+'-'+String(healthNextWeek.getDate()).padStart(2,'0');
- const healthFor=p=>{const tasks=(Array.isArray(p.t)?p.t:[]).map(taskObj),dated=tasks.map(t=>({task:t,date:parseBRDate(t.rescheduledDate||t.plannedDate||t.plannedDateOriginal||'')})).filter(x=>x.date&&/^\d{4}-\d{2}-\d{2}$/.test(String(x.date))),activeDates=dated.filter(x=>!['CONCLUIDO','HOMOLOGADO','CANCELADO'].includes(norm(x.task.status))),overdue=activeDates.filter(x=>x.date<healthTodayIso),soon=activeDates.filter(x=>x.date>=healthTodayIso&&x.date<=healthNextWeekIso);if(p.finalizado||p.homologacao?.status==='Homologado'||projectImplantationStatus(p)==='Concluído')return {status:'Concluído',overdue:0,soon:0};if(overdue.length)return {status:'Atrasado',overdue:overdue.length,soon:soon.length};if(soon.length||tasks.some(t=>norm(t.status)==='REPLANEJADO'))return {status:'Precisa de atenção',overdue:0,soon:soon.length};if(activeDates.length)return {status:'Em dia',overdue:0,soon:0};if(dated.length)return {status:'Concluído',overdue:0,soon:0};return {status:'Sem prazo definido',overdue:0,soon:0}};
+ const healthFor=p=>{const tasks=(Array.isArray(p.t)?p.t:[]).map(taskObj),dated=tasks.map(t=>({task:t,date:parseBRDate(t.rescheduledDate||t.plannedDate||t.plannedDateOriginal||'')})).filter(x=>x.date&&/^\d{4}-\d{2}-\d{2}$/.test(String(x.date))),activeDates=dated.filter(x=>!['CONCLUIDO','HOMOLOGADO','CANCELADO'].includes(norm(x.task.status))),overdue=activeDates.filter(x=>x.date<healthTodayIso),soon=activeDates.filter(x=>x.date>=healthTodayIso&&x.date<=healthNextWeekIso);if(normalizeProjectStatus(p.projectStatus||'')==='CONGELADO')return {status:'Congelado',overdue:0,soon:0};if(p.finalizado||p.homologacao?.status==='Homologado'||projectImplantationStatus(p)==='Concluído')return {status:'Concluído',overdue:0,soon:0};if(overdue.length)return {status:'Atrasado',overdue:overdue.length,soon:soon.length};if(soon.length||tasks.some(t=>norm(t.status)==='REPLANEJADO'))return {status:'Precisa de atenção',overdue:0,soon:soon.length};if(activeDates.length)return {status:'Em dia',overdue:0,soon:0};if(dated.length)return {status:'Concluído',overdue:0,soon:0};return {status:'Sem prazo definido',overdue:0,soon:0}};
  const healthRows=projects.map(p=>({p,health:healthFor(p)}));
  const healthCounts={'Atrasados':healthRows.filter(x=>x.health.status==='Atrasado').length,'Precisam de atenção':healthRows.filter(x=>x.health.status==='Precisa de atenção').length,'Em dia':healthRows.filter(x=>x.health.status==='Em dia').length,'Concluídos':healthRows.filter(x=>x.health.status==='Concluído').length,'Sem prazo definido':healthRows.filter(x=>x.health.status==='Sem prazo definido').length};
  const healthAttention=healthRows.filter(x=>['Atrasado','Precisa de atenção'].includes(x.health.status)).sort((a,b)=>(a.health.status==='Atrasado'?-1:1)-(b.health.status==='Atrasado'?-1:1)||b.health.overdue-a.health.overdue).slice(0,6);
@@ -5285,6 +5287,8 @@ function renderDashboardGerencial(){
  const today=new Date();today.setHours(0,0,0,0);
  const projectAlerts=[];
  arr.forEach(p=>{
+   // Projetos congelados estão pausados e não entram em alertas de atenção.
+   if(normalizeProjectStatus(p.projectStatus||'')==='CONGELADO')return;
    // Consultoria com escopo somente Diário não possui Mapa/Cronograma nem pendências de treinamento.
    if(p.projectType==='consultoria'&&p.documentationScope==='diario')return;
    const moduleReasons=[];
@@ -5342,7 +5346,7 @@ function renderDashboardGerencial(){
    const status=concluded?'Concluído':overdue.length?'Atrasado':soon.length?'Atenção':dated.length?'Em dia':'Sem prazo definido';
    return {p,status,overdue:overdue.length,soon:soon.length,withoutDates:active.length-dated.length,active:active.length};
  });
- const healthOrder=['Atrasado','Atenção','Em dia','Sem prazo definido','Concluído'];
+ const healthOrder=['Atrasado','Atenção','Em dia','Sem prazo definido','Concluído','Congelado'];
  const healthCount=Object.fromEntries(healthOrder.map(k=>[k,healthItems.filter(x=>x.status===k).length]));
  const healthRisk=healthItems.filter(x=>['Atrasado','Atenção','Sem prazo definido'].includes(x.status)).sort((a,b)=>healthOrder.indexOf(a.status)-healthOrder.indexOf(b.status)||b.overdue-a.overdue||b.soon-a.soon);
  const healthBadge=x=>x.status==='Atrasado'?'danger':x.status==='Atenção'?'warning':x.status==='Em dia'?'ok':'';
