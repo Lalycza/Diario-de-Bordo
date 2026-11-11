@@ -3169,7 +3169,7 @@ async function hydrateFromSupabase(){
   window._dbHydrationPromise=(async()=>{
   try{
     const [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,cc,pcc,profilesQ,cd,pd,diaryQ,emailQ,kickoffQ,handoffQ,homQ,surveyQ,goLiveQ,contractsQ]=await Promise.all([
-      supabaseClient.from('products').select('id,name,legacy_id,custom,active,business_unit').eq('active',true).order('created_at'),
+      supabaseClient.from('products').select('id,name,legacy_id,custom,active,business_unit,product_type,category,description,contracted_scope,characteristics,deliverables,additional_info').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,phone,ie,im,cep,address,number,complement,neighborhood,city,state,notes,legacy_id,status,hpro_central_code,implementation_value,consulting_value').order('created_at'),
@@ -3261,7 +3261,7 @@ async function hydrateFromSupabase(){
     productsData=(pr.data||[]).map(x=>{
       const id=productByDb.get(x.id);
       const old=oldProducts.find(p=>String(p.id)===String(id));
-      return {...(old||{}),id,name:x.name,customized:!!x.custom,businessUnit:x.business_unit||old?.businessUnit||'sistemas',moduleIds:[]};
+      return {...(old||{}),id,name:x.name,customized:!!x.custom,businessUnit:x.business_unit||old?.businessUnit||'sistemas',productType:x.product_type||old?.productType||'Produto',category:x.category||old?.category||'',description:x.description||old?.description||'',contractedScope:x.contracted_scope||old?.contractedScope||'',characteristics:Array.isArray(x.characteristics)?x.characteristics:(old?.characteristics||[]),deliverables:Array.isArray(x.deliverables)?x.deliverables:(old?.deliverables||[]),additionalInfo:x.additional_info||old?.additionalInfo||'',active:x.active!==false,moduleIds:[]};
     });
     modulesData=(mo.data||[]).map(x=>{
       const id=moduleByDb.get(x.id);
@@ -3527,15 +3527,25 @@ function renderProductDetail(id){
  const infra=(p.businessUnit||'sistemas')==='infra',mods=productModules(p),admin=hasAdminAccess(),pa=catalogJsArg(p.id);
  const areaBadge='<span class="badge catalog-area-badge '+(infra?'catalog-area-infra':'catalog-area-sistemas')+'">'+(infra?'Infra':'Sistemas')+'</span>';
  const tools=admin?'<div class="product-detail-actions"><button class="secondary" onclick="editProductUnified('+pa+')">✎ Editar produto</button>'+(infra?'':'<button class="secondary" onclick="addModuleToProduct('+pa+')">＋ Módulo</button><button class="secondary" onclick="importModulesToProduct('+pa+')">↗ Importar estrutura</button>')+'</div>':'';
- const body=infra
-  ? '<div class="catalog-empty muted">Item do catálogo de Infra. Ele pode ser vinculado a clientes e usado em projetos com controle de Documentos e Diário, sem Mapa ou Cronograma de módulos.</div>'
-  : (mods.length?mods.map(m=>{
+ const characteristics=Array.isArray(p.characteristics)?p.characteristics:[];
+ const deliverables=Array.isArray(p.deliverables)?p.deliverables:[];
+ const list=items=>items.length?'<ul class="infra-product-list">'+items.map(x=>'<li>'+esc(typeof x==='string'?x:(String(x.name||'')+(x.value?': '+x.value:'')))+'</li>').join('')+'</ul>':'<span class="muted">Não informado</span>';
+ const infraBody=infra?
+  '<div class="infra-product-overview">'+
+   '<div class="infra-product-meta"><span class="badge">'+esc(p.productType||'Serviço')+'</span>'+(p.category?'<span class="badge">'+esc(p.category)+'</span>':'')+'<span class="badge '+(p.active===false?'badge-inactive':'badge-active')+'">'+(p.active===false?'Inativo':'Ativo')+'</span></div>'+
+   (p.description?'<div class="infra-product-section"><b>Descrição</b><p>'+esc(p.description)+'</p></div>':'')+
+   '<div class="infra-product-section"><b>Escopo contratado</b><p>'+esc(p.contractedScope||'Não informado')+'</p></div>'+
+   '<div class="infra-product-section"><b>Características técnicas</b>'+list(characteristics)+'</div>'+
+   '<div class="infra-product-section"><b>Itens de entrega</b>'+list(deliverables)+'</div>'+
+   (p.additionalInfo?'<div class="infra-product-section"><b>Informações adicionais</b><p>'+esc(p.additionalInfo)+'</p></div>':'')+
+  '</div>':
+  (mods.length?mods.map(m=>{
     const ma=catalogJsArg(m.id),subs=m.subs||[],mkey=String(m.id),subOpen=catalogOpenModules.has(mkey);
     const subButton=subs.length?'<button class="secondary catalog-sub-toggle" onclick="toggleCatalogModule('+ma+')">'+(subOpen?'⌃ Ocultar submódulos':'⌄ Ver submódulos ('+subs.length+')')+'</button>':'<span class="muted catalog-sub-toggle">Sem submódulos</span>';
     const subBody=subOpen?'<div class="catalog-subs">'+subs.map((sub,j)=>'<div class="catalog-sub"><span class="catalog-sub-label">'+esc(sub)+'</span>'+(admin?'<span class="catalog-sub-actions"><button class="secondary" onclick="editSubCatalog('+ma+','+j+')">✎</button><button class="danger" onclick="deleteSubCatalog('+ma+','+j+')">×</button></span>':'')+'</div>').join('')+'</div>':'';
     return '<div class="catalog-module"><div class="catalog-module-head"><div class="catalog-module-main"><div class="catalog-module-name"><b>'+esc(m.name)+'</b><span class="catalog-module-count">'+subs.length+' submódulo(s)</span></div>'+subButton+'</div><div class="catalog-actions">'+(admin?'<button class="secondary" onclick="editModuleCatalog('+ma+')">✎ Editar</button><button class="danger" onclick="deleteModuleCatalog('+ma+')">Excluir</button>':'')+'</div></div>'+subBody+'</div>';
    }).join(''):'<div class="catalog-empty muted">Nenhum módulo vinculado a este produto.</div>');
- el.innerHTML='<div class="top"><div><h1>'+esc(p.name||p.title||'Produto')+' '+areaBadge+'</h1><p class="muted">'+(infra?'Tipo de produto / serviço da área Infra.':'Estrutura do produto: módulos e submódulos.')+'</p></div><div><button class="secondary" onclick="home()">← Meus projetos</button></div></div><div class="card"><div class="row" style="align-items:center;gap:10px;margin-bottom:10px"><div><b>'+(infra?'Catálogo de Infra':'Estrutura do produto')+'</b><div class="muted">'+(infra?'Produto/serviço independente do catálogo de Sistemas':mods.length+' módulo(s)')+'</div></div>'+tools+'</div><div class="product-structure">'+body+'</div></div>';
+ el.innerHTML='<div class="top"><div><h1>'+esc(p.name||p.title||'Produto')+' '+areaBadge+'</h1><p class="muted">'+(infra?'Cadastro e especificação do produto / serviço da área Infra.':'Estrutura do produto: módulos e submódulos.')+'</p></div><div><button class="secondary" onclick="home()">← Meus projetos</button></div></div><div class="card"><div class="row" style="align-items:center;gap:10px;margin-bottom:10px"><div><b>'+(infra?'Cadastro do catálogo Infra':'Estrutura do produto')+'</b><div class="muted">'+(infra?'Produto/serviço independente do catálogo de Sistemas':mods.length+' módulo(s)')+'</div></div>'+tools+'</div><div class="product-structure">'+(infra?infraBody:body)+'</div></div>';
 }
 function openProductAdmin(){if(!hasAdminAccess())return;hideSections();document.getElementById('catalog').classList.remove('hidden');renderUnifiedCatalog()}function refreshProductArea(id){if(!document.getElementById('productDetail')?.classList.contains('hidden'))renderProductDetail(id);else renderUnifiedCatalog();}
 function openOperatorProjects(){if(currentUser?.role!=='operator')return;hideSections();document.getElementById('home').classList.remove('hidden');const sub=document.getElementById('homeSub');if(sub)sub.textContent='Todos os projetos em andamento — somente consulta e download de documentos';document.getElementById('newTopBtn')?.classList.add('hidden');render()}
@@ -5901,7 +5911,7 @@ async function persistCatalogProductToSupabase(productId){
  if((p.businessUnit||'sistemas')==='infra'&&mods.length)return {ok:false,message:'Produtos/serviços de Infra não podem receber módulos de Sistemas.'};
  try{
    const {data:pd,error:pe}=await supabaseClient.from('products').upsert({
-     legacy_id:localLegacy('product',p.id),name:p.name||'Produto sem nome',custom:!!p.customized,active:true,business_unit:p.businessUnit||currentUser?.businessUnit||'sistemas'
+     legacy_id:localLegacy('product',p.id),name:p.name||'Produto sem nome',custom:!!p.customized,active:p.active!==false,business_unit:p.businessUnit||currentUser?.businessUnit||'sistemas',product_type:p.productType||'Produto',category:p.category||null,description:p.description||null,contracted_scope:p.contractedScope||null,characteristics:Array.isArray(p.characteristics)?p.characteristics:[],deliverables:Array.isArray(p.deliverables)?p.deliverables:[],additional_info:p.additionalInfo||null
    },{onConflict:'legacy_id'}).select('id').single();
    if(pe)throw pe;
 
@@ -5995,13 +6005,23 @@ async function addProduct(){
   '<div class="task-form">'+
    '<label>Nome</label><input id="newProductName" placeholder="Nome do produto ou serviço">'+
    areaField+
-   '<label><input type="checkbox" id="newProductCustom"> Produto customizado / variação</label>'+
-   '<div id="newProductModuleOptions" style="'+(defaultArea==='infra'?'display:none':'')+'">'+
+   '<div id="newProductInfraFields" style="'+(defaultArea==='infra'?'':'display:none')+'">'+
+    '<label>Tipo</label><select id="newProductType"><option value="Produto">Produto</option><option value="Serviço" selected>Serviço</option></select>'+
+    '<label>Categoria</label><input id="newProductCategory" placeholder="Ex.: Servidores, Redes, Segurança, Cloud">'+
+    '<label>Descrição</label><textarea id="newProductDescription" rows="2" placeholder="Resumo do produto ou serviço"></textarea>'+
+    '<label>Escopo contratado</label><textarea id="newProductScope" rows="3" placeholder="Descreva o que foi contratado, limites e abrangência"></textarea>'+
+    '<label>Características técnicas configuráveis</label><textarea id="newProductCharacteristics" rows="4" placeholder="Ex.: Ambiente: Produção&#10;Sistema operacional: Linux&#10;Capacidade: 2 TB"></textarea><div class="hint">Informe uma característica por linha, no formato Nome: Valor. Você poderá editar depois.</div>'+
+    '<label>Itens de entrega</label><textarea id="newProductDeliverables" rows="3" placeholder="Um item de entrega por linha"></textarea>'+
+    '<label>Informações adicionais</label><textarea id="newProductAdditionalInfo" rows="3" placeholder="Observações e particularidades do serviço"></textarea>'+
+    '<label>Status</label><select id="newProductActive"><option value="true" selected>Ativo</option><option value="false">Inativo</option></select>'+
+   '</div>'+
+   '<div id="newProductSystemsFields" style="'+(defaultArea==='sistemas'?'':'display:none')+'">'+
+    '<label><input type="checkbox" id="newProductCustom"> Produto customizado / variação</label>'+
     '<label>Base de módulos (somente Sistemas)</label>'+
     '<select id="newProductSource"><option value="">Criar com padrão</option>'+sourceOpts+'</select>'+
-    '<div class="hint">Produtos de Sistemas podem receber a estrutura padrão de Mapa e Cronograma ou importar módulos de outro produto. Itens de Infra não recebem módulos do ERP.</div>'+
+    '<div class="hint">Produtos de Sistemas mantêm a estrutura padrão de Mapa e Cronograma ou podem importar módulos de outro produto.</div>'+
    '</div>'+
-   '<div id="newProductInfraHint" class="hint" style="'+(defaultArea==='infra'?'':'display:none')+'">Este item ficará no catálogo de Infra e poderá ser vinculado ao cliente e selecionado na abertura de projetos. Não cria Mapa nem Cronograma de módulos.</div>'+
+   '<div id="newProductInfraHint" class="hint" style="'+(defaultArea==='infra'?'':'display:none')+'">Este item ficará no catálogo de Infra. Não cria Mapa nem Cronograma de módulos.</div>'+
   '</div>',
   async()=>{
    const name=document.getElementById('newProductName').value.trim();
@@ -6009,16 +6029,24 @@ async function addProduct(){
    if(!name)return alert('Informe o nome do produto ou serviço.');
    if(!['sistemas','infra'].includes(businessUnit))return alert('Selecione uma área válida.');
    if(!central&&businessUnit!==defaultArea)return alert('Você só pode cadastrar itens na sua própria área.');
-   const p={id:Date.now(),name,businessUnit,moduleIds:[],customized:document.getElementById('newProductCustom').checked};
+   const parseCharacteristics=value=>String(value||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{const i=line.indexOf(':');return i<0?{name:line,value:''}:{name:line.slice(0,i).trim(),value:line.slice(i+1).trim()}}).filter(x=>x.name);
+   const parseLines=value=>String(value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+   const p={id:Date.now(),name,businessUnit,moduleIds:[],customized:businessUnit==='sistemas'&&document.getElementById('newProductCustom')?.checked,
+    productType:businessUnit==='infra'?(document.getElementById('newProductType')?.value||'Serviço'):'Produto',
+    category:businessUnit==='infra'?document.getElementById('newProductCategory')?.value.trim()||'':'',
+    description:businessUnit==='infra'?document.getElementById('newProductDescription')?.value.trim()||'':'',
+    contractedScope:businessUnit==='infra'?document.getElementById('newProductScope')?.value.trim()||'':'',
+    characteristics:businessUnit==='infra'?parseCharacteristics(document.getElementById('newProductCharacteristics')?.value):[],
+    deliverables:businessUnit==='infra'?parseLines(document.getElementById('newProductDeliverables')?.value):[],
+    additionalInfo:businessUnit==='infra'?document.getElementById('newProductAdditionalInfo')?.value.trim()||'':'',
+    active:businessUnit==='infra'?document.getElementById('newProductActive')?.value!=='false':true};
    productsData.push(p);
    const source=businessUnit==='sistemas'?Number(document.getElementById('newProductSource')?.value||0):0;
    try{
     if(businessUnit==='sistemas'){
      if(source){const cloned=await cloneModules(source,p.id);if(cloned?.ok===false)throw new Error(cloned.message||'Não foi possível importar os módulos.');}
      else{const standard=await ensureStandardModules(p.id);if(!standard)throw new Error('Não foi possível criar a estrutura padrão de módulos.');}
-    }else{
-     p.moduleIds=[];
-    }
+    }else p.moduleIds=[];
     const saved=await persistCatalogProductToSupabase(p.id);
     if(!saved.ok)throw new Error(saved.message);
     persistState();closeModal();renderProductMenu();openProduct(p.id);
@@ -6041,7 +6069,44 @@ function toggleNewProductModuleOptions(){
  const source=document.getElementById('newProductSource');
  if(source&&area==='infra')source.value='';
 }
-function editProductUnified(id){id=String(id);let p=productsData.find(x=>String(x.id)===id);if(!p||!hasAdminAccess())return;openSimpleModal('Editar produto / serviço','<div class="task-form"><label>Nome</label><input id="editProductName" value="'+escAttr(p.name)+'"><label><input type="checkbox" id="editProductCustom" '+(p.customized?'checked':'')+'> Produto customizado / variação</label></div>',async()=>{const oldName=p.name,oldCustom=!!p.customized;const name=document.getElementById('editProductName').value.trim()||p.name,customized=document.getElementById('editProductCustom').checked;p.name=name;p.customized=customized;const r=await persistCatalogProductToSupabase(p.id);if(!r.ok){p.name=oldName;p.customized=oldCustom;alert('Não foi possível salvar o produto no Supabase. A alteração foi desfeita.\\n\\n'+r.message);return}persistState();closeModal();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog()})}
+function editProductUnified(id){
+ id=String(id);let p=productsData.find(x=>String(x.id)===id);if(!p||!hasAdminAccess())return;
+ const infra=(p.businessUnit||'sistemas')==='infra';
+ if(!infra){
+  openSimpleModal('Editar produto / serviço','<div class="task-form"><label>Nome</label><input id="editProductName" value="'+escAttr(p.name)+'"><label><input type="checkbox" id="editProductCustom" '+(p.customized?'checked':'')+'> Produto customizado / variação</label></div>',async()=>{
+   const oldName=p.name,oldCustom=!!p.customized;
+   p.name=document.getElementById('editProductName').value.trim()||p.name;p.customized=document.getElementById('editProductCustom').checked;
+   const r=await persistCatalogProductToSupabase(p.id);if(!r.ok){p.name=oldName;p.customized=oldCustom;alert('Não foi possível salvar o produto no Supabase. A alteração foi desfeita.\n\n'+r.message);return}
+   persistState();closeModal();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog();
+  });
+  return;
+ }
+ const characteristics=Array.isArray(p.characteristics)?p.characteristics:[];
+ const characteristicsText=characteristics.map(x=>typeof x==='string'?x:(String(x.name||'')+(x.value!==undefined?': '+String(x.value):''))).join('\n');
+ const deliverablesText=Array.isArray(p.deliverables)?p.deliverables.join('\n'):'';
+ openSimpleModal('Editar produto / serviço Infra',
+  '<div class="task-form">'+
+   '<label>Nome</label><input id="editProductName" value="'+escAttr(p.name)+'">'+
+   '<label>Tipo</label><select id="editProductType"><option value="Produto" '+((p.productType||'Serviço')==='Produto'?'selected':'')+'>Produto</option><option value="Serviço" '+((p.productType||'Serviço')==='Serviço'?'selected':'')+'>Serviço</option></select>'+
+   '<label>Categoria</label><input id="editProductCategory" value="'+escAttr(p.category||'')+'" placeholder="Ex.: Servidores, Redes, Segurança, Cloud">'+
+   '<label>Descrição</label><textarea id="editProductDescription" rows="2">'+esc(p.description||'')+'</textarea>'+
+   '<label>Escopo contratado</label><textarea id="editProductScope" rows="3">'+esc(p.contractedScope||'')+'</textarea>'+
+   '<label>Características técnicas configuráveis</label><textarea id="editProductCharacteristics" rows="4">'+esc(characteristicsText)+'</textarea><div class="hint">Uma característica por linha, no formato Nome: Valor.</div>'+
+   '<label>Itens de entrega</label><textarea id="editProductDeliverables" rows="3">'+esc(deliverablesText)+'</textarea>'+
+   '<label>Informações adicionais</label><textarea id="editProductAdditionalInfo" rows="3">'+esc(p.additionalInfo||'')+'</textarea>'+
+   '<label>Status</label><select id="editProductActive"><option value="true" '+(p.active!==false?'selected':'')+'>Ativo</option><option value="false" '+(p.active===false?'selected':'')+'>Inativo</option></select>'+
+  '</div>',
+  async()=>{
+   const parseCharacteristics=value=>String(value||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{const i=line.indexOf(':');return i<0?{name:line,value:''}:{name:line.slice(0,i).trim(),value:line.slice(i+1).trim()}}).filter(x=>x.name);
+   const parseLines=value=>String(value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+   const before={name:p.name,productType:p.productType,category:p.category,description:p.description,contractedScope:p.contractedScope,characteristics:p.characteristics,deliverables:p.deliverables,additionalInfo:p.additionalInfo,active:p.active};
+   Object.assign(p,{name:document.getElementById('editProductName').value.trim()||p.name,productType:document.getElementById('editProductType').value,category:document.getElementById('editProductCategory').value.trim(),description:document.getElementById('editProductDescription').value.trim(),contractedScope:document.getElementById('editProductScope').value.trim(),characteristics:parseCharacteristics(document.getElementById('editProductCharacteristics').value),deliverables:parseLines(document.getElementById('editProductDeliverables').value),additionalInfo:document.getElementById('editProductAdditionalInfo').value.trim(),active:document.getElementById('editProductActive').value==='true'});
+   const r=await persistCatalogProductToSupabase(p.id);
+   if(!r.ok){Object.assign(p,before);alert('Não foi possível salvar o cadastro no Supabase. As alterações foram desfeitas.\n\n'+r.message);return}
+   persistState();closeModal();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog();
+  }
+ );
+}
 async function addModuleToProduct(pid){if(!hasAdminAccess())return;pid=String(pid);let p=productsData.find(x=>String(x.id)===pid);if(!p)return;if(p.businessUnit==='infra')return alert('Itens de Infra não recebem módulos de Sistemas. Cadastre o tipo de produto/serviço no próprio catálogo de Infra.');openSimpleModal('Novo módulo — '+p.name,'<div class="task-form"><label>Nome do módulo</label><input id="newModuleName" placeholder="Ex.: Cadastros"><label>Submódulos (um por linha)</label><textarea id="newModuleSubs" rows="7" placeholder="Ex.: Pessoas\nUsuários\nParâmetros"></textarea></div>',async()=>{let name=document.getElementById('newModuleName').value.trim();if(!name)return alert('Informe o nome do módulo.');let subs=document.getElementById('newModuleSubs').value.split(/\n/).map(x=>x.trim()).filter(Boolean);const snapshot=JSON.stringify({p:{...p,moduleIds:[...(p.moduleIds||[])]},modules:modulesData.map(m=>({...m,productIds:[...(m.productIds||[])],subs:[...(m.subs||[])]}))});let m={id:Date.now(),name,subs,productIds:[pid]};modulesData.push(m);p.moduleIds=p.moduleIds||[];p.moduleIds.push(m.id);try{let r=await persistCatalogProductToSupabase(pid);if(!r.ok)throw new Error(r.message);persistState();closeModal();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog()}catch(e){const snap=JSON.parse(snapshot);p.moduleIds=snap.p.moduleIds;modulesData.length=0;modulesData.push(...snap.modules);persistState();alert('Não foi possível salvar o módulo no Supabase. A inclusão foi desfeita.\\n\\n'+(e.message||e))}})}
 function editModuleCatalog(id){if(!hasAdminAccess())return;id=String(id);let m=modulesData.find(x=>String(x.id)===id);if(!m)return;let pids=(m.productIds||[]).map(String);let prodOpts=productsData.filter(p=>(p.businessUnit||'sistemas')==='sistemas').map(p=>'<label><input type="checkbox" class="edit-mod-prod" value="'+p.id+'" '+(pids.map(String).includes(String(p.id))?'checked':'')+'> '+esc(p.name)+'</label>').join('');openSimpleModal('Editar módulo','<div class="task-form"><label>Nome do módulo</label><input id="editModuleName" value="'+escAttr(m.name)+'"><label>Produtos vinculados</label><div class="select-list">'+prodOpts+'</div><label>Submódulos (um por linha)</label><textarea id="editModuleSubs" rows="8">'+esc((m.subs||[]).join('\n'))+'</textarea><div class="hint">Se este módulo estiver vinculado a mais de um produto, a alteração afetará todos os produtos selecionados. Para uma variação independente, use “Importar módulos”.</div></div>',async()=>{let name=document.getElementById('editModuleName').value.trim();let ids=[...document.querySelectorAll('.edit-mod-prod:checked')].map(x=>Number(x.value));if(!name||!ids.length)return alert('Informe o nome e ao menos um produto de Sistemas.');const oldModule={...m,name:m.name,subs:[...(m.subs||[])],productIds:[...(m.productIds||[])]};const oldProductModules=Object.fromEntries(productsData.map(p=>[String(p.id),[...(p.moduleIds||[])]]));m.name=name;m.subs=document.getElementById('editModuleSubs').value.split(/\n/).map(x=>x.trim()).filter(Boolean);m.productIds=ids;productsData.forEach(p=>{p.moduleIds=(p.moduleIds||[]).filter(mid=>mid!==id);if(ids.includes(p.id))p.moduleIds.push(Number(id)||id)});try{for(const pid of [...new Set([...oldModule.productIds,...ids])]){const r=await persistCatalogProductToSupabase(pid);if(!r.ok)throw new Error(r.message)}persistState();closeModal();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog()}catch(err){m.name=oldModule.name;m.subs=oldModule.subs;m.productIds=oldModule.productIds;productsData.forEach(p=>{p.moduleIds=oldProductModules[String(p.id)]||[]});alert('Não foi possível salvar o módulo no Supabase. A alteração foi desfeita.\\n\\n'+(err?.message||err))}})}function editSubCatalog(mid,j){if(!hasAdminAccess())return;let m=modulesData.find(x=>x.id===mid);if(!m||!m.subs[j])return;openSimpleModal('Editar submódulo','<label>Módulo</label><input value="'+escAttr(m.name)+'" disabled><label>Nome do submódulo</label><input id="editSubName" value="'+escAttr(m.subs[j])+'">',async()=>{let n=document.getElementById('editSubName').value.trim();if(!n)return alert('Informe o nome.');const oldName=m.subs[j];m.subs[j]=n;const pids=(m.productIds||[]).map(pid=>productsData.find(p=>String(p.id)===String(pid))).filter(Boolean);for(const p of pids){const r=await persistCatalogProductToSupabase(p.id);if(!r.ok){m.subs[j]=oldName;alert('Não foi possível salvar o submódulo no Supabase. A alteração foi desfeita.\\n\\n'+r.message);return}}persistState();closeModal();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog()})}
 async function deleteSubCatalog(mid,j){if(!hasAdminAccess())return;let m=modulesData.find(x=>String(x.id)===String(mid));if(!m)return;if(!confirm('Excluir este submódulo do catálogo?'))return;const oldSubs=[...(m.subs||[])];m.subs.splice(j,1);const pids=(m.productIds||[]).map(id=>productsData.find(p=>String(p.id)===String(id))).filter(Boolean);try{for(const p of pids){let r=await persistCatalogProductToSupabase(p.id);if(!r.ok)throw new Error(r.message)}persistState();renderProductMenu();refreshProductArea(currentProductDetailId);renderUnifiedCatalog()}catch(err){m.subs=oldSubs;alert('Não foi possível excluir o submódulo no Supabase. A alteração foi desfeita.\\n\\n'+(err?.message||err))}}async function deleteModuleCatalog(id){
