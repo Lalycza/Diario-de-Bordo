@@ -3182,7 +3182,7 @@ async function hydrateFromSupabase(){
   window._dbHydrationPromise=(async()=>{
   try{
     const [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,cc,pcc,profilesQ,cd,pd,diaryQ,emailQ,kickoffQ,handoffQ,homQ,surveyQ,goLiveQ,contractsQ]=await Promise.all([
-      supabaseClient.from('products').select('id,name,legacy_id,custom,active,business_unit,product_type,category,description,contracted_scope,characteristics,deliverables,additional_info').order('created_at'),
+      (async()=>{let q=await supabaseClient.from('products').select('id,name,legacy_id,custom,active,business_unit,product_type,category,description,contracted_scope,characteristics,deliverables,additional_info').order('created_at');if(q.error&&/product_type|category|contracted_scope|characteristics|deliverables|additional_info|column .* does not exist/i.test(q.error.message||'')){console.warn('Catálogo Infra: migration pendente; usando leitura compatível com o schema atual.',q.error.message);q=await supabaseClient.from('products').select('id,name,legacy_id,custom,active,business_unit').order('created_at');}return q;})(),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,phone,ie,im,cep,address,number,complement,neighborhood,city,state,notes,legacy_id,status,hpro_central_code,implementation_value,consulting_value').order('created_at'),
