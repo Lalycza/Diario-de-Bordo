@@ -1903,7 +1903,7 @@ async function persistNewProjectToSupabase(p){
  const productLocalId=(p.productIds||[])[0];
  if(productLocalId==null)throw new Error('Produto do projeto não informado.');
  const productLegacy=localLegacy('product',productLocalId);
- const {data:prod,error:prodError}=await supabaseClient.from('products').select('id').eq('legacy_id',productLegacy).maybeSingle();
+ const {data:prod,error:prodError}=await supabaseClient.from('products').select('id,business_unit').eq('legacy_id',productLegacy).maybeSingle();
  if(prodError)throw new Error('Produto do projeto: '+prodError.message);
  if(!prod?.id)throw new Error('Produto do projeto não encontrado no Supabase: '+productLegacy);
  const selectedId=(p.operatorIds||[])[0];
@@ -1920,8 +1920,11 @@ async function persistNewProjectToSupabase(p){
      analystProfileId=byEmail.data.id;ownerId=byEmail.data.id;
    }else{analystProfileId=profile.id;ownerId=profile.id;}
  }
+ const businessUnit=prod.business_unit||'sistemas';
+ // Infra não usa módulos do catálogo de Sistemas; não enviar IDs locais/antigos à RPC.
+ if(businessUnit==='infra'){p.m=[];p.modulesInitialized=true;}
  const moduleIds=[];
- for(const m of (p.m||[])){
+ if(businessUnit==='sistemas')for(const m of (p.m||[])){
    const localModule=modulesData.find(x=>x.name===m[0]);
    if(!localModule)continue;
    const moduleLegacy=localLegacy('module',localModule.id);
@@ -1929,7 +1932,7 @@ async function persistNewProjectToSupabase(p){
    if(me)throw new Error('Módulo do projeto: '+me.message);
    if(dbModule?.id)moduleIds.push(dbModule.id);
  }
- const payload={legacy_id:localLegacy('project',p.id),name:p.n||'Projeto sem nome',client_id:client.dbId,owner_id:ownerId,status:p.projectStatus||'Ativo',progress:0,start_date:p.startDate||null,delivery_date:p.endDate||null,original_delivery_date:p.originalEndDate||p.endDate||null,base_date:p.baseDate||null,finalized:false,project_type:p.projectType==='consultoria'?'consultoria':'implantacao',documentation_scope:p.projectType==='consultoria'?(p.documentationScope==='diario'?'diario':'all'):'all',created_by:currentUser.id};
+ const payload={legacy_id:localLegacy('project',p.id),name:p.n||'Projeto sem nome',client_id:client.dbId,owner_id:ownerId,status:p.projectStatus||'Ativo',progress:0,start_date:p.startDate||null,delivery_date:p.endDate||null,original_delivery_date:p.originalEndDate||p.endDate||null,base_date:p.baseDate||null,finalized:false,project_type:p.projectType==='consultoria'?'consultoria':'implantacao',documentation_scope:p.projectType==='consultoria'?(p.documentationScope==='diario'?'diario':'all'):'all',created_by:currentUser.id,business_unit:businessUnit};
  const {data:createdId,error}=await supabaseClient.rpc('create_project_atomic',{p_payload:payload,p_product_id:prod.id,p_profile_id:analystProfileId,p_module_ids:moduleIds});
  if(error)throw new Error('Criação do projeto: '+error.message);
  if(!createdId)throw new Error('O Supabase não retornou o identificador do projeto criado.');
