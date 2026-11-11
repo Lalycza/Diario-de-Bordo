@@ -3156,12 +3156,12 @@ async function hydrateFromSupabase(){
   window._dbHydrationPromise=(async()=>{
   try{
     const [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,cc,pcc,profilesQ,cd,pd,diaryQ,emailQ,kickoffQ,handoffQ,homQ,surveyQ,goLiveQ,contractsQ]=await Promise.all([
-      supabaseClient.from('products').select('id,name,legacy_id,custom,active').eq('active',true).order('created_at'),
+      supabaseClient.from('products').select('id,name,legacy_id,custom,active,business_unit').eq('active',true).order('created_at'),
       supabaseClient.from('modules').select('id,name,legacy_id,product_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('submodules').select('id,name,legacy_id,module_id,active').eq('active',true).order('created_at'),
       supabaseClient.from('clients').select('id,razao_social,nome_fantasia,cnpj,email,phone,ie,im,cep,address,number,complement,neighborhood,city,state,notes,legacy_id,status,hpro_central_code,implementation_value,consulting_value').order('created_at'),
       supabaseClient.from('client_products').select('client_id,product_id,status,analyst_id'),
-      supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope,finalized,finalized_at').order('created_at'),
+      supabaseClient.from('projects').select('id,name,client_id,status,progress,start_date,delivery_date,legacy_id,owner_id,project_type,documentation_scope,business_unit,finalized,finalized_at').order('created_at'),
       supabaseClient.from('project_products').select('project_id,product_id'),
       supabaseClient.from('project_modules').select('project_id,module_id,planned_training_date'),
       supabaseClient.from('project_analysts').select('project_id,profile_id'),
@@ -3248,7 +3248,7 @@ async function hydrateFromSupabase(){
     productsData=(pr.data||[]).map(x=>{
       const id=productByDb.get(x.id);
       const old=oldProducts.find(p=>String(p.id)===String(id));
-      return {...(old||{}),id,name:x.name,customized:!!x.custom,moduleIds:[]};
+      return {...(old||{}),id,name:x.name,customized:!!x.custom,businessUnit:x.business_unit||old?.businessUnit||'sistemas',moduleIds:[]};
     });
     modulesData=(mo.data||[]).map(x=>{
       const id=moduleByDb.get(x.id);
@@ -3340,7 +3340,7 @@ async function hydrateFromSupabase(){
       const old=oldProjects.find(p=>String(p.id)===String(id));
       const client=clientsData.find(c=>String(c.id)===String(clientByDb.get(x.client_id)));
       const lifecycle=(x.status==='Finalizado'||x.status==='Congelado'||x.status==='Ativo')?x.status:(old?.projectStatus||'Ativo');
-      return {...(old||{}),id,dbId:x.id,n:x.name,c:client?.name||old?.c||'',clientId:client?.id||old?.clientId||null,clientDbId:x.client_id||old?.clientDbId||null,projectContactAssignments:(projectContactsByProject.get(x.id)||[]).map(r=>({contactDbId:r.client_contact_id,isResponsible:!!r.is_responsible,receivesEmails:r.receives_emails!==false})),projectType:x.project_type==='consultoria'?'consultoria':(x.project_type==='implantacao'?'implantacao':(old?.projectType||'implantacao')),documentationScope:x.documentation_scope==='diario'?'diario':'all',progress:Number(x.progress||0),projectStatus:lifecycle,finalizado:x.finalized===true||lifecycle==='Finalizado',finalizadoAt:x.finalized_at||old?.finalizadoAt||'',finalizadoBy:old?.finalizadoBy||'',baseDate:x.base_date||old?.baseDate||'',startDate:x.start_date||old?.startDate||'',endDate:x.delivery_date||old?.endDate||'',productIds:[],excludedModuleIds:(mo.data||[]).filter(mod=>excludedProjectModuleKeys.has(String(x.id)+'::'+String(mod.id))).map(mod=>moduleByDb.get(mod.id)).filter(v=>v!=null),m:[],t:Array.isArray(old?.t)?old.t:[],d:diaryByProject.get(x.id)||old?.d||[],docs:(()=>{const docs=(projectDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description}));const seen=new Set(docs.map(d=>String(d.storagePath||d.id||d.name)));for(const d of (client?.documents||[])){const key=String(d.storagePath||d.id||d.name);if(!seen.has(key)){docs.push(d);seen.add(key);}}for(const d of (old?.docs||[])){const key=String(d.storagePath||d.id||d.name);if(!seen.has(key)){docs.push(d);seen.add(key);}}return docs;})(),emails:emailsByProject.get(x.id)||old?.emails||[],kickoff:kickoffByProject.get(x.id)||old?.kickoff||{status:'Pendente',notes:''},handoff:handoffByProject.get(x.id)||old?.handoff||{status:'Pendente',notes:''},pesquisa:surveyByProject.get(x.id)||old?.pesquisa||{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:homologationByProject.get(x.id)||old?.homologacao||{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''},goLive:goLiveByProject.get(x.id)||old?.goLive||{}};
+      return {...(old||{}),id,dbId:x.id,n:x.name,c:client?.name||old?.c||'',clientId:client?.id||old?.clientId||null,clientDbId:x.client_id||old?.clientDbId||null,projectContactAssignments:(projectContactsByProject.get(x.id)||[]).map(r=>({contactDbId:r.client_contact_id,isResponsible:!!r.is_responsible,receivesEmails:r.receives_emails!==false})),projectType:x.project_type==='consultoria'?'consultoria':(x.project_type==='implantacao'?'implantacao':(old?.projectType||'implantacao')),documentationScope:x.documentation_scope==='diario'?'diario':'all',businessUnit:x.business_unit||old?.businessUnit||'sistemas',progress:Number(x.progress||0),projectStatus:lifecycle,finalizado:x.finalized===true||lifecycle==='Finalizado',finalizadoAt:x.finalized_at||old?.finalizadoAt||'',finalizadoBy:old?.finalizadoBy||'',baseDate:x.base_date||old?.baseDate||'',startDate:x.start_date||old?.startDate||'',endDate:x.delivery_date||old?.endDate||'',productIds:[],excludedModuleIds:(mo.data||[]).filter(mod=>excludedProjectModuleKeys.has(String(x.id)+'::'+String(mod.id))).map(mod=>moduleByDb.get(mod.id)).filter(v=>v!=null),m:[],t:Array.isArray(old?.t)?old.t:[],d:diaryByProject.get(x.id)||old?.d||[],docs:(()=>{const docs=(projectDocsByDb.get(x.id)||[]).map(d=>({id:d.id,name:d.name,type:d.mime_type||'Arquivo',date:new Date(d.created_at).toLocaleDateString('pt-BR'),storagePath:d.storage_path,mimeType:d.mime_type,size:d.size_bytes,description:d.description}));const seen=new Set(docs.map(d=>String(d.storagePath||d.id||d.name)));for(const d of (client?.documents||[])){const key=String(d.storagePath||d.id||d.name);if(!seen.has(key)){docs.push(d);seen.add(key);}}for(const d of (old?.docs||[])){const key=String(d.storagePath||d.id||d.name);if(!seen.has(key)){docs.push(d);seen.add(key);}}return docs;})(),emails:emailsByProject.get(x.id)||old?.emails||[],kickoff:kickoffByProject.get(x.id)||old?.kickoff||{status:'Pendente',notes:''},handoff:handoffByProject.get(x.id)||old?.handoff||{status:'Pendente',notes:''},pesquisa:surveyByProject.get(x.id)||old?.pesquisa||{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:homologationByProject.get(x.id)||old?.homologacao||{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''},goLive:goLiveByProject.get(x.id)||old?.goLive||{}};
     });
     const profileById=new Map((profilesQ.data||[]).map(u=>[String(u.id),u]));
     // O Supabase é a fonte oficial da permissão dos usuários. Reidrata a lista
@@ -5641,7 +5641,7 @@ async function persistCatalogProductToSupabase(productId){
  if(!p)return {ok:false,message:'Produto não encontrado.'};
  try{
    const {data:pd,error:pe}=await supabaseClient.from('products').upsert({
-     legacy_id:localLegacy('product',p.id),name:p.name||'Produto sem nome',custom:!!p.customized,active:true
+     legacy_id:localLegacy('product',p.id),name:p.name||'Produto sem nome',custom:!!p.customized,active:true,business_unit:p.businessUnit||currentUser?.businessUnit||'sistemas'
    },{onConflict:'legacy_id'}).select('id').single();
    if(pe)throw pe;
 
