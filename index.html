@@ -5248,9 +5248,17 @@ async function persistNewProjectToSupabase(p){
    const localModule=modulesData.find(x=>x.name===m[0]);
    if(!localModule)continue;
    const moduleLegacy=localLegacy('module',localModule.id);
-   const {data:dbModule,error:me}=await supabaseClient.from('modules').select('id').eq('legacy_id',moduleLegacy).maybeSingle();
+   // Resolve o módulo dentro do produto selecionado. O legacy_id sozinho
+   // não é suficiente: pode estar desatualizado ou colidir com IDs locais antigos.
+   const {data:dbModules,error:me}=await supabaseClient.from('modules')
+    .select('id,legacy_id,name,product_id')
+    .eq('product_id',productDbId)
+    .eq('name',localModule.name)
+    .eq('active',true);
    if(me)throw new Error('Módulo do projeto: '+me.message);
-   if(dbModule?.id)moduleIds.push(dbModule.id);
+   if(!dbModules?.length)throw new Error('O módulo "'+localModule.name+'" não está cadastrado no produto selecionado no Supabase.');
+   if(dbModules.length>1)throw new Error('Há mais de um módulo chamado "'+localModule.name+'" neste produto. Corrija a duplicidade no catálogo antes de criar o projeto.');
+   moduleIds.push(dbModules[0].id);
   }
  }
  const payload={
