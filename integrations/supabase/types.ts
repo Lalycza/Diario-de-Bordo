@@ -757,38 +757,59 @@ export type Database = {
       products: {
         Row: {
           active: boolean
+          additional_info: string | null
+          business_unit: string | null
+          category: string | null
           code: string | null
+          characteristics: Json
+          contracted_scope: string | null
           created_at: string
           created_by: string | null
           custom: boolean
+          deliverables: Json
           description: string | null
           id: string
           legacy_id: string | null
           name: string
+          product_type: string
           updated_at: string
         }
         Insert: {
           active?: boolean
+          additional_info?: string | null
+          business_unit?: string | null
+          category?: string | null
           code?: string | null
+          characteristics?: Json
+          contracted_scope?: string | null
           created_at?: string
           created_by?: string | null
           custom?: boolean
+          deliverables?: Json
           description?: string | null
           id?: string
           legacy_id?: string | null
           name: string
+          product_type?: string
           updated_at?: string
         }
         Update: {
           active?: boolean
+          additional_info?: string | null
+          business_unit?: string | null
+          category?: string | null
           code?: string | null
+          characteristics?: Json
+          contracted_scope?: string | null
           created_at?: string
           created_by?: string | null
           custom?: boolean
+          deliverables?: Json
           description?: string | null
           id?: string
           legacy_id?: string | null
           name?: string
+          product_type?: string
           updated_at?: string
         }
         Relationships: [
