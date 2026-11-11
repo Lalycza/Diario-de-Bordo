@@ -164,7 +164,7 @@ function UsuariosPage() {
                     <Select
                       value={u.role}
                       onValueChange={(r) => roleMutation.mutate({ userId: u.id, role: r as ManagedRole })}
-                      disabled={roleMutation.isPending || u.protectedAdmin}
+                      disabled={roleMutation.isPending || u.protectedAdmin || !u.canManage}
                     >
                       <SelectTrigger className="w-44">
                         <SelectValue />
@@ -204,11 +204,13 @@ function UsuariosPage() {
                   <td className="px-4 py-3 text-right">
                     {u.protectedAdmin ? (
                       <ShieldCheck className="ml-auto size-4" aria-label="Administrador principal protegido" />
-                    ) : (
+                    ) : u.canManage ? (
                       <Button variant="ghost" size="sm" onClick={() => setResetId(u.id)}>
                         <RotateCcw className="mr-1 size-4" />
                         Redefinir senha
                       </Button>
+                    ) : (
+                      <Badge variant="outline">Somente consulta</Badge>
                     )}
                   </td>
                 </tr>
@@ -216,7 +218,7 @@ function UsuariosPage() {
               {(usersQuery.data ?? []).length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                    Nenhum usuário disponível nesta área.
+                    Nenhum usuário cadastrado.
                   </td>
                 </tr>
               )}
