@@ -133,7 +133,6 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
 
     const visibleProfiles = (profiles ?? []).filter((profile) =>
       (profile.email ?? "").toLowerCase() !== PROTECTED_ADMIN_EMAIL.toLowerCase()
-      && (scope.isCentralAdmin || profile.business_unit === scope.businessUnit)
     );
     const visibleIds = visibleProfiles.map((profile) => profile.id);
     const { data: roles, error: rError } = visibleIds.length
@@ -147,6 +146,7 @@ export const listUsersWithRoles = createServerFn({ method: "POST" })
       email: (profile.email as string) ?? "",
       role: ((roles ?? []).find((role) => role.user_id === profile.id)?.role as ManagedRole) ?? "operador",
       businessUnit: (profile.business_unit ?? "sistemas") as ManagedBusinessUnit,
+      canManage: scope.isCentralAdmin || profile.business_unit === scope.businessUnit,
       protectedAdmin: (profile.email ?? "").toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase(),
     }));
   });
