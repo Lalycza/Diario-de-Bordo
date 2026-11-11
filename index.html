@@ -3543,7 +3543,7 @@ function renderProductDetail(id){
  const characteristics=Array.isArray(p.characteristics)?p.characteristics:[];
  const deliverables=Array.isArray(p.deliverables)?p.deliverables:[];
  const list=items=>items.length?'<ul class="infra-product-list">'+items.map(x=>'<li>'+esc(typeof x==='string'?x:(String(x.name||'')+(x.value?': '+x.value:'')))+'</li>').join('')+'</ul>':'<span class="muted">Não informado</span>';
- const infraBody=infra?
+ const body=infra?
   '<div class="infra-product-overview">'+
    '<div class="infra-product-meta"><span class="badge">'+esc(p.productType||'Serviço')+'</span>'+(p.category?'<span class="badge">'+esc(p.category)+'</span>':'')+'<span class="badge '+(p.active===false?'badge-inactive':'badge-active')+'">'+(p.active===false?'Inativo':'Ativo')+'</span></div>'+
    (p.description?'<div class="infra-product-section"><b>Descrição</b><p>'+esc(p.description)+'</p></div>':'')+
@@ -3558,7 +3558,7 @@ function renderProductDetail(id){
     const subBody=subOpen?'<div class="catalog-subs">'+subs.map((sub,j)=>'<div class="catalog-sub"><span class="catalog-sub-label">'+esc(sub)+'</span>'+(admin?'<span class="catalog-sub-actions"><button class="secondary" onclick="editSubCatalog('+ma+','+j+')">✎</button><button class="danger" onclick="deleteSubCatalog('+ma+','+j+')">×</button></span>':'')+'</div>').join('')+'</div>':'';
     return '<div class="catalog-module"><div class="catalog-module-head"><div class="catalog-module-main"><div class="catalog-module-name"><b>'+esc(m.name)+'</b><span class="catalog-module-count">'+subs.length+' submódulo(s)</span></div>'+subButton+'</div><div class="catalog-actions">'+(admin?'<button class="secondary" onclick="editModuleCatalog('+ma+')">✎ Editar</button><button class="danger" onclick="deleteModuleCatalog('+ma+')">Excluir</button>':'')+'</div></div>'+subBody+'</div>';
    }).join(''):'<div class="catalog-empty muted">Nenhum módulo vinculado a este produto.</div>');
- el.innerHTML='<div class="top"><div><h1>'+esc(p.name||p.title||'Produto')+' '+areaBadge+'</h1><p class="muted">'+(infra?'Cadastro e especificação do produto / serviço da área Infra.':'Estrutura do produto: módulos e submódulos.')+'</p></div><div><button class="secondary" onclick="home()">← Meus projetos</button></div></div><div class="card"><div class="row" style="align-items:center;gap:10px;margin-bottom:10px"><div><b>'+(infra?'Cadastro do catálogo Infra':'Estrutura do produto')+'</b><div class="muted">'+(infra?'Produto/serviço independente do catálogo de Sistemas':mods.length+' módulo(s)')+'</div></div>'+tools+'</div><div class="product-structure">'+(infra?infraBody:body)+'</div></div>';
+ el.innerHTML='<div class="top"><div><h1>'+esc(p.name||p.title||'Produto')+' '+areaBadge+'</h1><p class="muted">'+(infra?'Cadastro e especificação do produto / serviço da área Infra.':'Estrutura do produto: módulos e submódulos.')+'</p></div><div><button class="secondary" onclick="home()">← Meus projetos</button></div></div><div class="card"><div class="row" style="align-items:center;gap:10px;margin-bottom:10px"><div><b>'+(infra?'Cadastro do catálogo Infra':'Estrutura do produto')+'</b><div class="muted">'+(infra?'Produto/serviço independente do catálogo de Sistemas':mods.length+' módulo(s)')+'</div></div>'+tools+'</div><div class="product-structure">' +body+'</div></div>';
 }
 function openProductAdmin(){if(!hasAdminAccess())return;hideSections();document.getElementById('catalog').classList.remove('hidden');renderUnifiedCatalog()}function refreshProductArea(id){if(!document.getElementById('productDetail')?.classList.contains('hidden'))renderProductDetail(id);else renderUnifiedCatalog();}
 function openOperatorProjects(){if(currentUser?.role!=='operator')return;hideSections();document.getElementById('home').classList.remove('hidden');const sub=document.getElementById('homeSub');if(sub)sub.textContent='Todos os projetos em andamento — somente consulta e download de documentos';document.getElementById('newTopBtn')?.classList.add('hidden');render()}
@@ -6075,12 +6075,15 @@ async function addProduct(){
 }
 function toggleNewProductModuleOptions(){
  const area=document.getElementById('newProductBusinessUnit')?.value||'sistemas';
- const moduleBox=document.getElementById('newProductModuleOptions');
+ const infra=area==='infra';
+ const infraFields=document.getElementById('newProductInfraFields');
+ const systemsFields=document.getElementById('newProductSystemsFields');
  const infraHint=document.getElementById('newProductInfraHint');
- if(moduleBox)moduleBox.style.display=area==='sistemas'?'block':'none';
- if(infraHint)infraHint.style.display=area==='infra'?'block':'none';
+ if(infraFields)infraFields.style.display=infra?'block':'none';
+ if(systemsFields)systemsFields.style.display=infra?'none':'block';
+ if(infraHint)infraHint.style.display=infra?'block':'none';
  const source=document.getElementById('newProductSource');
- if(source&&area==='infra')source.value='';
+ if(source&&infra)source.value='';
 }
 function editProductUnified(id){
  id=String(id);let p=productsData.find(x=>String(x.id)===id);if(!p||!hasAdminAccess())return;
