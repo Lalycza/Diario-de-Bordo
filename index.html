@@ -755,16 +755,21 @@ body>.agenda-drag-ghost{opacity:.98!important;z-index:2147483647!important;point
 #app #agendaPage .agenda-month-event[data-source="cronograma"] .agenda-event-actions button:hover{background:#263a55!important;box-shadow:0 0 0 2px rgba(255,255,255,.35),0 2px 6px rgba(0,0,0,.4)!important}
 
 /* Catálogo Infra — especificação do produto/serviço */
-.infra-product-overview{display:grid;gap:16px;padding:4px 0}
-.infra-product-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Catálogo Infra: ficha técnica compacta, coerente com os temas do IMPLANTA. */
+.infra-product-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:2px 0}
+.infra-product-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;grid-column:1/-1;margin-bottom:2px}
 .infra-product-meta .badge{font-size:11px}
-.infra-product-meta .badge-active{background:#e5f5eb;color:#23643b;border:1px solid #b8dfc5}
-.infra-product-meta .badge-inactive{background:#fce8e8;color:#9c3030;border:1px solid #efc3c3}
-.infra-product-section{padding:14px 16px;border:1px solid var(--border,#d8dee9);border-radius:12px;background:var(--card,#fff)}
-.infra-product-section>b{display:block;margin-bottom:8px;font-size:12px;text-transform:uppercase;letter-spacing:.055em;color:var(--muted,#64748b)}
-.infra-product-section p{margin:0;line-height:1.55;white-space:pre-wrap}
-.infra-product-list{margin:0;padding-left:20px;display:grid;gap:6px}
+.infra-product-meta .badge-active{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.32)}
+.infra-product-meta .badge-inactive{background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.32)}
+.app.theme-dark .infra-product-section{padding:12px 14px;border:1px solid rgba(65,145,220,.25);border-radius:10px;background:linear-gradient(145deg,rgba(21,35,53,.96),rgba(15,25,39,.96));color:#e7eef8;min-width:0}
+.app.theme-dark .infra-product-section>b{display:block;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#8db9e8}
+.app.theme-dark .infra-product-section p,.app.theme-dark .infra-product-list{margin:0;color:#e2eaf5;font-size:13px;line-height:1.5;white-space:pre-wrap}
+.app:not(.theme-dark) .infra-product-section{padding:12px 14px;border:1px solid #dce5f0;border-radius:10px;background:#fff;color:#1e293b;min-width:0}
+.app:not(.theme-dark) .infra-product-section>b{display:block;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#52657d}
+.app:not(.theme-dark) .infra-product-section p,.app:not(.theme-dark) .infra-product-list{margin:0;color:#26364a;font-size:13px;line-height:1.5;white-space:pre-wrap}
+.infra-product-list{padding-left:18px;display:grid;gap:4px}
 .infra-product-list li{line-height:1.45}
+@media(max-width:700px){.infra-product-overview{grid-template-columns:1fr}}
 
 </style><style id="light-override">
 /* Tema claro IMPLANTA: isolado do tema escuro e sem mudanças de lógica. */
