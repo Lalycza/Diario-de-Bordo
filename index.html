@@ -3500,8 +3500,20 @@ window.login=login;
 function toggleMenu(id,btn){const target=document.getElementById(id);if(!target)return;const opening=target.classList.contains('hidden');document.querySelectorAll('.menu-children').forEach(el=>el.classList.add('hidden'));document.querySelectorAll('.menu-toggle').forEach(el=>{el.setAttribute('aria-expanded','false')});if(opening){target.classList.remove('hidden');if(btn)btn.setAttribute('aria-expanded','true')}}
 let currentProductDetailId=null;const productMenuOpen=new Set();
 function openProduct(id){if(!currentUser||!permissionGate('menu_produtos',currentUser.role==='admin'||currentUser.role==='supervisor'))return;const p=productsData.find(x=>String(x.id)===String(id));if(!p)return;openWorkspaceTab('product-'+p.id,p.name||'Produto',()=>{currentProductDetailId=p.id;hideSections();document.getElementById('productDetail').classList.remove('hidden');renderProductDetail(p.id)})}
-function renderProductMenu(){const el=document.getElementById('productMenu');if(!el)return;const menuOrder=['HPro Fiscal','HPro Radar','HPro BI','PH2 Gestão','PH2 Gestão Customizado','PH2 Jurídico','PH2 Logística','Hiron Gestão','Hiron Pessoas','RHID'];const list=(Array.isArray(productsData)?productsData.filter(p=>p&&p.active!==false):[]).sort((a,b)=>{const ai=menuOrder.indexOf(a.name),bi=menuOrder.indexOf(b.name);return (ai<0?999:ai)-(bi<0?999:bi)||String(a.name||'').localeCompare(String(b.name||''));});const items=list.map(p=>{const pid=String(p.id);return '<button type="button" class="product-menu-item" onclick="openProduct(\''+escAttr(pid)+'\')">▸ '+esc(p.name||p.title||'Produto')+'</button>';}).join('');const maintenance=hasAdminAccess()?'<button type="button" class="product-menu-item product-menu-maintenance" onclick="openProductAdmin()">⚙ Manutenção</button>':'';el.innerHTML=items+maintenance||'<div class="product-menu-sub muted">Nenhum produto cadastrado.</div>';}
-
+function renderProductMenu(){
+ const el=document.getElementById('productMenu');if(!el)return;
+ const menuOrder=['HPro Fiscal','HPro Radar','HPro BI','PH2 Gestão','PH2 Gestão Customizado','PH2 Jurídico','PH2 Logística','Hiron Gestão','Hiron Pessoas','RHID'];
+ const list=(Array.isArray(productsData)?productsData.filter(p=>p&&p.active!==false):[]).sort((a,b)=>{
+  const ai=menuOrder.indexOf(a.name),bi=menuOrder.indexOf(b.name);
+  return (ai<0?999:ai)-(bi<0?999:bi)||String(a.name||'').localeCompare(String(b.name||''));
+ });
+ const items=list.map(p=>{
+  const pid=String(p.id),infra=(p.businessUnit||'sistemas')==='infra';
+  return '<button type="button" class="product-menu-item" onclick="openProduct(\''+escAttr(pid)+'\')"><span>▸ '+esc(p.name||p.title||'Produto')+'</span><small class="product-menu-area '+(infra?'product-menu-area-infra':'product-menu-area-sistemas')+'">'+(infra?'Infra':'Sistemas')+'</small></button>';
+ }).join('');
+ const maintenance=hasAdminAccess()?'<button type="button" class="product-menu-item product-menu-maintenance" onclick="openProductAdmin()">⚙ Manutenção</button>':'';
+ el.innerHTML=items+maintenance||'<div class="product-menu-sub muted">Nenhum produto cadastrado.</div>';
+}
 function renderProductDetail(id){
  const p=productsData.find(x=>String(x.id)===String(id)),el=document.getElementById('productDetailBody');
  if(!p||!el)return;
