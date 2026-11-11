@@ -6141,7 +6141,22 @@ function clientProductsHtml(x,editable){
   : '';
  return '<div class="select-list">'+(rows||'<div class="empty">Nenhum produto ou serviço vinculado a este cliente.</div>')+'</div>'+picker+'<div class="hint" style="margin-top:10px">Os produtos de Sistemas e os itens de Infra ficam identificados pela área e só podem ser vinculados quando o cliente possui contrato correspondente.</div>';
 }
-function addClientProductFromPicker(){let picker=document.getElementById('clientProductPicker');let pid=picker?.value;if(!pid)return;let p=productsData.find(x=>String(x.id)===String(pid));if(!p)return;let list=document.getElementById('clientProductsPane')?.querySelector('.select-list');if(!list)return;let empty=list.querySelector('.empty');if(empty)empty.remove();let row=document.createElement('div');row.className='client-product-row';row.dataset.productRow=String(p.id);row.innerHTML='<input type="checkbox" class="client-product" value="'+escAttr(p.id)+'" checked style="display:none"><div class="client-product-label"><span>'+esc(p.name)+'</span></div><div class="client-product-status-wrap"><select class="client-product-status" data-product-id="'+escAttr(p.id)+'"><option value="implantacao" selected>Em implantação</option><option value="suporte">Em suporte</option><option value="consultoria">Consultoria</option></select><select class="client-product-analyst" data-product-id="'+escAttr(p.id)+'"><option value="" selected>Sem responsável definido</option>'+usersData.filter(u=>u.role==='analyst').map(u=>'<option value="'+escAttr(u.id)+'">'+esc(u.name)+'</option>').join('')+'</select></div><button type="button" class="danger" onclick="removeClientProductFromForm(this)">Remover</button>';list.appendChild(row);picker.querySelector('option[value="'+CSS.escape(String(pid))+'"]')?.remove();picker.value='';if(!picker.querySelector('option:not([value=""])'))picker.disabled=true}
+function addClientProductFromPicker(){
+ let picker=document.getElementById('clientProductPicker'),pid=picker?.value;
+ if(!pid)return;
+ let p=productsData.find(x=>String(x.id)===String(pid));
+ if(!p)return;
+ let list=document.getElementById('clientProductsPane')?.querySelector('.select-list');
+ if(!list)return;
+ let empty=list.querySelector('.empty');if(empty)empty.remove();
+ const infra=(p.businessUnit||'sistemas')==='infra';
+ let row=document.createElement('div');row.className='client-product-row';row.dataset.productRow=String(p.id);
+ row.innerHTML='<input type="checkbox" class="client-product" value="'+escAttr(p.id)+'" checked style="display:none"><div class="client-product-label"><span>'+esc(p.name)+'</span><span class="client-product-area '+(infra?'client-product-area-infra':'client-product-area-sistemas')+'">'+(infra?'Infra':'Sistemas')+'</span></div><div class="client-product-status-wrap"><select class="client-product-status" data-product-id="'+escAttr(p.id)+'"><option value="implantacao" selected>Em implantação</option><option value="suporte">Em suporte</option><option value="consultoria">Consultoria</option></select><select class="client-product-analyst" data-product-id="'+escAttr(p.id)+'"><option value="" selected>Sem responsável definido</option>'+usersData.filter(u=>u.role==='analyst'&&((u.businessUnit||'sistemas')===(p.businessUnit||'sistemas')||u.businessUnit==='ambos')).map(u=>'<option value="'+escAttr(u.id)+'">'+esc(u.name)+'</option>').join('')+'</select></div><button type="button" class="danger" onclick="removeClientProductFromForm(this)">Remover</button>';
+ list.appendChild(row);
+ picker.querySelector('option[value="'+CSS.escape(String(pid))+'"]')?.remove();
+ picker.value='';
+ if(!picker.querySelector('option:not([value=""])'))picker.disabled=true;
+}
 function removeClientProductFromForm(button){let row=button?.closest('.client-product-row');if(!row)return;let pid=row.dataset.productRow;row.remove();let list=document.getElementById('clientProductsPane')?.querySelector('.select-list');if(list&&!list.querySelector('.client-product-row'))list.innerHTML='<div class="empty">Nenhum produto vinculado a este cliente.</div>';let picker=document.getElementById('clientProductPicker');if(picker&&pid){let p=productsData.find(x=>String(x.id)===String(pid));if(p){let opt=document.createElement('option');opt.value=String(p.id);opt.textContent=p.name;picker.appendChild(opt);picker.disabled=false}}}
 function clientFormHtml(c,isEdit){
  let x=normalizeClient(c||{}),
