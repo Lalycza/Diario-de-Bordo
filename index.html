@@ -3163,6 +3163,7 @@ function restoreState(){try{
   removeLegacyTestUsers();
   setTimeout(persistState,50);
 }catch(e){console.warn('Não foi possível restaurar os dados locais',e)}}
+window._trainingSurveyColumnAvailable=true;
 async function hydrateFromSupabase(){
   if(!supabaseSession)return;
   if(window._dbHydrationPromise)return window._dbHydrationPromise;
@@ -3193,6 +3194,12 @@ async function hydrateFromSupabase(){
       supabaseClient.from('project_go_live').select('id,project_id,module_id,status,go_live_date,support_active,notes'),
       supabaseClient.from('client_service_contracts').select('id,client_id,business_unit,contract_status,contract_reference,starts_on,ends_on,notes,created_by,created_at,updated_at').order('business_unit')
     ]);
+    if(tr.error&&String(tr.error.message||'').toLowerCase().includes('survey_applied')){
+      const legacyTrainings=await supabaseClient.from('trainings').select('project_id,module_id,submodule_id,subject,planned_month,planned_week,planned_date,realization_date,training_start_date,training_completion_date,status,responsible,homologation_date,homologation_responsible,original_planned_date,rescheduled_date,rescheduled_at,rescheduled_by,status_before_reschedule');
+      if(legacyTrainings.error)throw legacyTrainings.error;
+      tr.data=(legacyTrainings.data||[]).map(x=>({...x,survey_applied:null}));tr.error=null;window._trainingSurveyColumnAvailable=false;
+      console.warn('Campo Pesquisa ainda não existe no Supabase. O acesso ao sistema foi mantido; aplique a migração antes de salvar Pesquisa nos submódulos.');
+    }
     for(const q of [pr,mo,su,cl,cp,pg,pp,pm,pa,tr,cc,profilesQ,cd,pd,diaryQ,emailQ,kickoffQ,handoffQ,homQ,surveyQ,goLiveQ,contractsQ])if(q.error)throw q.error;
     // Compatibilidade com bancos de preview ainda sem as colunas de escopo; nunca bloquear o login por isso.
     for(const row of (mo.data||[]))row.project_id=null;
@@ -3961,6 +3968,7 @@ async function syncTrainingToSupabase(obj,old,resolvedRefs){
    rescheduled_by:changed?currentUser?.id:null,
    status_before_reschedule:changed?(old?.status||null):null
  };
+ if(window._trainingSurveyColumnAvailable===false)delete payload.survey_applied;
  if(existingQ.data?.id){
    const {error}=await supabaseClient.from('trainings').update(payload).eq('id',existingQ.data.id);
    if(error)throw error;
@@ -4000,6 +4008,7 @@ async function saveTask(index){
  let old=index==null?null:taskObj(cur.t[index]);
  if(!module||(!submodule&&!month))return alert(submodule?'O submódulo usa automaticamente o mês e a semana definidos no módulo.':'Informe o módulo e o mês do treinamento.');
  if(submodule&&!month)return alert('Defina primeiro a previsão do treinamento do módulo.');
+ if(submodule&&window._trainingSurveyColumnAvailable===false)return alert('A atualização do banco ainda não foi aplicada. Execute a migração de Pesquisa antes de salvar este submódulo.');
  if(submodule&&!['Sim','Não'].includes(surveyApplied))return alert('Informe se a pesquisa foi aplicada: Sim ou Não.');
  if(!isValidISODate(plannedDate)||!isValidISODate(trainingStartDate)||!isValidISODate(trainingEndDate)||!isValidISODate(homologationDate))return alert('Existe uma data inválida.');
  if(trainingStartDate&&trainingEndDate&&trainingEndDate<trainingStartDate)return alert('A data de término não pode ser anterior à data de início.');
