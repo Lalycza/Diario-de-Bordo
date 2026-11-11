@@ -4988,57 +4988,233 @@ function pdfPesquisa(){if(!cur)return;let body=pesquisaPdfBody();let preview='<d
 function printPesquisaPdf(){pdfPreviewTitle='Pesquisa de Satisfação';pdfPreviewBody=pesquisaPdfBody();printCurrentPdf()}
 function syncProjectMap(p){const ids=p.productIds||[];const seen={};const excluded=new Set((p.excludedModuleIds||[]).map(String));const oldRows=Array.isArray(p.m)?p.m.slice():[];const oldMeta=Object.fromEntries(oldRows.map(m=>[m[0],m[2]||{}]));const projectDbId=String(p.dbId||p.id||'');const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();const excludedSubs=window._projectSubmoduleExclusionKeys||new Set();const additions=window._projectSubmoduleAdditions||new Map();p.m=[];ids.forEach(pid=>{const pr=productsData.find(x=>x.id===pid);if(!pr)return;(pr.moduleIds||[]).forEach(mid=>{const m=modulesData.find(x=>x.id===mid);if(!m||seen[mid]||excluded.has(String(mid)))return;seen[mid]=1;const shared=(m.subs||[]).filter(name=>!excludedSubs.has(projectDbId+'::'+norm(m.name)+'::'+norm(name)));const scoped=additions.get(projectDbId+'::'+norm(m.name))||[];p.m.push([m.name,[...new Set([...shared,...scoped])],oldMeta[m.name]||{}])})});for(const row of oldRows){const meta=row[2]||{};if(meta.projectScoped===true&&!p.m.some(m=>String(m[2]?.dbId||'')===String(meta.dbId||''))){p.m.push(row)}}return p.m}
 function newProjectClientSearchText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
-function renderNewProjectClientPicker(query=''){const input=document.getElementById('newProjectClientSearch'),box=document.getElementById('newProjectClientResults'),sel=document.getElementById('newProjectClient');if(!input||!box||!sel)return;const q=newProjectClientSearchText(query||input.value);const list=[...(clientsData||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));const filtered=q?list.filter(c=>newProjectClientSearchText(c.name).includes(q)||newProjectClientSearchText(c.fantasy||'').includes(q)):list;const selected=sel.value;const shown=q?filtered.slice(0,8):[];box.innerHTML=shown.length?shown.map(c=>'<button type="button" class="new-project-client-option '+(String(c.name)===String(selected)?'selected':'')+'" data-name="'+escAttr(String(c.name))+'" onclick="selectNewProjectClient(this.dataset.name)"><span>'+esc(c.name||'Cliente sem nome')+'</span></button>').join(''):(q?'<div class="new-project-client-empty">Nenhum cliente encontrado.</div>':'');box.classList.toggle('hidden',!q);}
-function selectNewProjectClient(name){const sel=document.getElementById('newProjectClient'),input=document.getElementById('newProjectClientSearch'),box=document.getElementById('newProjectClientResults');if(!sel)return;sel.value=name||'';if(input)input.value=name||'';if(box)box.classList.add('hidden');updateProjectProductOptions();}
-function novo(){if(!canEdit())return;let clientOpts=[...(clientsData||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'})).map(c=>'<option value="'+escAttr(c.name)+'">'+esc(c.name)+'</option>').join('');let analystOpts=(hasAdminAccess()?usersData.filter(x=>x.role==='analyst'):usersData.filter(x=>x.id===currentUser.id)).map(x=>'<option value="'+x.id+'" '+(x.id===currentUser.id?'selected':'')+'>'+esc(x.name)+' · '+esc(x.email)+'</option>').join('');document.getElementById('modalbox').innerHTML='<h2>Novo projeto</h2><div class="task-form"><label>Nome do projeto</label><input id="newProjectName" placeholder="Ex.: Implantação PH2"><label>Cliente</label><div class="new-project-client-picker" style="position:relative"><input id="newProjectClientSearch" autocomplete="off" placeholder="Pesquisar cliente..." onfocus="renderNewProjectClientPicker()" oninput="renderNewProjectClientPicker(this.value)"><div id="newProjectClientResults" class="new-project-client-results hidden"></div><select id="newProjectClient" class="hidden" onchange="updateProjectProductOptions()"><option value="">Selecione o cliente</option>'+clientOpts+'</select></div><label>Produto / Sistema</label><select id="newProjectProduct" onchange="updateNewProjectDocumentationScope();updateNewProjectAnalystFromClientProduct()"><option value="">Selecione primeiro o cliente</option></select><div class="hint">O produto é carregado a partir dos produtos cadastrados para o cliente.</div><div id="newProjectTypeLabel" class="hint">Tipo: —</div><div id="newProjectScopeWrap" style="display:none"><label>Documentação inicial da consultoria</label><select id="newProjectScope"><option value="diario" selected>Somente Diário</option><option value="all">Inserir Mapa + Cronograma + Diário</option></select><div class="hint">Consultorias começam sem Mapa e Cronograma. Se precisar dessas etapas, selecione a opção acima.</div></div><label>Analista responsável</label><select id="newProjectAnalyst"><option value="">Selecione o analista</option>'+analystOpts+'</select><div class="hint new-project-analyst-hint">O analista será herdado automaticamente do vínculo cliente/produto quando houver.</div><div style="text-align:right"><button class="secondary" onclick="closeModal()">Cancelar</button> <button class="primary" onclick="saveNewProject()">Criar projeto</button></div></div>';document.getElementById('modal').classList.remove('hidden');renderNewProjectClientPicker();document.getElementById('newProjectName').focus()}
-function updateNewProjectDocumentationScope(){let sel=document.getElementById('newProjectProduct'),scope=document.getElementById('newProjectScope'),tl=document.getElementById('newProjectTypeLabel'),sw=document.getElementById('newProjectScopeWrap');if(!sel)return;let c=clientsData.find(x=>x.name===document.getElementById('newProjectClient')?.value);normalizeClient(c||{});let item=(Array.isArray(c?.productIds)?c.productIds:[]).map(id=>{let p=productsData.find(x=>String(x.id)===String(id));return p?{p,status:c.productStatus?.[String(id)]||'implantacao'}:null}).find(x=>x&&String(x.p.id)===String(sel.value));let isConsult=item?.status==='consultoria';if(tl)tl.textContent='Tipo: '+(item?.status==='suporte'?'Suporte':isConsult?'Consultoria':item?'Implantação':'—');if(sw)sw.style.display=isConsult?'block':'none';if(scope&&isConsult)scope.value=scope.value==='all'?'all':'diario';if(scope&&!isConsult)scope.value='all'}
-function updateNewProjectAnalystFromClientProduct(){const sel=document.getElementById('newProjectProduct'),a=document.getElementById('newProjectAnalyst');if(!sel||!a)return;const c=clientsData.find(x=>x.name===document.getElementById('newProjectClient')?.value);const aid=c?.productAnalystIds?.[String(sel.value)]||'';a.value=aid||'';a.disabled=!!aid;const hint=a.parentElement?.querySelector('.new-project-analyst-hint');if(hint)hint.textContent=aid?'Analista herdado do vínculo do cliente/produto.':'Nenhum analista definido no vínculo do cliente/produto; selecione aqui se necessário.'}
-function updateProjectProductOptions(){let clientName=document.getElementById('newProjectClient')?.value||'',sel=document.getElementById('newProjectProduct');if(!sel)return;let c=clientsData.find(x=>x.name===clientName);normalizeClient(c||{});let ids=Array.isArray(c?.productIds)?c.productIds:[];let list=ids.map(id=>{let p=productsData.find(x=>String(x.id)===String(id));return p?{p,status:c.productStatus?.[String(id)]||'implantacao'}:null}).filter(Boolean);sel.innerHTML='<option value="">Selecione o produto</option>'+list.map(x=>'<option value="'+escAttr(x.p.id)+'" '+(x.status==='suporte'?'disabled':'')+'>'+esc(x.p.name)+' — '+(x.status==='consultoria'?'Consultoria':x.status==='suporte'?'Em suporte':'Em implantação')+'</option>').join('')+(list.length?'':'<option value="" disabled>Cliente sem produto cadastrado</option>');updateNewProjectAnalystFromClientProduct();updateNewProjectDocumentationScope()}
+function newProjectBusinessUnit(){
+ const select=document.getElementById('newProjectBusinessUnit');
+ if(isSuperAdmin())return select?.value||'sistemas';
+ return currentUser?.businessUnit==='infra'?'infra':'sistemas';
+}
+function newProjectClientsForArea(area){
+ return [...(clientsData||[])].filter(c=>Array.isArray(c.serviceAreas)&&c.serviceAreas.includes(area))
+  .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));
+}
+function updateNewProjectArea(){
+ const area=newProjectBusinessUnit();
+ const clientSelect=document.getElementById('newProjectClient');
+ const clientSearch=document.getElementById('newProjectClientSearch');
+ const previous=clientSelect?.value||'';
+ const allowed=newProjectClientsForArea(area);
+ if(clientSelect){
+  clientSelect.innerHTML='<option value="">Selecione o cliente com contrato de '+(area==='infra'?'Infra':'Sistemas')+'</option>'+allowed.map(c=>'<option value="'+escAttr(c.name)+'">'+esc(c.name)+'</option>').join('');
+  if(allowed.some(c=>c.name===previous))clientSelect.value=previous;
+  else{clientSelect.value='';if(clientSearch)clientSearch.value='';}
+ }
+ const analystSelect=document.getElementById('newProjectAnalyst');
+ if(analystSelect){
+  const candidates=(usersData||[]).filter(u=>u.role==='analyst'&&((u.businessUnit||'sistemas')===area||u.businessUnit==='ambos'));
+  const analysts=hasAdminAccess()?candidates:candidates.filter(u=>String(u.id)===String(currentUser?.id));
+  analystSelect.innerHTML='<option value="">Selecione o analista</option>'+analysts.map(u=>'<option value="'+escAttr(u.id)+'">'+esc(u.name)+' · '+esc(u.email)+'</option>').join('');
+ }
+ const label=document.getElementById('newProjectProductLabel');
+ const hint=document.getElementById('newProjectProductHint');
+ if(label)label.textContent=area==='infra'?'Produto / serviço de Infra (opcional)':'Produto / Sistema';
+ if(hint)hint.textContent=area==='infra'?'Infra utiliza itens próprios do catálogo, sem módulos de ERP. O vínculo do produto/serviço é opcional enquanto o catálogo é montado.':'O produto é carregado a partir dos produtos de Sistemas vinculados ao cliente.';
+ updateProjectProductOptions();
+ renderNewProjectClientPicker(clientSearch?.value||'');
+}
+function renderNewProjectClientPicker(query=''){
+ const input=document.getElementById('newProjectClientSearch'),box=document.getElementById('newProjectClientResults'),sel=document.getElementById('newProjectClient');
+ if(!input||!box||!sel)return;
+ const area=newProjectBusinessUnit(),q=newProjectClientSearchText(query||input.value);
+ const list=newProjectClientsForArea(area);
+ const filtered=q?list.filter(c=>newProjectClientSearchText(c.name).includes(q)||newProjectClientSearchText(c.fantasy||'').includes(q)):list;
+ const selected=sel.value,shown=q?filtered.slice(0,8):[];
+ box.innerHTML=shown.length?shown.map(c=>'<button type="button" class="new-project-client-option '+(String(c.name)===String(selected)?'selected':'')+'" data-name="'+escAttr(String(c.name))+'" onclick="selectNewProjectClient(this.dataset.name)"><span>'+esc(c.name||'Cliente sem nome')+'</span></button>').join(''):(q?'<div class="new-project-client-empty">Nenhum cliente com contrato nesta área.</div>':'');
+ box.classList.toggle('hidden',!q);
+}
+function selectNewProjectClient(name){
+ const sel=document.getElementById('newProjectClient'),input=document.getElementById('newProjectClientSearch'),box=document.getElementById('newProjectClientResults');
+ if(!sel)return;
+ sel.value=name||'';if(input)input.value=name||'';if(box)box.classList.add('hidden');
+ updateProjectProductOptions();
+}
+function novo(){
+ if(!canEdit())return;
+ const central=isSuperAdmin(),defaultArea=currentUser?.businessUnit==='infra'?'infra':'sistemas';
+ const areaField=central
+  ? '<label>Área do projeto</label><select id="newProjectBusinessUnit" onchange="updateNewProjectArea()"><option value="sistemas" '+(defaultArea==='sistemas'?'selected':'')+'>Sistemas</option><option value="infra" '+(defaultArea==='infra'?'selected':'')+'>Infra</option></select>'
+  : '<label>Área do projeto</label><input value="'+(defaultArea==='infra'?'Infra':'Sistemas')+'" disabled>';
+ const initialClients=newProjectClientsForArea(defaultArea);
+ const clientOpts=initialClients.map(c=>'<option value="'+escAttr(c.name)+'">'+esc(c.name)+'</option>').join('');
+ const candidates=(usersData||[]).filter(x=>x.role==='analyst'&&((x.businessUnit||'sistemas')===defaultArea||x.businessUnit==='ambos'));
+ const analystOpts=(hasAdminAccess()?candidates:candidates.filter(x=>String(x.id)===String(currentUser?.id))).map(x=>'<option value="'+escAttr(x.id)+'">'+esc(x.name)+' · '+esc(x.email)+'</option>').join('');
+ document.getElementById('modalbox').innerHTML=
+  '<h2>Novo projeto</h2><div class="task-form">'+areaField+
+  '<label>Nome do projeto</label><input id="newProjectName" placeholder="Ex.: Projeto de infraestrutura">'+
+  '<label>Cliente</label><div class="new-project-client-picker" style="position:relative">'+
+  '<input id="newProjectClientSearch" autocomplete="off" placeholder="Pesquisar cliente com contrato nesta área..." onfocus="renderNewProjectClientPicker()" oninput="renderNewProjectClientPicker(this.value)">'+
+  '<div id="newProjectClientResults" class="new-project-client-results hidden"></div>'+
+  '<select id="newProjectClient" class="hidden" onchange="updateProjectProductOptions()"><option value="">Selecione o cliente</option>'+clientOpts+'</select></div>'+
+  '<label id="newProjectProductLabel">'+(defaultArea==='infra'?'Produto / serviço de Infra (opcional)':'Produto / Sistema')+'</label>'+
+  '<select id="newProjectProduct" onchange="updateNewProjectDocumentationScope();updateNewProjectAnalystFromClientProduct()"><option value="">'+(defaultArea==='infra'?'Sem produto específico / definir depois':'Selecione primeiro o cliente')+'</option></select>'+
+  '<div class="hint" id="newProjectProductHint">'+(defaultArea==='infra'?'Infra utiliza itens próprios do catálogo, sem módulos de ERP. O vínculo do produto/serviço é opcional enquanto o catálogo é montado.':'O produto é carregado a partir dos produtos de Sistemas vinculados ao cliente.')+'</div>'+
+  '<div id="newProjectTypeLabel" class="hint">Tipo: —</div>'+
+  '<div id="newProjectScopeWrap" style="display:none"><label>Documentação inicial da consultoria</label><select id="newProjectScope"><option value="diario" selected>Somente Diário</option><option value="all">Inserir Mapa + Cronograma + Diário</option></select><div class="hint">Consultorias de Sistemas podem começar sem Mapa e Cronograma.</div></div>'+
+  '<label>Analista responsável</label><select id="newProjectAnalyst"><option value="">Selecione o analista</option>'+analystOpts+'</select>'+
+  '<div class="hint new-project-analyst-hint">O analista deve pertencer à área do projeto. O responsável do produto será herdado quando houver.</div>'+
+  '<div style="text-align:right"><button class="secondary" onclick="closeModal()">Cancelar</button> <button class="primary" onclick="saveNewProject()">Criar projeto</button></div></div>';
+ document.getElementById('modal').classList.remove('hidden');
+ updateProjectProductOptions();
+ renderNewProjectClientPicker();
+ document.getElementById('newProjectName').focus();
+}
+function updateNewProjectDocumentationScope(){
+ const area=newProjectBusinessUnit(),sel=document.getElementById('newProjectProduct'),scope=document.getElementById('newProjectScope'),tl=document.getElementById('newProjectTypeLabel'),sw=document.getElementById('newProjectScopeWrap');
+ if(area==='infra'){
+  if(tl)tl.textContent='Projeto de Infra · Documentos e Diário disponíveis; Mapa e Cronograma de módulos não se aplicam.';
+  if(sw)sw.style.display='none';
+  if(scope)scope.value='all';
+  return;
+ }
+ if(!sel)return;
+ const c=clientsData.find(x=>x.name===document.getElementById('newProjectClient')?.value);
+ const item=(Array.isArray(c?.productIds)?c.productIds:[]).map(id=>{
+  const p=productsData.find(x=>String(x.id)===String(id)&&(x.businessUnit||'sistemas')==='sistemas');
+  return p?{p,status:c.productStatus?.[String(id)]||'implantacao'}:null;
+ }).find(x=>x&&String(x.p.id)===String(sel.value));
+ const isConsult=item?.status==='consultoria';
+ if(tl)tl.textContent='Tipo: '+(item?.status==='suporte'?'Suporte':isConsult?'Consultoria':item?'Implantação':'—');
+ if(sw)sw.style.display=isConsult?'block':'none';
+ if(scope&&isConsult)scope.value=scope.value==='all'?'all':'diario';
+ if(scope&&!isConsult)scope.value='all';
+}
+function updateNewProjectAnalystFromClientProduct(){
+ const sel=document.getElementById('newProjectProduct'),a=document.getElementById('newProjectAnalyst');
+ if(!sel||!a)return;
+ const c=clientsData.find(x=>x.name===document.getElementById('newProjectClient')?.value);
+ const aid=sel.value?c?.productAnalystIds?.[String(sel.value)]||'':'';
+ a.value=aid||'';a.disabled=!!aid;
+ const hint=a.parentElement?.querySelector('.new-project-analyst-hint');
+ if(hint)hint.textContent=aid?'Analista herdado do vínculo do produto/serviço.':'O analista deve pertencer à área do projeto.';
+}
+function updateProjectProductOptions(){
+ const area=newProjectBusinessUnit(),clientName=document.getElementById('newProjectClient')?.value||'',sel=document.getElementById('newProjectProduct');
+ if(!sel)return;
+ const c=clientsData.find(x=>x.name===clientName);
+ const ids=Array.isArray(c?.productIds)?c.productIds:[];
+ const list=ids.map(id=>{
+  const p=productsData.find(x=>String(x.id)===String(id)&&(x.businessUnit||'sistemas')===area);
+  return p?{p,status:c.productStatus?.[String(id)]||'implantacao'}:null;
+ }).filter(Boolean);
+ const emptyOption='<option value="">'+(area==='infra'?'Sem produto específico / definir depois':'Selecione o produto do cliente')+'</option>';
+ sel.innerHTML=emptyOption+list.map(x=>'<option value="'+escAttr(x.p.id)+'" '+(x.status==='suporte'?'disabled':'')+'>'+esc(x.p.name)+' — '+(x.status==='consultoria'?'Consultoria':x.status==='suporte'?'Em suporte':'Em implantação')+'</option>').join('');
+ if(area==='sistemas'&&!list.length)sel.innerHTML+='<option value="" disabled>Cliente sem produto de Sistemas vinculado</option>';
+ updateNewProjectAnalystFromClientProduct();
+ updateNewProjectDocumentationScope();
+}
 async function persistNewProjectToSupabase(p){
  if(!supabaseSession?.user?.id)throw new Error('Sessão Supabase expirada. Entre novamente antes de criar o projeto.');
+ const businessUnit=p.businessUnit||'sistemas';
+ if(!['sistemas','infra'].includes(businessUnit))throw new Error('Área do projeto inválida.');
  const client=clientsData.find(c=>String(c.id)===String(p.clientId));
  if(!client?.dbId)throw new Error('O cliente selecionado ainda não possui vínculo com o Supabase.');
+ if(!Array.isArray(client.serviceAreas)||!client.serviceAreas.includes(businessUnit))throw new Error('O cliente não possui contrato/vínculo ativo para '+(businessUnit==='infra'?'Infra':'Sistemas')+'.');
  const productLocalId=(p.productIds||[])[0];
- if(productLocalId==null)throw new Error('Produto do projeto não informado.');
- const productLegacy=localLegacy('product',productLocalId);
- const {data:prod,error:prodError}=await supabaseClient.from('products').select('id').eq('legacy_id',productLegacy).maybeSingle();
- if(prodError)throw new Error('Produto do projeto: '+prodError.message);
- if(!prod?.id)throw new Error('Produto do projeto não encontrado no Supabase: '+productLegacy);
+ let productDbId=null;
+ if(productLocalId!=null){
+  const localProduct=productsData.find(x=>String(x.id)===String(productLocalId));
+  if(!localProduct||String(localProduct.businessUnit||'sistemas')!==businessUnit)throw new Error('O produto/serviço selecionado pertence a outra área.');
+  const {data:prod,error:prodError}=await supabaseClient.from('products').select('id,business_unit').eq('legacy_id',localLegacy('product',productLocalId)).maybeSingle();
+  if(prodError)throw new Error('Produto/serviço do projeto: '+prodError.message);
+  if(!prod?.id||prod.business_unit!==businessUnit)throw new Error('Produto/serviço não encontrado no catálogo da área selecionada.');
+  productDbId=prod.id;
+ }else if(businessUnit==='sistemas'){
+  throw new Error('Projetos de Sistemas precisam de um produto do catálogo vinculado.');
+ }
  const selectedId=(p.operatorIds||[])[0];
- let ownerId=currentUser.id;
- let analystProfileId=null;
+ let ownerId=currentUser.id,analystProfileId=null;
  if(selectedId){
-   const localUser=(usersData||[]).find(u=>String(u.id)===String(selectedId));
-   const {data:profile,error:profileError}=await supabaseClient.from('profiles').select('id,email,role,active').eq('id',String(selectedId)).maybeSingle();
-   if(profileError)throw new Error('Responsável do projeto: '+profileError.message);
-   if(!profile?.id){
-     const byEmail=await supabaseClient.from('profiles').select('id,email,role,active').eq('email',localUser?.email||p.owner||'').maybeSingle();
-     if(byEmail.error)throw new Error('Responsável do projeto: '+byEmail.error.message);
-     if(!byEmail.data)throw new Error('Analista responsável não encontrado no Supabase.');
-     analystProfileId=byEmail.data.id;ownerId=byEmail.data.id;
-   }else{analystProfileId=profile.id;ownerId=profile.id;}
+  const {data:profile,error:profileError}=await supabaseClient.from('profiles').select('id,email,role,active,business_unit').eq('id',String(selectedId)).maybeSingle();
+  if(profileError)throw new Error('Responsável do projeto: '+profileError.message);
+  if(!profile?.id)throw new Error('Analista responsável não encontrado ou sem acesso nesta área.');
+  if(!profile.active||profile.role!=='analyst'||!['ambos',businessUnit].includes(profile.business_unit))throw new Error('O analista precisa estar ativo e vinculado à mesma área do projeto.');
+  analystProfileId=profile.id;ownerId=profile.id;
  }
  const moduleIds=[];
- for(const m of (p.m||[])){
+ if(businessUnit==='sistemas'){
+  for(const m of (p.m||[])){
    const localModule=modulesData.find(x=>x.name===m[0]);
    if(!localModule)continue;
    const moduleLegacy=localLegacy('module',localModule.id);
    const {data:dbModule,error:me}=await supabaseClient.from('modules').select('id').eq('legacy_id',moduleLegacy).maybeSingle();
    if(me)throw new Error('Módulo do projeto: '+me.message);
    if(dbModule?.id)moduleIds.push(dbModule.id);
+  }
  }
- const payload={legacy_id:localLegacy('project',p.id),name:p.n||'Projeto sem nome',client_id:client.dbId,owner_id:ownerId,status:p.projectStatus||'Ativo',progress:0,start_date:p.startDate||null,delivery_date:p.endDate||null,original_delivery_date:p.originalEndDate||p.endDate||null,base_date:p.baseDate||null,finalized:false,project_type:p.projectType==='consultoria'?'consultoria':'implantacao',documentation_scope:p.projectType==='consultoria'?(p.documentationScope==='diario'?'diario':'all'):'all',created_by:currentUser.id};
- const {data:createdId,error}=await supabaseClient.rpc('create_project_atomic',{p_payload:payload,p_product_id:prod.id,p_profile_id:analystProfileId,p_module_ids:moduleIds});
+ const payload={
+  legacy_id:localLegacy('project',p.id),name:p.n||'Projeto sem nome',
+  client_id:client.dbId,owner_id:ownerId,status:p.projectStatus||'Ativo',progress:0,
+  start_date:p.startDate||null,delivery_date:p.endDate||null,
+  original_delivery_date:p.originalEndDate||p.endDate||null,base_date:p.baseDate||null,
+  finalized:false,project_type:p.projectType==='consultoria'?'consultoria':'implantacao',
+  documentation_scope:businessUnit==='infra'?'all':(p.projectType==='consultoria'?(p.documentationScope==='diario'?'diario':'all'):'all'),
+  business_unit:businessUnit,created_by:currentUser.id
+ };
+ const {data:createdId,error}=await supabaseClient.rpc('create_project_atomic',{
+  p_payload:payload,p_product_id:productDbId,p_profile_id:analystProfileId,p_module_ids:moduleIds
+ });
  if(error)throw new Error('Criação do projeto: '+error.message);
  if(!createdId)throw new Error('O Supabase não retornou o identificador do projeto criado.');
  p.dbId=createdId;
  return createdId;
 }
-async function saveNewProject(){if(!canEdit())return;let n=document.getElementById('newProjectName').value.trim(),client=document.getElementById('newProjectClient').value;if(!n)return alert('Informe o nome do projeto.');if(!client)return alert('Selecione o cliente.');let clientObj=clientsData.find(x=>x.name===client);let selectedProduct=document.getElementById('newProjectProduct')?.value||'';let productIds=selectedProduct?[Number(selectedProduct)]:[];if(!productIds.length)return alert('Selecione o produto do projeto.');let status=clientObj?.productStatus?.[String(productIds[0])]||'implantacao';if(status==='suporte')return alert('Este produto está em suporte e não pode abrir um novo projeto.');let projectType=status==='consultoria'?'consultoria':'implantacao';let documentationScope=projectType==='consultoria'?(document.getElementById('newProjectScope')?.value||'diario'):'all';let analystId=document.getElementById('newProjectAnalyst')?.value||'';let operatorIds=analystId?[analystId]:[];let p={id:Date.now(),n,c:client,clientId:clientObj?.id||null,productIds,operatorIds,owner:(usersData.find(x=>x.id===operatorIds[0])||currentUser).email,t:[],m:[],modulesInitialized:false,projectType,documentationScope,d:[],docs:[],emails:[],kickoff:{status:'Pendente',notes:''},handoff:{status:'Pendente',notes:''},pesquisa:{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},homologacao:{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'larissa@implanta.com',delivered:false,trained:false,accepted:false,observations:''},goLive:{},audit:[]};if(documentationScope==='all'){syncProjectMap(p);p.modulesInitialized=true;}else{p.m=[];p.modulesInitialized=true;}p.projectStatus='Ativo';p.lifecycleHistory=[{date:new Date().toISOString(),from:'',to:'Ativo',reason:'Projeto criado'}];
+async function saveNewProject(){
+ if(!canEdit())return;
+ const n=document.getElementById('newProjectName').value.trim();
+ const clientName=document.getElementById('newProjectClient').value;
+ const businessUnit=newProjectBusinessUnit();
+ if(!n)return alert('Informe o nome do projeto.');
+ if(!clientName)return alert('Selecione um cliente com contrato na área escolhida.');
+ const clientObj=clientsData.find(x=>x.name===clientName);
+ if(!clientObj)return alert('Cliente não encontrado.');
+ if(!Array.isArray(clientObj.serviceAreas)||!clientObj.serviceAreas.includes(businessUnit))return alert('Este cliente não possui vínculo ativo para a área selecionada.');
+ const selectedProduct=document.getElementById('newProjectProduct')?.value||'';
+ const productIds=selectedProduct?[Number(selectedProduct)]:[];
+ if(businessUnit==='sistemas'&&!productIds.length)return alert('Selecione o produto de Sistemas vinculado ao cliente.');
+ if(productIds.length){
+  const selectedCatalogProduct=productsData.find(x=>String(x.id)===String(productIds[0]));
+  if(!selectedCatalogProduct||(selectedCatalogProduct.businessUnit||'sistemas')!==businessUnit)return alert('Selecione um produto/serviço do catálogo da área correta.');
+ }
+ const status=productIds.length?(clientObj?.productStatus?.[String(productIds[0])]||'implantacao'):'implantacao';
+ if(status==='suporte')return alert('Este produto está em suporte e não pode abrir um novo projeto.');
+ const projectType=status==='consultoria'?'consultoria':'implantacao';
+ const documentationScope=businessUnit==='infra'?'all':(projectType==='consultoria'?(document.getElementById('newProjectScope')?.value||'diario'):'all');
+ const analystId=document.getElementById('newProjectAnalyst')?.value||'';
+ const operatorIds=analystId?[analystId]:[];
+ const p={
+  id:Date.now(),n,c:clientName,clientId:clientObj.id,businessUnit,
+  productIds,operatorIds,owner:(usersData.find(x=>String(x.id)===String(operatorIds[0]))||currentUser).email,
+  t:[],m:[],modulesInitialized:true,projectType,documentationScope,d:[],docs:[],emails:[],
+  kickoff:{status:'Pendente',notes:''},handoff:{status:'Pendente',notes:''},
+  pesquisa:{status:'Pendente',sentAt:'',returnedAt:'',respondent:{company:'',name:'',role:'',email:'',product:''},answers:{},goLiveConfirmation:{},comment:''},
+  homologacao:{status:'Pendente',date:'',clientSignatory:'',clientRole:'',analyst:'',delivered:false,trained:false,accepted:false,observations:''},
+  goLive:{},audit:[]
+ };
+ if(businessUnit==='sistemas'&&documentationScope==='all')syncProjectMap(p);
+ else p.m=[];
+ p.projectStatus='Ativo';
+ p.lifecycleHistory=[{date:new Date().toISOString(),from:'',to:'Ativo',reason:'Projeto criado'}];
  document.getElementById('modalbox')?.querySelector('button.primary')?.setAttribute('disabled','disabled');
- try{await persistNewProjectToSupabase(p);ps.push(p);persistState();closeModal();render();openP(p.id);alert('Projeto criado e salvo no Supabase.');}
- catch(e){console.error(e);document.getElementById('modalbox')?.querySelector('button.primary')?.removeAttribute('disabled');alert('Não foi possível salvar o projeto no Supabase. A inclusão não foi finalizada.\n\nErro: '+(e.message||e));}
-}function editarProjeto(){
+ try{
+  await persistNewProjectToSupabase(p);
+  ps.push(p);persistState();closeModal();render();openP(p.id);
+  alert('Projeto criado e salvo no Supabase.');
+ }catch(e){
+  console.error(e);
+  document.getElementById('modalbox')?.querySelector('button.primary')?.removeAttribute('disabled');
+  alert('Não foi possível salvar o projeto no Supabase. A inclusão não foi finalizada.\n\nErro: '+(e.message||e));
+ }
+}
+function editarProjeto(){
  const frozenAnalyst=canReactivateFrozenProject();
  if(!(canEdit()||frozenAnalyst)||!cur)return;
  let p=cur;
