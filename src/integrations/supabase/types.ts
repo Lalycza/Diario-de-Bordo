@@ -772,7 +772,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          project_id?: string | null
           active?: boolean
           code?: string | null
           created_at?: string
@@ -784,7 +783,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          project_id?: string | null
           active?: boolean
           code?: string | null
           created_at?: string
@@ -1430,7 +1428,6 @@ export type Database = {
       }
       submodules: {
         Row: {
-          project_id: string | null
           active: boolean
           code: string | null
           created_at: string
