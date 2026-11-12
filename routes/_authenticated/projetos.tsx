@@ -466,8 +466,19 @@ function ProjetosPage() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Pesquisar cliente..." />
+                      <Command
+                        filter={(value, search) => {
+                          const normalize = (text: string) => text
+                            .normalize("NFD")
+                            .replace(/[\\u0300-\\u036f]/g, "")
+                            .toLocaleLowerCase("pt-BR")
+                            .replace(/[^a-z0-9]/g, "");
+                          const normalizedValue = normalize(value);
+                          const normalizedSearch = normalize(search);
+                          return normalizedValue.includes(normalizedSearch) ? 1 : 0;
+                        }}
+                      >
+                        <CommandInput placeholder="Pesquisar razão social, nome fantasia ou CNPJ..." />
                         <CommandList>
                           <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                           <CommandGroup>
@@ -476,7 +487,11 @@ function ProjetosPage() {
                               .map((client) => (
                                 <CommandItem
                                   key={client.id}
-                                  value={client.razao_social ?? client.nome_fantasia ?? ""}
+                                  value={[
+                                    client.razao_social,
+                                    client.nome_fantasia,
+                                    client.cnpj,
+                                  ].filter(Boolean).join(" ")}
                                   onSelect={() => {
                                     const allowed = clientProductsQuery.data?.filter((link) => link.client_id === client.id).map((link) => link.product_id) ?? [];
                                     setForm((current) => current ? {
