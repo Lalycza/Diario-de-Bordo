@@ -55,6 +55,22 @@ as $function$
     );
 $function$;
 
+-- SECURITY DEFINER helper avoids recursive RLS evaluation when the contract
+-- policy checks whether its client belongs to the authenticated analyst.
+create or replace function public.is_own_client(_client_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path to ''
+as $function$
+  select exists (
+    select 1 from public.clients c
+    where c.id = _client_id
+      and c.created_by = (select auth.uid())
+  );
+$function$;
+
 drop policy if exists client_service_contracts_area_manager_all on public.client_service_contracts;
 create policy client_service_contracts_area_manager_all
 on public.client_service_contracts
@@ -65,11 +81,7 @@ using (
   or (
     public.has_role((select auth.uid()),'analista'::public.app_role)
     and business_unit=public.current_business_unit()
-    and exists (
-      select 1 from public.clients c
-      where c.id=client_service_contracts.client_id
-        and c.created_by=(select auth.uid())
-    )
+    and public.is_own_client(client_id)
   )
 )
 with check (
@@ -78,10 +90,6 @@ with check (
     public.has_role((select auth.uid()),'analista'::public.app_role)
     and business_unit=public.current_business_unit()
     and created_by=(select auth.uid())
-    and exists (
-      select 1 from public.clients c
-      where c.id=client_service_contracts.client_id
-        and c.created_by=(select auth.uid())
-    )
+    and public.is_own_client(client_id)
   )
 );
