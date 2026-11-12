@@ -187,7 +187,19 @@ function ProjetosPage() {
 
   const saveProject = useMutation({
     mutationFn: async (values: ProjectForm) => {
+      // A política RLS exige que projetos criados por Analistas/Supervisores
+      // declarem explicitamente a unidade de negócio do usuário autenticado.
+      const { data: creatorProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("business_unit")
+        .eq("id", user.id)
+        .single();
+      if (profileError) throw profileError;
+      const businessUnit = creatorProfile?.business_unit;
+      if (!businessUnit) throw new Error("Não foi possível identificar a área do usuário.");
+
       const payload = {
+        business_unit: businessUnit,
         client_id: values.client_id || null,
         cliente: values.cliente,
         descricao: values.descricao || null,
