@@ -89,10 +89,53 @@ function ProjetosPage() {
   const clientsQuery = useQuery({
     queryKey: ["clients-for-project"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id, razao_social, nome_fantasia, email, product_id").order("razao_social");
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, razao_social, nome_fantasia, email, product_id, created_by")
+        .order("razao_social");
       if (error) throw error;
       return data ?? [];
     },
+  });
+
+  const clientContractsQuery = useQuery({
+    queryKey: ["client-contracts-for-project", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_service_contracts")
+        .select("client_id, business_unit, contract_status");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const profileQuery = useQuery({
+    queryKey: ["project-creator-business-unit", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("business_unit")
+        .eq("id", user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const currentBusinessUnit = profileQuery.data?.business_unit ?? null;
+  const clientsForCurrentArea = (clientsQuery.data ?? []).filter((client) => {
+    if (isAdmin) return true;
+    const hasActiveAreaContract = (clientContractsQuery.data ?? []).some(
+      (contract) =>
+        contract.client_id === client.id &&
+        ["active", "legacy"].includes(contract.contract_status) &&
+        (contract.business_unit === currentBusinessUnit ||
+          contract.business_unit === "ambos" ||
+          currentBusinessUnit === "ambos"),
+    );
+    // O analista pode criar projeto para cliente que ele próprio cadastrou,
+    // mesmo se o vínculo contratual estiver sendo sincronizado/ajustado.
+    return hasActiveAreaContract || client.created_by === user.id;
   });
 
   const productsQuery = useQuery({
@@ -115,8 +158,8 @@ function ProjetosPage() {
 
   useEffect(() => {
     const clientId = new URLSearchParams(window.location.search).get("client_id");
-    if (!clientId || form || !clientsQuery.data || !clientProductsQuery.data) return;
-    const client = clientsQuery.data.find((item) => item.id === clientId);
+    if (!clientId || form || !clientsForCurrentArea || !clientProductsQuery.data) return;
+    const client = clientsForCurrentArea.find((item) => item.id === clientId);
     if (!client) return;
     const linkedProducts = (clientProductsQuery.data ?? []).filter((link) => link.client_id === client.id);
     const selectedProductId =
@@ -137,7 +180,7 @@ function ProjetosPage() {
       // quer trabalhar somente com o Diário.
     });
     window.history.replaceState({}, "", "/projetos");
-  }, [clientsQuery.data, clientProductsQuery.data, form]);
+  }, [clientsForCurrentArea, clientProductsQuery.data, form]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -227,7 +270,18 @@ function ProjetosPage() {
         }
       }
 
+      const { data: creatorProfile, error: creatorProfileError } = await supabase
+        .from("profiles")
+        .select("business_unit")
+        .eq("id", user.id)
+        .single();
+      if (creatorProfileError) throw creatorProfileError;
+      if (!creatorProfile?.business_unit) {
+        throw new Error("Não foi possível identificar a área do usuário para criar o projeto.");
+      }
+
       const payload = {
+        business_unit: creatorProfile.business_unit,
         client_id: clientId,
         cliente: values.id ? (values.cliente || existing?.cliente || "") : values.cliente,
         descricao: values.descricao || null,
@@ -569,7 +623,7 @@ function ProjetosPage() {
                 <Select
                   value={form.client_id || undefined}
                   onValueChange={(value) => {
-                    const client = (clientsQuery.data ?? []).find((c) => c.id === value);
+                    const client = clientsForCurrentArea.find((c) => c.id === value);
                     setForm((current) => current ? {
                       ...current,
                       client_id: value,
@@ -599,10 +653,10 @@ function ProjetosPage() {
                   }}
                 >
                   <SelectTrigger id="cliente" className="w-full">
-                    <SelectValue placeholder={clientsQuery.isLoading ? "Carregando clientes..." : "Selecione o cliente"} />
+                    <SelectValue placeholder={clientsQuery.isLoading || clientContractsQuery.isLoading || profileQuery.isLoading ? "Carregando clientes..." : "Selecione o cliente"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {(clientsQuery.data ?? []).map((client) => (
+                    {clientsForCurrentArea.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.razao_social}{client.nome_fantasia ? ` — ${client.nome_fantasia}` : ""}
                       </SelectItem>
