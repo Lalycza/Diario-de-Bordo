@@ -122,6 +122,26 @@ function ProjetosPage() {
     },
   });
 
+  const productsQuery = useQuery({
+    queryKey: ["products-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("products").select("id, name, business_unit").eq("active", true).order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const clientProductsQuery = useQuery({
+    queryKey: ["all-client-products-for-project"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_products")
+        .select("client_id, product_id, status, analyst_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const currentBusinessUnit = profileQuery.data?.business_unit ?? null;
   const clientsForCurrentArea = (clientsQuery.data ?? []).filter((client) => {
     if (isAdmin) return true;
@@ -148,25 +168,7 @@ function ProjetosPage() {
     return assignedToAnalystInArea || hasActiveAreaContract || client.created_by === user.id;
   });
 
-  const productsQuery = useQuery({
-    queryKey: ["products-for-project"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("id, name, business_unit").eq("active", true).order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
 
-  const clientProductsQuery = useQuery({
-    queryKey: ["all-client-products-for-project"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_products")
-        .select("client_id, product_id, status, analyst_id");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
 
   useEffect(() => {
     const clientId = new URLSearchParams(window.location.search).get("client_id");
