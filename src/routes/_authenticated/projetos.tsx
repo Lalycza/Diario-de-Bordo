@@ -125,6 +125,16 @@ function ProjetosPage() {
   const currentBusinessUnit = profileQuery.data?.business_unit ?? null;
   const clientsForCurrentArea = (clientsQuery.data ?? []).filter((client) => {
     if (isAdmin) return true;
+    const linkedProducts = (clientProductsQuery.data ?? []).filter(
+      (link) => link.client_id === client.id,
+    );
+    const assignedToAnalystInArea = isAnalista && linkedProducts.some((link) => {
+      if (link.analyst_id !== user.id) return false;
+      const product = (productsQuery.data ?? []).find((item) => item.id === link.product_id);
+      return product?.business_unit === currentBusinessUnit ||
+        product?.business_unit === "ambos" ||
+        currentBusinessUnit === "ambos";
+    });
     const hasActiveAreaContract = (clientContractsQuery.data ?? []).some(
       (contract) =>
         contract.client_id === client.id &&
@@ -133,15 +143,15 @@ function ProjetosPage() {
           contract.business_unit === "ambos" ||
           currentBusinessUnit === "ambos"),
     );
-    // O analista pode criar projeto para cliente que ele próprio cadastrou,
-    // mesmo se o vínculo contratual estiver sendo sincronizado/ajustado.
-    return hasActiveAreaContract || client.created_by === user.id;
+    // O analista enxerga clientes explicitamente atribuídos a ele no vínculo
+    // cliente-produto, sem depender da leitura da tabela de contratos via RLS.
+    return assignedToAnalystInArea || hasActiveAreaContract || client.created_by === user.id;
   });
 
   const productsQuery = useQuery({
     queryKey: ["products-for-project"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("id, name").eq("active", true).order("name");
+      const { data, error } = await supabase.from("products").select("id, name, business_unit").eq("active", true).order("name");
       if (error) throw error;
       return data ?? [];
     },
@@ -150,7 +160,9 @@ function ProjetosPage() {
   const clientProductsQuery = useQuery({
     queryKey: ["all-client-products-for-project"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("client_products").select("client_id, product_id, status");
+      const { data, error } = await supabase
+        .from("client_products")
+        .select("client_id, product_id, status, analyst_id");
       if (error) throw error;
       return data ?? [];
     },
