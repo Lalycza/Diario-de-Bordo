@@ -94,6 +94,7 @@ function ClientesPage() {
   const buscarCnpj = useServerFn(lookupCnpj);
   const [form, setForm] = useState<ClientForm | null>(null);
   const [detalhe, setDetalhe] = useState<string | null>(null);
+  const [clientSearch, setClientSearch] = useState("");
 
   const abrirNovoProjeto = (clientId: string) => {
     window.location.href = "/projetos?client_id=" + encodeURIComponent(clientId);
@@ -131,9 +132,22 @@ function ClientesPage() {
   const clientsQuery = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("*").order("razao_social");
-      if (error) throw error;
-      return data;
+      // Supabase/PostgREST aplica um limite máximo por resposta. Buscar em páginas
+      // evita que clientes mais recentes fiquem invisíveis quando a carteira cresce.
+      const pageSize = 500;
+      const allClients: Array<Record<string, any>> = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("clients")
+          .select("*")
+          .order("razao_social", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        allClients.push(...(data ?? []));
+        if (!data || data.length < pageSize) break;
+      }
+      return allClients;
     },
   });
 
@@ -297,6 +311,31 @@ function ClientesPage() {
   });
 
   const clients = clientsQuery.data ?? [];
+  const normalizedClientSearch = clientSearch
+    .trim()
+    .normalize("NFD")
+    .replace(/[\\u0300-\\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR");
+  const searchDigits = clientSearch.replace(/\\D/g, "");
+  const filteredClients = normalizedClientSearch || searchDigits
+    ? clients.filter((client) => {
+        const searchableText = [
+          client.razao_social,
+          client.nome_fantasia,
+          client.cnpj,
+          client.municipio,
+          client.email,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .normalize("NFD")
+          .replace(/[\\u0300-\\u036f]/g, "")
+          .toLocaleLowerCase("pt-BR");
+        const clientDigits = String(client.cnpj ?? "").replace(/\\D/g, "");
+        return searchableText.includes(normalizedClientSearch) ||
+          (searchDigits.length > 0 && clientDigits.includes(searchDigits));
+      })
+    : clients;
   const clienteDetalhe = clients.find((c) => c.id === detalhe);
   const projetosDoCliente = (projectsQuery.data ?? []).filter((p) => {
     if (p.client_id === detalhe) return true;
@@ -317,7 +356,20 @@ function ClientesPage() {
         </Button>
       </div>
 
-      {clients.length === 0 ? (
+      <div className="mb-3">
+        <Input
+          value={clientSearch}
+          onChange={(event) => setClientSearch(event.target.value)}
+          placeholder="Pesquisar cliente ou CNPJ..."
+          aria-label="Pesquisar cliente ou CNPJ"
+        />
+      </div>
+
+      {clientsQuery.isLoading ? (
+        <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
+          Carregando clientes...
+        </div>
+      ) : clients.length === 0 ? (
         <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
           Nenhum cliente cadastrado.
         </div>
@@ -335,7 +387,9 @@ function ClientesPage() {
               </tr>
             </thead>
             <tbody>
-              {clients.map((client) => (
+              {filteredClients.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum cliente encontrado para essa pesquisa.</td></tr>
+              ) : filteredClients.map((client) => (
                 <tr key={client.id} className="border-t">
                   <td className="px-4 py-3">
                     <button
