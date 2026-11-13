@@ -224,17 +224,16 @@ function ClientesPage() {
         razao_social: values.razao_social,
         nome_fantasia: values.nome_fantasia || null,
         email: values.email || null,
-        telefone: values.telefone || null,
-        logradouro: values.logradouro || null,
-        numero: values.numero || null,
-        complemento: values.complemento || null,
-        bairro: values.bairro || null,
-        municipio: values.municipio || null,
-        uf: values.uf || null,
+        phone: values.telefone || null,
+        address: values.logradouro || null,
+        number: values.numero || null,
+        complement: values.complemento || null,
+        neighborhood: values.bairro || null,
+        city: values.municipio || null,
+        state: values.uf || null,
         cep: values.cep || null,
-        situacao_cadastral: values.situacao_cadastral || null,
         atividade_principal: values.atividade_principal || null,
-        observacoes: values.observacoes || null,
+        notes: values.observacoes || null,
       };
       if (values.id) {
         // Atualização não destrutiva: nunca apagamos todos os vínculos antes de
@@ -323,7 +322,7 @@ function ClientesPage() {
           client.razao_social,
           client.nome_fantasia,
           client.cnpj,
-          client.municipio,
+          client.city,
           client.email,
         ]
           .filter(Boolean)
@@ -405,7 +404,7 @@ function ClientesPage() {
                   </td>
                   <td className="px-4 py-3">{client.cnpj ?? "—"}</td>
                   <td className="px-4 py-3">
-                    {client.municipio ? `${client.municipio}/${client.uf ?? ""}` : "—"}
+                    {client.city ? `${client.city}/${client.state ?? ""}` : "—"}
                   </td>
                   <td className="px-4 py-3">{client.email ?? "—"}</td>
                   <td className="px-4 py-3">
@@ -426,17 +425,17 @@ function ClientesPage() {
                           razao_social: client.razao_social,
                           nome_fantasia: client.nome_fantasia ?? "",
                           email: client.email ?? "",
-                          telefone: client.telefone ?? "",
-                          logradouro: client.logradouro ?? "",
-                          numero: client.numero ?? "",
-                          complemento: client.complemento ?? "",
-                          bairro: client.bairro ?? "",
-                          municipio: client.municipio ?? "",
-                          uf: client.uf ?? "",
+                          telefone: client.phone ?? "",
+                          logradouro: client.address ?? "",
+                          numero: client.number ?? "",
+                          complemento: client.complement ?? "",
+                          bairro: client.neighborhood ?? "",
+                          municipio: client.city ?? "",
+                          uf: client.state ?? "",
                           cep: client.cep ?? "",
                           situacao_cadastral: client.situacao_cadastral ?? "",
                           atividade_principal: client.atividade_principal ?? "",
-                          observacoes: client.observacoes ?? "",
+                          observacoes: client.notes ?? "",
                         })
                       }
                     >
