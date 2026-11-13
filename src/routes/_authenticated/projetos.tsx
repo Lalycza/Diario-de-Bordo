@@ -253,7 +253,7 @@ function ProjetosPage() {
       const currentProject = values.id
         ? await supabase
             .from("projects")
-            .select("client_id, product_id, cliente, descricao, responsavel, analista, coordenacao, email_cliente, data_inicio, previsao_conclusao, data_entrega_original, project_type, documentation_scope")
+            .select("name, client_id, product_id, cliente, descricao, responsavel, analista, coordenacao, email_cliente, data_inicio, previsao_conclusao, data_entrega_original, project_type, documentation_scope")
             .eq("id", values.id)
             .single()
         : null;
@@ -295,6 +295,10 @@ function ProjetosPage() {
       }
 
       const payload = {
+        // A coluna name é obrigatória no banco. O campo visível no formulário
+        // é "Nome do projeto/cliente"; manter os dois nomes sincronizados evita
+        // falha de INSERT e divergência em integrações que leem projects.name.
+        name: values.cliente.trim(),
         business_unit: creatorProfile.business_unit,
         client_id: clientId,
         cliente: values.id ? (values.cliente || existing?.cliente || "") : values.cliente,
