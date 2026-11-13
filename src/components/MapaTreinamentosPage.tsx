@@ -17,7 +17,7 @@ import { useProject } from "@/lib/useProject";
 import { registerDocumentationUpdate } from "@/lib/documentation";
 
 type PM={project_id:string;module_id:string;planned_training_date:string|null;module:{id:string;name:string}|null};
-type SM={id:string;module_id:string;name:string};
+type SM={id:string;module_id:string;name:string;project_id:string|null};
 type TR={id:string;module_id:string|null;submodule_id:string|null;planned_date:string|null;responsible:string|null;status:string;realization_date:string|null;homologation_date:string|null;homologation_responsible:string|null;training_start_date:string|null;training_completion_date:string|null;original_planned_date:string|null;rescheduled_date:string|null;rescheduled_at:string|null;rescheduled_by:string|null;status_before_reschedule:string|null};
 type F={kind:"module"|"submodule";moduleId:string;moduleName:string;submoduleId?:string;submoduleName?:string;plannedDate:string;month:string;week:string;start:string;completion:string;homDate:string;homBy:string;status:string;id?:string};
 const STAT=["Pendente","Em andamento","Concluído","Homologado"];
@@ -28,7 +28,7 @@ const fd=(v?:string|null)=>v?new Date(v+"T12:00:00").toLocaleDateString("pt-BR")
 export function MapaTreinamentosPage(){
  const { projectId } = useParams({ from: "/_authenticated/projeto/$projectId/modulos" }); const { user } = useRouteContext({ from: "/_authenticated/projeto/$projectId/modulos" }); const project=useProject(projectId); const qc=useQueryClient(); const [form,setForm]=useState<F|null>(null);
  const mods=useQuery({queryKey:["mapa-mods",projectId],queryFn:async()=>{const{data,error}=await supabase.from("project_modules").select("project_id,module_id,planned_training_date,module:modules!project_modules_module_id_fkey(id,name)").eq("project_id",projectId).order("module_id");if(error)throw error;return(data??[]) as unknown as PM[]}});
- const subs=useQuery({queryKey:["mapa-subs",projectId],enabled:!mods.isLoading,queryFn:async()=>{const ids=(mods.data??[]).map(x=>x.module_id);if(!ids.length)return[] as SM[];const{data,error}=await supabase.from("submodules").select("id,module_id,name").in("module_id",ids).eq("active",true).order("name");if(error)throw error;return(data??[]) as SM[]}});
+ const subs=useQuery({queryKey:["mapa-subs",projectId],enabled:!mods.isLoading,queryFn:async()=>{const ids=(mods.data??[]).map(x=>x.module_id);if(!ids.length)return[] as SM[];const{data,error}=await supabase.from("submodules").select("id,module_id,name,project_id").in("module_id",ids).or(`project_id.is.null,project_id.eq.${projectId}`).eq("active",true).order("name");if(error)throw error;return(data??[]) as SM[]}});
  const trs=useQuery({queryKey:["mapa-trs",projectId],queryFn:async()=>{const{data,error}=await supabase.from("trainings").select("id,module_id,submodule_id,planned_date,responsible,status,realization_date,homologation_date,homologation_responsible,training_start_date,training_completion_date").eq("project_id",projectId);if(error)throw error;return(data??[]) as TR[]}});
  const inv=()=>{qc.invalidateQueries({queryKey:["mapa-mods",projectId]});qc.invalidateQueries({queryKey:["mapa-subs",projectId]});qc.invalidateQueries({queryKey:["mapa-trs",projectId]});qc.invalidateQueries({queryKey:["stages",projectId]});};
  const save=useMutation({mutationFn:async(f:F)=>{
