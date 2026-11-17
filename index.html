@@ -3856,15 +3856,22 @@ function moduleCronCell(name,records,month,week){
  const meta=entry?.[2]||{};
  const moduleRows=records.filter(t=>!t.submodule);
  const subRows=records.filter(t=>!!t.submodule);
+ // Cada submódulo representa uma única execução vigente no Cronograma.
+ // Registros anteriores do mesmo submódulo não devem criar células extras
+ // em semanas diferentes nem repetir a mesma data/status.
+ const latestBySubmodule=new Map();
+ subRows.forEach(t=>latestBySubmodule.set(norm(t.submodule),t));
+ const currentSubRows=[...latestBySubmodule.values()];
  const scheduledDate=meta.plannedDate||moduleRows.slice(-1).map(t=>t.rescheduledDate||t.plannedDate||t.plannedDateOriginal).find(Boolean)||'';
+ // A previsão inicial é histórica e nunca é substituída pela execução real.
  const originalPlannedDate=meta.plannedDateOriginal||moduleRows.map(t=>t.plannedDateOriginal||t.plannedDate).find(Boolean)||scheduledDate;
  const plannedWeek=monthWeekFromDate(scheduledDate);
  const actualOf=t=>monthWeekFromDate(t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate);
- const byActual=subRows.some(t=>{const x=actualOf(t);return x&&x.month===month&&x.week===week});
+ const byActual=currentSubRows.some(t=>{const x=actualOf(t);return x&&x.month===month&&x.week===week});
  const byPlanned=!!plannedWeek&&plannedWeek.month===month&&plannedWeek.week===week;
  if(!byActual&&!byPlanned)return null;
  const status=moduleCronStatus(name,records);
- const actualDates=subRows.map(x=>x.homologationDate||x.trainingEndDate||x.trainingStartDate||x.trainingDate).filter(Boolean).sort();
+ const actualDates=currentSubRows.map(x=>x.homologationDate||x.trainingEndDate||x.trainingStartDate||x.trainingDate).filter(Boolean).sort();
  const currentDate=actualDates[actualDates.length-1]||'';
  return {status,originalPlannedDate,scheduledDate,currentDate};
 }
