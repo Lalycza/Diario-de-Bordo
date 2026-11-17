@@ -6364,7 +6364,7 @@ async function syncClientServiceContracts(c){
  if(!c?.dbId)throw new Error('Cliente ainda não possui vínculo no Supabase.');
  const allowedAreas=isSuperAdmin()
   ? ['sistemas','infra']
-  : (currentUser?.role==='supervisor'&&['sistemas','infra'].includes(currentUser?.businessUnit)?[currentUser.businessUnit]:[]);
+  : (['supervisor','analyst'].includes(currentUser?.role)&&['sistemas','infra'].includes(currentUser?.businessUnit)?[currentUser.businessUnit]:[]);
  if(!allowedAreas.length)return;
  const selected=new Set(Array.isArray(c.serviceAreas)?c.serviceAreas:[]);
  const existing=Array.isArray(c.serviceContracts)?c.serviceContracts:[];
@@ -6493,10 +6493,11 @@ async function syncClientToSupabase(c){
   normalizeClient(c);
   if(isSuperAdmin()){
     c.serviceAreas=['sistemas','infra'].filter(area=>!!document.getElementById('clientArea_'+area)?.checked);
-  }else if(currentUser?.role==='supervisor'){
+  }else if(['supervisor','analyst'].includes(currentUser?.role)){
     const area=currentUser.businessUnit==='infra'?'infra':'sistemas';
     const previous=Array.isArray(c.serviceAreas)?c.serviceAreas.filter(value=>value!==area):[];
-    c.serviceAreas=[...new Set([...previous,...(document.getElementById('clientArea_'+area)?.checked?[area]:[])])];
+    const selected=currentUser.role==='analyst'&&!id?true:!!document.getElementById('clientArea_'+area)?.checked;
+    c.serviceAreas=[...new Set([...previous,...(selected?[area]:[])])];
   }
   let selectedProductIds=[...document.querySelectorAll('.client-product:checked')].map(x=>Number(x.value));
   let productStatus={...(c.productStatus||{})};
