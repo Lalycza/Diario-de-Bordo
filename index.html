@@ -3848,7 +3848,7 @@ function moduleCronStatus(name,records){
  return 'PENDENTE';
 }
 function moduleCronCell(name,records,month,week){
- const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ');
+ const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
  const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&norm(m[0])===norm(name));
  const meta=entry?.[2]||{};
  const moduleRows=records.filter(t=>!t.submodule);
