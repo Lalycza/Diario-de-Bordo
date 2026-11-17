@@ -3872,9 +3872,18 @@ function moduleCronCell(name,records,month,week){
   const milestone=t.homologationDate?'Homologação':t.trainingEndDate?'Término':'Início';
   return {name:t.submodule,status,date,milestone,month:week?.month,week:week?.week};
  }).filter(x=>x.date&&x.month===month&&x.week===week);
+ // Agrupa submódulos que tiveram o mesmo marco, status e data.
+ // Datas diferentes continuam como ocorrências independentes no calendário.
+ const grouped=new Map();
+ items.forEach(item=>{
+  const key=[item.date,item.status,item.milestone].join('|');
+  if(!grouped.has(key))grouped.set(key,{...item,names:[],count:0});
+  const group=grouped.get(key);group.names.push(item.name);group.count++;
+ });
+ const groups=[...grouped.values()];
  const byPlanned=!!plannedWeek&&plannedWeek.month===month&&plannedWeek.week===week;
- if(!byPlanned&&!items.length)return null;
- return {items,scheduledDate,originalPlannedDate,byPlanned,status:moduleCronStatus(name,records)};
+ if(!byPlanned&&!groups.length)return null;
+ return {groups,scheduledDate,originalPlannedDate,byPlanned,status:moduleCronStatus(name,records)};
 }
 function cronQuarterHtml(title,months,displayRecords,year){
  // O Cronograma lista apenas módulos com previsão principal no Mapa.
@@ -3889,7 +3898,7 @@ function cronQuarterHtml(title,months,displayRecords,year){
  const modules=plannedModules.map((m,index)=>({key:m[0],name:m[0],plannedDate:m[2].plannedDate,meta:m[2],originalIndex:index})).sort((a,b)=>String(a.plannedDate||'').localeCompare(String(b.plannedDate||''))||a.originalIndex-b.originalIndex);
  modules.forEach(a=>{const all=records.filter(t=>normModule(t.module||t.name)===normModule(a.key));if(!all.some(t=>!t.submodule&&(t.plannedDateOriginal||t.plannedDate))){all.push({module:a.name,submodule:'',plannedDate:a.plannedDate,plannedDateOriginal:a.plannedDate,status:'PENDENTE'});}const status=moduleCronStatus(a.key,all);const resp=status==='HOMOLOGADO'?'CLIENTE':all.some(t=>t.trainingStartDate||t.trainingDate)?'CLIENTE':'HPRO';
  h+='<tr><td class="activity-cell">'+esc(a.name)+'</td><td class="responsible-cell">'+esc(resp)+'</td>';
- months.forEach(m=>{for(let w=1;w<=5;w++){const cell=moduleCronCell(a.key,all,m,w);if(!cell){h+='<td class="week-cell status-vazio"></td>';continue}const hasReschedule=!!(cell.scheduledDate&&cell.originalPlannedDate&&cell.scheduledDate!==cell.originalPlannedDate);let info='';if(cell.byPlanned){info+=(hasReschedule?'<span class="cron-training">Prev. original: '+esc(formatDateBR(cell.originalPlannedDate))+'</span><span class="cron-training">Nova previsão: '+esc(formatDateBR(cell.scheduledDate))+'</span>':'<span class="cron-training">Prev.: '+esc(formatDateBR(cell.scheduledDate))+'</span>')}cell.items.forEach(item=>{const label=item.milestone==='Início'?'Início real':item.milestone==='Término'?'Término real':'Homologação';info+='<span class="cron-training"><b>'+esc(item.name)+'</b> · '+esc(item.status)+'</span><span class="cron-training">'+label+': '+esc(formatDateBR(item.date))+'</span>'});const primary=cell.items[0]?.status||(cell.byPlanned?cell.status:'PENDENTE');const sc=cronStatusClass(primary);const bg=sc==='status-andamento'?'#f7e5bd':sc==='status-concluido'?'#dcefdc':sc==='status-homologado'?'#e5dcf4':sc==='status-replanejado'?'#f6e3b5':sc==='status-pendente'?'#f9d8d5':'#fff';const fg=sc==='status-andamento'?'#8a6825':sc==='status-concluido'?'#47734a':sc==='status-homologado'?'#6b4c8f':sc==='status-replanejado'?'#8a6825':sc==='status-pendente'?'#9f3d38':'#555';h+='<td class="week-cell '+sc+'" data-status="'+escAttr(primary)+'" style="background-color:'+bg+'!important;color:'+fg+'!important;box-shadow:inset 0 0 0 1px rgba(80,80,80,.10)" title="'+escAttr(a.name)+'">'+(cell.byPlanned?'<span class="cron-status" style="color:'+fg+'!important">'+esc(cell.status)+'</span>':'')+info+'</td>'}});
+ months.forEach(m=>{for(let w=1;w<=5;w++){const cell=moduleCronCell(a.key,all,m,w);if(!cell){h+='<td class="week-cell status-vazio"></td>';continue}const hasReschedule=!!(cell.scheduledDate&&cell.originalPlannedDate&&cell.scheduledDate!==cell.originalPlannedDate);let info='';if(cell.byPlanned){info+=(hasReschedule?'<span class="cron-training">Prev. original: '+esc(formatDateBR(cell.originalPlannedDate))+'</span><span class="cron-training">Nova previsão: '+esc(formatDateBR(cell.scheduledDate))+'</span>':'<span class="cron-training">Prev.: '+esc(formatDateBR(cell.scheduledDate))+'</span>')}cell.groups.forEach(group=>{const label=group.milestone==='Início'?'Início real':group.milestone==='Término'?'Término real':'Homologação';const subject=group.count>1?group.count+' submódulos':group.names[0];info+='<span class="cron-training"><b>'+esc(subject)+'</b> · '+esc(group.status)+'</span><span class="cron-training">'+label+': '+esc(formatDateBR(group.date))+'</span>'});const primary=cell.groups[0]?.status||(cell.byPlanned?cell.status:'PENDENTE');const sc=cronStatusClass(primary);const bg=sc==='status-andamento'?'#f7e5bd':sc==='status-concluido'?'#dcefdc':sc==='status-homologado'?'#e5dcf4':sc==='status-replanejado'?'#f6e3b5':sc==='status-pendente'?'#f9d8d5':'#fff';const fg=sc==='status-andamento'?'#8a6825':sc==='status-concluido'?'#47734a':sc==='status-homologado'?'#6b4c8f':sc==='status-replanejado'?'#8a6825':sc==='status-pendente'?'#9f3d38':'#555';h+='<td class="week-cell '+sc+'" data-status="'+escAttr(primary)+'" style="background-color:'+bg+'!important;color:'+fg+'!important;box-shadow:inset 0 0 0 1px rgba(80,80,80,.10)" title="'+escAttr(a.name)+'">'+(cell.byPlanned?'<span class="cron-status" style="color:'+fg+'!important">'+esc(cell.status)+'</span>':'')+info+'</td>'}});
  h+='</tr>'});return h+'</tbody></table></div>'}
 function cronSummaryHtml(){
  let mods=[...(cur?.m||[])].map(m=>Array.isArray(m)?m[0]:null).filter(Boolean);
