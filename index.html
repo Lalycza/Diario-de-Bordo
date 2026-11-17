@@ -5123,8 +5123,13 @@ function newProjectBusinessUnit(){
  return currentUser?.businessUnit==='infra'?'infra':'sistemas';
 }
 function newProjectClientsForArea(area){
- return [...(clientsData||[])].filter(c=>Array.isArray(c.serviceAreas)&&c.serviceAreas.includes(area))
-  .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));
+ return [...(clientsData||[])].filter(c=>{
+  if(!Array.isArray(c.serviceAreas)||!c.serviceAreas.includes(area))return false;
+  if(currentUser?.role!=='analyst')return true;
+  const uid=String(currentUser?.id||''),email=String(currentUser?.email||'').toLowerCase();
+  const assignedByProduct=Object.values(c.productAnalystIds||{}).some(v=>String(v||'')===uid||String(v||'').toLowerCase()===email);
+  return assignedByProduct||analystOwnsClient(c.id);
+ }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));
 }
 function updateNewProjectArea(){
  const area=newProjectBusinessUnit();
