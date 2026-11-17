@@ -3848,32 +3848,33 @@ function moduleCronStatus(name,records){
  return 'PENDENTE';
 }
 function moduleCronCell(name,records,month,week){
- // A célula planejada acompanha a data vigente do módulo.
- // A data original permanece somente como histórico do replanejamento.
- // Realizações continuam vindo exclusivamente de submódulos com data real.
- const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+ const norm=v=>String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ');
  const entry=(cur?.m||[]).find(m=>Array.isArray(m)&&norm(m[0])===norm(name));
  const meta=entry?.[2]||{};
  const moduleRows=records.filter(t=>!t.submodule);
  const subRows=records.filter(t=>!!t.submodule);
- // Cada submódulo representa uma única execução vigente no Cronograma.
- // Registros anteriores do mesmo submódulo não devem criar células extras
- // em semanas diferentes nem repetir a mesma data/status.
+ // Mantém apenas a execução vigente de cada submódulo, sem apagar
+ // datas distintas entre submódulos diferentes.
  const latestBySubmodule=new Map();
  subRows.forEach(t=>latestBySubmodule.set(norm(t.submodule),t));
  const currentSubRows=[...latestBySubmodule.values()];
  const scheduledDate=meta.plannedDate||moduleRows.slice(-1).map(t=>t.rescheduledDate||t.plannedDate||t.plannedDateOriginal).find(Boolean)||'';
- // A previsão inicial é histórica e nunca é substituída pela execução real.
+ // A previsão inicial é uma referência histórica imutável.
  const originalPlannedDate=meta.plannedDateOriginal||moduleRows.map(t=>t.plannedDateOriginal||t.plannedDate).find(Boolean)||scheduledDate;
  const plannedWeek=monthWeekFromDate(scheduledDate);
- const actualOf=t=>monthWeekFromDate(t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate);
- const byActual=currentSubRows.some(t=>{const x=actualOf(t);return x&&x.month===month&&x.week===week});
+ const items=currentSubRows.map(t=>{
+  const date=t.homologationDate||t.trainingEndDate||t.trainingStartDate||t.trainingDate||'';
+  const week=date?monthWeekFromDate(date):null;
+  const raw=norm(t.status);
+  const status=(t.homologationDate&&t.homologationResponsible)||raw==='HOMOLOGADO'?'HOMOLOGADO':
+   t.trainingEndDate||raw==='CONCLUIDO'?'CONCLUÍDO':
+   t.trainingStartDate||t.trainingDate||raw==='EM ANDAMENTO'?'EM ANDAMENTO':'PENDENTE';
+  const milestone=t.homologationDate?'Homologação':t.trainingEndDate?'Término':'Início';
+  return {name:t.submodule,status,date,milestone,month:week?.month,week:week?.week};
+ }).filter(x=>x.date&&x.month===month&&x.week===week);
  const byPlanned=!!plannedWeek&&plannedWeek.month===month&&plannedWeek.week===week;
- if(!byActual&&!byPlanned)return null;
- const status=moduleCronStatus(name,records);
- const actualDates=currentSubRows.map(x=>x.homologationDate||x.trainingEndDate||x.trainingStartDate||x.trainingDate).filter(Boolean).sort();
- const currentDate=actualDates[actualDates.length-1]||'';
- return {status,originalPlannedDate,scheduledDate,currentDate};
+ if(!byPlanned&&!items.length)return null;
+ return {items,scheduledDate,originalPlannedDate,byPlanned,status:moduleCronStatus(name,records)};
 }
 function cronQuarterHtml(title,months,displayRecords,year){
  // O Cronograma lista apenas módulos com previsão principal no Mapa.
@@ -3888,7 +3889,7 @@ function cronQuarterHtml(title,months,displayRecords,year){
  const modules=plannedModules.map((m,index)=>({key:m[0],name:m[0],plannedDate:m[2].plannedDate,meta:m[2],originalIndex:index})).sort((a,b)=>String(a.plannedDate||'').localeCompare(String(b.plannedDate||''))||a.originalIndex-b.originalIndex);
  modules.forEach(a=>{const all=records.filter(t=>normModule(t.module||t.name)===normModule(a.key));if(!all.some(t=>!t.submodule&&(t.plannedDateOriginal||t.plannedDate))){all.push({module:a.name,submodule:'',plannedDate:a.plannedDate,plannedDateOriginal:a.plannedDate,status:'PENDENTE'});}const status=moduleCronStatus(a.key,all);const resp=status==='HOMOLOGADO'?'CLIENTE':all.some(t=>t.trainingStartDate||t.trainingDate)?'CLIENTE':'HPRO';
  h+='<tr><td class="activity-cell">'+esc(a.name)+'</td><td class="responsible-cell">'+esc(resp)+'</td>';
- months.forEach(m=>{for(let w=1;w<=5;w++){const cell=moduleCronCell(a.key,all,m,w);if(!cell){h+='<td class="week-cell status-vazio"></td>';continue}const sc=cronStatusClass(cell.status);const bg=sc==='status-andamento'?'#f7e5bd':sc==='status-concluido'?'#dcefdc':sc==='status-homologado'?'#e5dcf4':sc==='status-replanejado'?'#f6e3b5':sc==='status-pendente'?'#f9d8d5':'#fff';const fg=sc==='status-andamento'?'#8a6825':sc==='status-concluido'?'#47734a':sc==='status-homologado'?'#6b4c8f':sc==='status-replanejado'?'#8a6825':sc==='status-pendente'?'#9f3d38':'transparent';const hasReschedule=!!(cell.scheduledDate&&cell.originalPlannedDate&&cell.scheduledDate!==cell.originalPlannedDate);const info=(hasReschedule?'<span class="cron-training">Prev. original: '+esc(formatDateBR(cell.originalPlannedDate))+'</span><span class="cron-training">Nova previsão: '+esc(formatDateBR(cell.scheduledDate))+'</span>':(cell.scheduledDate?'<span class="cron-training">Prev.: '+esc(formatDateBR(cell.scheduledDate))+'</span>':''))+(cell.currentDate&&cell.currentDate!==cell.scheduledDate?'<span class="cron-training">Real.: '+esc(formatDateBR(cell.currentDate))+'</span>':'');h+='<td class="week-cell '+sc+'" data-status="'+escAttr(cell.status)+'" style="background-color:'+bg+'!important;color:'+fg+'!important;box-shadow:inset 0 0 0 1px rgba(80,80,80,.10)" title="'+escAttr(a.name)+'"><span class="cron-status" style="color:'+fg+'!important">'+esc(cell.status)+'</span>'+info+'</td>'}});
+ months.forEach(m=>{for(let w=1;w<=5;w++){const cell=moduleCronCell(a.key,all,m,w);if(!cell){h+='<td class="week-cell status-vazio"></td>';continue}const hasReschedule=!!(cell.scheduledDate&&cell.originalPlannedDate&&cell.scheduledDate!==cell.originalPlannedDate);let info='';if(cell.byPlanned){info+=(hasReschedule?'<span class="cron-training">Prev. original: '+esc(formatDateBR(cell.originalPlannedDate))+'</span><span class="cron-training">Nova previsão: '+esc(formatDateBR(cell.scheduledDate))+'</span>':'<span class="cron-training">Prev.: '+esc(formatDateBR(cell.scheduledDate))+'</span>')}cell.items.forEach(item=>{const label=item.milestone==='Início'?'Início real':item.milestone==='Término'?'Término real':'Homologação';info+='<span class="cron-training"><b>'+esc(item.name)+'</b> · '+esc(item.status)+'</span><span class="cron-training">'+label+': '+esc(formatDateBR(item.date))+'</span>'});const primary=cell.items[0]?.status||(cell.byPlanned?cell.status:'PENDENTE');const sc=cronStatusClass(primary);const bg=sc==='status-andamento'?'#f7e5bd':sc==='status-concluido'?'#dcefdc':sc==='status-homologado'?'#e5dcf4':sc==='status-replanejado'?'#f6e3b5':sc==='status-pendente'?'#f9d8d5':'#fff';const fg=sc==='status-andamento'?'#8a6825':sc==='status-concluido'?'#47734a':sc==='status-homologado'?'#6b4c8f':sc==='status-replanejado'?'#8a6825':sc==='status-pendente'?'#9f3d38':'#555';h+='<td class="week-cell '+sc+'" data-status="'+escAttr(primary)+'" style="background-color:'+bg+'!important;color:'+fg+'!important;box-shadow:inset 0 0 0 1px rgba(80,80,80,.10)" title="'+escAttr(a.name)+'">'+(cell.byPlanned?'<span class="cron-status" style="color:'+fg+'!important">'+esc(cell.status)+'</span>':'')+info+'</td>'}});
  h+='</tr>'});return h+'</tbody></table></div>'}
 function cronSummaryHtml(){
  let mods=[...(cur?.m||[])].map(m=>Array.isArray(m)?m[0]:null).filter(Boolean);
