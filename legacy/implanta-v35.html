@@ -425,26 +425,56 @@ function pdfPesquisa(){if(!cur)return;let body=pesquisaPdfBody();let preview='<d
 function printPesquisaPdf(){pdfPreviewTitle='Pesquisa de Satisfação';pdfPreviewBody=pesquisaPdfBody();printCurrentPdf()}
 function generateMapFile(){
  if(!cur)return;
- const records=(cur.t||[]).map(taskObj);
- const effective=[],moduleSummary=[];
- const normalizeStatus=value=>{const s=String(value||'Pendente').trim().toLocaleLowerCase('pt-BR');if(s==='homologado'||s==='homologada')return 'Homologado';if(s==='concluído'||s==='concluido'||s==='concluída'||s==='concluida')return 'Concluído';if(s==='em andamento')return 'Em andamento';if(s==='replanejado'||s==='replanejada')return 'Replanejado';return 'Pendente'};
- (cur.m||[]).forEach(m=>{
-  const moduleName=m[0],children=Array.isArray(m[1])?m[1]:[],items=children.length?children:[null],moduleRows=[];
-  items.forEach(sub=>{
-   const matches=records.filter(t=>String(t.module||t.name||'').toLocaleLowerCase('pt-BR')===String(moduleName).toLocaleLowerCase('pt-BR')&&(sub?String(t.submodule||'').toLocaleLowerCase('pt-BR')===String(sub).toLocaleLowerCase('pt-BR'):!t.submodule));
-   matches.sort((a,b)=>String(a.updatedAt||a.createdAt||'').localeCompare(String(b.updatedAt||b.createdAt||'')));
-   const t=matches[matches.length-1]||{},status=normalizeStatus(t.status);
-   moduleRows.push({module:moduleName,submodule:sub||'',status,survey:t.surveyApplied==='Sim'?'Sim':'Não'});
-  });
-  effective.push(...moduleRows);
-  moduleSummary.push({name:moduleName,homologated:moduleRows.length>0&&moduleRows.every(x=>x.status==='Homologado')});
+ const norm=value=>String(value??'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/_/g,' ').replace(/\\s+/g,' ');
+ const records=(Array.isArray(cur.t)?cur.t:[]).map((raw,index)=>{
+  const t=taskObj(raw)||{};
+  return {...t,_mapIndex:index,module:t.module||t.moduleName||'',submodule:t.submodule||t.submoduleName||'',surveyApplied:t.surveyApplied||t.survey_applied||'Não'};
  });
- const completed=effective.filter(x=>x.status==='Concluído'||x.status==='Homologado').length;
- const progress=effective.length?Math.round(completed/effective.length*100):0;
- const homologated=moduleSummary.filter(x=>x.homologated).length;
- const pending=effective.filter(x=>x.status==='Pendente').length;
- const rows=effective.map(x=>'<tr><td><b>'+esc(x.module)+'</b></td><td>'+esc(x.submodule)+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.survey)+'</td></tr>').join('');
- const body='<h2 style="text-align:center">MAPA DO PROJETO</h2><div class="item"><b>Total Progresso:</b> '+progress+'% &nbsp; · &nbsp; <b>Módulos Homologados:</b> '+homologated+' &nbsp; · &nbsp; <b>Pendentes:</b> '+pending+'</div><table class="map-table"><thead><tr><th>Módulo</th><th>Submódulo</th><th>Status</th><th>Pesquisa</th></tr></thead><tbody>'+rows+'</tbody></table><div class="item">Documento gerado a partir do Mapa do projeto.</div>';
+ const latest=items=>items.reduce((best,item)=>!best||String(item.updatedAt||item.createdAt||'')>=String(best.updatedAt||best.createdAt||'')?item:best,null)||items[items.length-1]||null;
+ const itemStatus=t=>{
+  if(!t)return 'PENDENTE';
+  const status=norm(t.status);
+  if(status==='HOMOLOGADO'||(t.homologationDate&&t.homologationResponsible))return 'HOMOLOGADO';
+  if(status==='CONCLUIDO'||!!t.trainingEndDate)return 'CONCLUÍDO';
+  if(status==='EM ANDAMENTO'||!!(t.trainingStartDate||t.trainingDate))return 'EM ANDAMENTO';
+  if(status==='REPLANEJADO'||(t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate))return 'REPLANEJADO';
+  return 'PENDENTE';
+ };
+ const moduleStatus=(moduleName,recs,configuredSubs)=>{
+  const moduleRecords=recs.filter(t=>norm(t.module)===norm(moduleName)||(!t.module&&norm(t.name)===norm(moduleName)));
+  const subs=configuredSubs.length?configuredSubs:[...new Set(moduleRecords.map(t=>String(t.submodule||'').trim()).filter(Boolean))];
+  const items=subs.length?subs.map(sub=>latest(moduleRecords.filter(t=>norm(t.submodule)===norm(sub)))):[latest(moduleRecords.filter(t=>!t.submodule))];
+  const present=items.filter(Boolean);
+  if(items.length&&present.length===items.length&&items.every(t=>itemStatus(t)==='HOMOLOGADO'))return 'HOMOLOGADO';
+  if(items.length&&present.length===items.length&&items.every(t=>['CONCLUÍDO','HOMOLOGADO'].includes(itemStatus(t))))return 'CONCLUÍDO';
+  if(present.some(t=>itemStatus(t)==='EM ANDAMENTO'))return 'EM ANDAMENTO';
+  if(present.some(t=>itemStatus(t)==='REPLANEJADO'))return 'REPLANEJADO';
+  return 'PENDENTE';
+ };
+ const rows=[];
+ let completedModules=0,homologatedModules=0,pendingModules=0;
+ const modules=Array.isArray(cur.m)?cur.m:[];
+ modules.forEach(module=>{
+  const name=String(module?.[0]||'').trim();
+  if(!name)return;
+  const configuredSubs=Array.isArray(module?.[1])?module[1].map(String).filter(Boolean):[];
+  const moduleRecords=records.filter(t=>norm(t.module)===norm(name)||(!t.module&&norm(t.name)===norm(name)));
+  const subs=configuredSubs.length?configuredSubs:[...new Set(moduleRecords.map(t=>String(t.submodule||'').trim()).filter(Boolean))];
+  const status=moduleStatus(name,records,configuredSubs);
+  if(['CONCLUÍDO','HOMOLOGADO'].includes(status))completedModules++;
+  if(status==='HOMOLOGADO')homologatedModules++;
+  if(status==='PENDENTE')pendingModules++;
+  const items=subs.length?subs:[null];
+  items.forEach(sub=>{
+   const match=latest(moduleRecords.filter(t=>sub?norm(t.submodule)===norm(sub):!t.submodule));
+   const itemState=itemStatus(match);
+   const survey=match?(String(match.surveyApplied||'Não').trim()==='Sim'?'Sim':'Não'):'Não';
+   rows.push('<tr><td><b>'+esc(name)+'</b></td><td>'+esc(sub||'')+'</td><td>'+esc(itemState.replace('CONCLUÍDO','Concluído').replace('HOMOLOGADO','Homologado').replace('EM ANDAMENTO','Em andamento').replace('REPLANEJADO','Replanejado').replace('PENDENTE','Pendente'))+'</td><td>'+esc(survey)+'</td></tr>');
+  });
+ });
+ const totalModules=modules.filter(m=>String(m?.[0]||'').trim()).length;
+ const progress=totalModules?Math.round(completedModules/totalModules*100):0;
+ const body='<h2 style="text-align:center">MAPA DO PROJETO</h2><div class="item"><b>Total Progresso:</b> '+progress+'% &nbsp; · &nbsp; <b>Módulos Homologados:</b> '+homologatedModules+' &nbsp; · &nbsp; <b>Pendentes:</b> '+pendingModules+'</div><table class="map-table"><thead><tr><th>Módulo</th><th>Submódulo</th><th>Status</th><th>Pesquisa</th></tr></thead><tbody>'+rows.join('')+'</tbody></table><div class="item">Documento gerado a partir do Mapa do projeto.</div>';
  printProjectPdf('Mapa do Projeto',body);
 }
 function syncProjectMap(p){const ids=p.productIds||[];const seen={};const oldMeta=Object.fromEntries((p.m||[]).map(m=>[m[0],m[2]||{}]));p.m=[];ids.forEach(pid=>{const pr=productsData.find(x=>x.id===pid);if(!pr)return;(pr.moduleIds||[]).forEach(mid=>{const m=modulesData.find(x=>x.id===mid);if(!m||seen[mid])return;seen[mid]=1;p.m.push([m.name,[...(m.subs||[])],oldMeta[m.name]||{}])})});return p.m}
