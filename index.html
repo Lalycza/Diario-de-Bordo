@@ -5089,35 +5089,60 @@ async function generateMapFile(){
  if(!cur)return;
  try{
   const meta=pdfProjectModelMeta(),modules=Array.isArray(cur.m)?cur.m:[];
-  const norm=value=>String(value??'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/_/g,' ').replace(/\\s+/g,' ');
-  const records=(Array.isArray(cur.t)?cur.t:[]).map(raw=>{const t=taskObj(raw)||{};return {...t,module:t.module||t.moduleName||'',submodule:t.submodule||t.submoduleName||'',surveyApplied:t.surveyApplied||t.survey_applied||'Não'}});
-  const latest=items=>items.reduce((best,item)=>!best||String(item.updatedAt||item.createdAt||'')>=String(best.updatedAt||best.createdAt||'')?item:best,null)||items[items.length-1]||null;
-  const itemStatus=t=>{if(!t)return 'PENDENTE';const status=norm(t.status);if(status==='HOMOLOGADO'||(t.homologationDate&&t.homologationResponsible))return 'HOMOLOGADO';if(status==='CONCLUIDO'||!!t.trainingEndDate)return 'CONCLUÍDO';if(status==='EM ANDAMENTO'||!!(t.trainingStartDate||t.trainingDate))return 'EM ANDAMENTO';if(status==='REPLANEJADO'||(t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate))return 'REPLANEJADO';return 'PENDENTE'};
-  const moduleStatus=(name,recs,configuredSubs)=>{const moduleRecords=recs.filter(t=>norm(t.module)===norm(name)||(!t.module&&norm(t.name)===norm(name)));const subs=configuredSubs.length?configuredSubs:[...new Set(moduleRecords.map(t=>String(t.submodule||'').trim()).filter(Boolean))];const items=subs.length?subs.map(sub=>latest(moduleRecords.filter(t=>norm(t.submodule)===norm(sub)))):[latest(moduleRecords.filter(t=>!t.submodule))];const present=items.filter(Boolean);if(items.length&&present.length===items.length&&items.every(t=>itemStatus(t)==='HOMOLOGADO'))return 'HOMOLOGADO';if(items.length&&present.length===items.length&&items.every(t=>['CONCLUÍDO','HOMOLOGADO'].includes(itemStatus(t))))return 'CONCLUÍDO';if(present.some(t=>itemStatus(t)==='EM ANDAMENTO'))return 'EM ANDAMENTO';if(present.some(t=>itemStatus(t)==='REPLANEJADO'))return 'REPLANEJADO';return 'PENDENTE'};
-  let completedModules=0,homologated=0,pending=0,rows=[];
+  const norm=v=>String(v??'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ').replace(/\s+/g,' ');
+  const records=(Array.isArray(cur.t)?cur.t:[]).map(raw=>taskObj(raw)||{});
+  const last=items=>items.length?items[items.length-1]:null;
+  const statusOf=t=>{
+   if(!t)return 'PENDENTE';
+   const s=norm(t.status);
+   if(s==='HOMOLOGADO'||(t.homologationDate&&t.homologationResponsible))return 'HOMOLOGADO';
+   if(s==='CONCLUIDO'||s==='CONCLUÍDO'||t.trainingEndDate)return 'CONCLUÍDO';
+   if(s==='EM ANDAMENTO'||t.trainingStartDate||t.trainingDate)return 'EM ANDAMENTO';
+   if(s==='REPLANEJADO'||(t.plannedDateOriginal&&t.plannedDate&&t.plannedDateOriginal!==t.plannedDate))return 'REPLANEJADO';
+   return 'PENDENTE';
+  };
+  const recordFor=(moduleName,subName,moduleMeta)=>{
+   const candidates=records.filter(t=>{
+    const moduleMatch=norm(t.module||t.moduleName||t.name)===norm(moduleName)||
+      (moduleMeta?.dbId&&String(t.moduleDbId||t.module_id||'')===String(moduleMeta.dbId));
+    return moduleMatch&&norm(t.submodule||t.submoduleName||'')===norm(subName||'');
+   });
+   return last(candidates);
+  };
+  let completedModules=0,homologatedModules=0,pendingModules=0;
+  const rows=[];
   modules.forEach(module=>{
    const name=String(module?.[0]||'').trim();if(!name)return;
-   const subs=Array.isArray(module?.[1])?module[1].map(String):[];
-   const recs=records.filter(t=>norm(t.module)===norm(name)||(!t.module&&norm(t.name)===norm(name)));
-   const status=moduleStatus(name,records,subs.map(norm));
-   if(['CONCLUÍDO','HOMOLOGADO'].includes(status))completedModules++;
-   if(status==='HOMOLOGADO')homologated++;
-   if(status==='PENDENTE')pending++;
-   const moduleRecs=recs.length?recs:[{}];
-   const moduleTraining=moduleRecs.find(t=>t.trainingStartDate||t.trainingDate||t.plannedDate)||{};
-   const moduleHom=moduleRecs.filter(t=>t.homologationDate||norm(t.status)==='HOMOLOGADO');
-   const homDate=moduleHom.map(t=>t.homologationDate).filter(Boolean).sort().pop()||'';
-   const homResp=[...new Set(moduleHom.map(t=>t.homologationResponsible||t.responsible).filter(Boolean))].join(', ');
-   const moduleSurvey=latest(moduleRecs.filter(t=>!t.submodule));
-   rows.push('<tr class="map-off-module"><td class="map-util">'+esc(name)+'</td><td class="map-mod"><b>'+esc(name)+'</b></td><td>'+esc(pdfDate(moduleTraining.trainingStartDate||moduleTraining.trainingDate||moduleTraining.plannedDate||''))+'</td><td>'+esc(pdfDate(homDate))+'</td><td>'+esc(homResp)+'</td><td>'+pdfStatusCell(status)+'</td><td>'+esc(moduleSurvey?.surveyApplied==='Sim'?'Sim':'Não')+'</td></tr>');
-   subs.forEach(sub=>{const match=latest(recs.filter(t=>norm(t.submodule)===norm(sub)))||{};const state=itemStatus(match);rows.push('<tr><td></td><td class="map-subname">'+esc(sub)+'</td><td>'+esc(pdfDate(match.trainingStartDate||match.trainingDate||match.plannedDate||''))+'</td><td>'+esc(pdfDate(match.homologationDate||''))+'</td><td>'+esc(match.homologationResponsible||'')+'</td><td>'+pdfStatusCell(state)+'</td><td>'+esc(match.surveyApplied==='Sim'?'Sim':'Não')+'</td></tr>')});
+   const moduleMeta=module?.[2]||{};
+   const subs=Array.isArray(module?.[1])?module[1].map(x=>String(x||'').trim()).filter(Boolean):[];
+   const moduleRecord=recordFor(name,'',moduleMeta);
+   const expected=subs.length?subs:[null];
+   const subRecords=expected.map(sub=>sub===null?moduleRecord:recordFor(name,sub,moduleMeta));
+   const states=subRecords.map(statusOf);
+   const isComplete=states.length>0&&subRecords.every(Boolean)&&states.every(s=>s==='CONCLUÍDO'||s==='HOMOLOGADO');
+   const isHomologated=states.length>0&&subRecords.every(Boolean)&&states.every(s=>s==='HOMOLOGADO');
+   if(isComplete)completedModules++;
+   if(isHomologated)homologatedModules++;
+   if(!isComplete&&states.every(s=>s==='PENDENTE'))pendingModules++;
+   const moduleState=isHomologated?'HOMOLOGADO':isComplete?'CONCLUÍDO':states.includes('EM ANDAMENTO')?'EM ANDAMENTO':states.includes('REPLANEJADO')?'REPLANEJADO':'PENDENTE';
+   const moduleTraining=subRecords.find(t=>t&&(t.trainingStartDate||t.trainingDate||t.plannedDate))||moduleRecord||{};
+   const homRecords=subRecords.filter(t=>t&&(t.homologationDate||statusOf(t)==='HOMOLOGADO'));
+   const homDate=homRecords.map(t=>t.homologationDate).filter(Boolean).slice(-1)[0]||'';
+   const homResp=[...new Set(homRecords.map(t=>t.homologationResponsible||'').filter(Boolean))].join(', ');
+   rows.push('<tr class="map-off-module"><td class="map-util">'+esc(name)+'</td><td class="map-mod"><b>'+esc(name)+'</b></td><td>'+esc(pdfDate(moduleTraining.trainingStartDate||moduleTraining.trainingDate||moduleTraining.plannedDate||''))+'</td><td>'+esc(pdfDate(homDate))+'</td><td>'+esc(homResp)+'</td><td>'+pdfStatusCell(moduleState)+'</td><td>'+esc(moduleRecord?.surveyApplied==='Sim'?'Sim':'Não')+'</td></tr>');
+   expected.forEach((sub,index)=>{
+    if(sub===null)return;
+    const match=subRecords[index]||{};
+    const state=statusOf(match);
+    rows.push('<tr><td></td><td class="map-subname">'+esc(sub)+'</td><td>'+esc(pdfDate(match.trainingStartDate||match.trainingDate||match.plannedDate||''))+'</td><td>'+esc(pdfDate(match.homologationDate||''))+'</td><td>'+esc(match.homologationResponsible||'')+'</td><td>'+pdfStatusCell(state)+'</td><td>'+esc(match.surveyApplied==='Sim'?'Sim':'Não')+'</td></tr>');
+   });
   });
   const totalModules=modules.filter(m=>String(m?.[0]||'').trim()).length;
   const progress=totalModules?Math.round(completedModules/totalModules*100):0;
   const p=meta.p||{};
-  const body='<div class="pdf-map-page"><table class="map-head"><tr><td><b>Projeto:</b></td><td>'+esc(cur.n||'')+'</td><td><b>Data Início:</b></td><td>'+esc(pdfDate(p.startDate))+'</td><td><b>Total Progresso:</b></td><td>'+progress+'%</td></tr><tr><td><b>Analista Implantação:</b></td><td>'+esc(meta.analyst)+'</td><td><b>Data Entrega:</b></td><td>'+esc(pdfDate(p.endDate))+'</td><td><b>Módulos Homologados:</b></td><td>'+homologated+'</td></tr><tr><td><b>Atualizado em:</b></td><td>'+esc(new Date().toLocaleString('pt-BR'))+'</td><td><b>Entrega Original:</b></td><td>'+esc(pdfDate(p.originalEndDate||p.endDate))+'</td><td><b>Pendentes:</b></td><td>'+pending+'</td></tr></table><table class="map-official-table"><thead><tr><th>Utilitários</th><th>Módulos</th><th>Treinamento</th><th>Data Homologação</th><th>Responsável Homologação</th><th>Status</th><th>Pesquisa</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+  const body='<div class="pdf-map-page"><table class="map-head"><tr><td><b>Projeto:</b></td><td>'+esc(cur.n||'')+'</td><td><b>Data Início:</b></td><td>'+esc(pdfDate(p.startDate))+'</td><td><b>Total Progresso:</b></td><td><b>'+progress+'%</b></td></tr><tr><td><b>Analista Implantação:</b></td><td>'+esc(meta.analyst)+'</td><td><b>Data Entrega:</b></td><td>'+esc(pdfDate(p.endDate))+'</td><td><b>Módulos Homologados:</b></td><td>'+homologatedModules+'</td></tr><tr><td><b>Atualizado em:</b></td><td>'+esc(new Date().toLocaleString('pt-BR'))+'</td><td><b>Entrega Original:</b></td><td>'+esc(pdfDate(p.originalEndDate||p.endDate))+'</td><td><b>Pendentes:</b></td><td>'+pendingModules+'</td></tr></table><table class="map-official-table"><colgroup><col style="width:14%"><col style="width:20%"><col style="width:11%"><col style="width:13%"><col style="width:16%"><col style="width:13%"><col style="width:13%"></colgroup><thead><tr><th>Utilitários</th><th>Módulos</th><th>Treinamento</th><th>Data Homologação</th><th>Responsável Homologação</th><th>Status</th><th>Pesquisa</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
   printProjectPdf('Mapa',body);
- }catch(err){console.error('Erro ao gerar Mapa PDF',err);alert('Não foi possível gerar o Mapa. Os dados de módulos e submódulos foram preservados.\\n\\n'+(err?.message||err));}
+ }catch(err){console.error('Erro ao gerar Mapa PDF',err);alert('Não foi possível gerar o Mapa. Os dados de módulos e submódulos foram preservados.\n\n'+(err?.message||err));}
 }
 function cronOfficialSummary(){const meta=pdfProjectModelMeta(),ts=trainingRecords(),mods=[...new Set((cur.m||[]).map(m=>m[0]).filter(Boolean))];return mods.map(name=>{const recs=ts.filter(t=>(t.module||t.name||'').toUpperCase()===String(name).toUpperCase()),status=moduleCronStatus(name,recs),realized=recs.filter(t=>t.trainingStartDate||t.trainingDate||t.trainingEndDate),hom=recs.filter(t=>t.homologationDate||t.status==='HOMOLOGADO'),conclusion=realized.map(t=>t.trainingEndDate||t.trainingStartDate||t.trainingDate).filter(Boolean).sort().pop()||'',homDate=hom.map(t=>t.homologationDate).filter(Boolean).sort().pop()||'',homResp=[...new Set(hom.map(t=>t.homologationResponsible||t.responsible).filter(Boolean))].join(', ');return '<tr><td>'+esc(name)+'</td><td>'+pdfStatusCell(status)+'</td><td>'+esc(pdfDate(conclusion))+'</td><td>'+esc(pdfDate(homDate))+'</td><td>'+esc(homResp)+'</td><td></td></tr>'}).join('')}
 function cronQuarterHtmlOfficial(months,quarter,year){
