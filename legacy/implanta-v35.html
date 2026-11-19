@@ -425,7 +425,7 @@ function pdfPesquisa(){if(!cur)return;let body=pesquisaPdfBody();let preview='<d
 function printPesquisaPdf(){pdfPreviewTitle='Pesquisa de Satisfação';pdfPreviewBody=pesquisaPdfBody();printCurrentPdf()}
 function generateMapFile(){
  if(!cur)return;
- const norm=value=>String(value??'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/_/g,' ').replace(/\\s+/g,' ');
+ const norm=value=>String(value??'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/_/g,' ').replace(/\s+/g,' ');
  const records=(Array.isArray(cur.t)?cur.t:[]).map((raw,index)=>{
   const t=taskObj(raw)||{};
   return {...t,_mapIndex:index,module:t.module||t.moduleName||'',submodule:t.submodule||t.submoduleName||'',surveyApplied:t.surveyApplied||t.survey_applied||'Não'};
