@@ -5087,7 +5087,7 @@ async function generateMapFile(){
  if(!cur)return;
  try{
   const meta=pdfProjectModelMeta(),modules=Array.isArray(cur.m)?cur.m:[],raw=Array.isArray(cur.t)?cur.t:[];
-  const norm=v=>String(v??'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ');
+  const norm=v=>String(v??'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   const mapTasks=raw.map(value=>{const x=Array.isArray(value)?{name:value[0]||'',status:value[4]||'PENDENTE',responsible:value[5]||'',module:value[6]||'',submodule:value[7]||'',trainingStartDate:value[3]||'',trainingEndDate:value[9]||'',plannedDate:value[10]||'',plannedDateOriginal:value[11]||value[10]||'',homologationDate:value[12]||'',homologationResponsible:value[13]||'',surveyApplied:value[14]||'Não'}:value||{};return {...x,module:x.module||x.moduleName||'',submodule:x.submodule||x.submoduleName||'',status:x.status||'PENDENTE',surveyApplied:x.surveyApplied||'Não'};});
   const itemStatus=t=>{const s=norm(t?.status);if((t?.homologationDate&&t?.homologationResponsible)||s==='HOMOLOGADO')return 'HOMOLOGADO';if(t?.trainingEndDate||s==='CONCLUIDO')return 'CONCLUÍDO';if(t?.trainingStartDate||t?.trainingDate||s==='EM ANDAMENTO')return 'EM ANDAMENTO';if(s==='REPLANEJADO'||(t?.plannedDateOriginal&&t?.plannedDate&&t.plannedDateOriginal!==t.plannedDate))return 'REPLANEJADO';return 'PENDENTE'};
   const latest=items=>items.length?items[items.length-1]:{};
