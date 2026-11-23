@@ -5161,7 +5161,7 @@ function cronQuarterHtmlOfficial(months,quarter,year){
  h+='</tr><tr>';months.forEach(()=>{for(let w=1;w<=5;w++)h+='<th class="cron-week-head">SEMANA '+w+'</th>'});h+='</tr></thead><tbody>';
  names.forEach(name=>{
   const meta=plannedModules.find(m=>normPdfModule(m[0])===normPdfModule(name))?.[2]||{};
-  const all=trainingRecords().filter(t=>normPdfModule(t.module||t.name)===normPdfModule(name));
+  const all=allTrainingRecords().filter(t=>normPdfModule(t.module||t.name)===normPdfModule(name));
   if(!all.some(t=>!t.submodule&&(t.plannedDateOriginal||t.plannedDate))){
    all.push({module:name,submodule:'',plannedDate:meta.plannedDate,plannedDateOriginal:meta.plannedDate,status:'PENDENTE'});
   }
