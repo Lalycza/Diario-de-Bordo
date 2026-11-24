@@ -3387,7 +3387,7 @@ async function hydrateFromSupabase(){
         .map(v=>String(v.product_id)));
       const linkedProjectRow=(pg.data||[]).find(v=>String(v.id)===String(x.project_id));
       const linkedClientProducts=clientProductsByClientDb.get(String(linkedProjectRow?.client_id||''))||[];
-      const contractedProductIds=new Set(linkedClientProducts.map(row=>String(row.product_id)));
+      const contractedProductIds=new Set(linkedClientProducts.map(row=>String(row)));
       // O produto só delimita a origem dos módulos quando também pertence ao contrato do cliente.
       // Assim, associações antigas/de teste em project_products não poluem o MAPA do projeto.
       for(const productId of [...projectDbProductIds])if(!contractedProductIds.has(String(productId)))projectDbProductIds.delete(productId);
