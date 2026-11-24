@@ -3591,6 +3591,7 @@ function projectImplantationStatus(p){if(p.projectType==='consultoria')return 'C
 function projectMapCounters(p){
  const diaryOnly=p.projectType==='consultoria'&&p.documentationScope==='diario';
  if(diaryOnly)return {modules:0,submodules:0,stages:0};
+ const normName=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim().toUpperCase();
  const modules=(Array.isArray(p?.m)?p.m:[]).filter(m=>Array.isArray(m)&&m[0]);
  const visibleKeys=new Set();
  const visibleNameKeys=new Set();
@@ -3602,7 +3603,7 @@ function projectMapCounters(p){
   }else{
    (Array.isArray(m[1])?m[1]:[]).forEach(s=>{
     const name=String(s||'').trim();
-    if(name)visibleNameKeys.add(normMapName(m[0])+'::'+normMapName(name));
+    if(name)visibleNameKeys.add(normName(m[0])+'::'+normName(name));
    });
   }
  }
@@ -3614,7 +3615,7 @@ function projectMapCounters(p){
   if(t.moduleDbId&&t.submoduleDbId){
    completedKeys.add(String(t.moduleDbId)+'::'+String(t.submoduleDbId));
   }else if(t.module&&t.submodule){
-   completedNameKeys.add(normMapName(t.module)+'::'+normMapName(t.submodule));
+   completedNameKeys.add(normName(t.module)+'::'+normName(t.submodule));
   }
  }
  let stages=0;
