@@ -180,12 +180,24 @@ function ProjetosPage() {
     },
   });
 
+  const projectSubmodulesQuery = useQuery({
+    queryKey: ["all-project-submodules-for-counters"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("submodules")
+        .select("id, module_id, project_id")
+        .eq("active", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const trainingsQuery = useQuery({
     queryKey: ["all-trainings-for-projects"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trainings")
-        .select("project_id, module_id, status, planned_date");
+        .select("project_id, module_id, submodule_id, status, planned_date");
       if (error) throw error;
       return data ?? [];
     },
@@ -355,7 +367,40 @@ function ProjetosPage() {
     const stages = (stagesQuery.data ?? []).filter((s) => s.project_id === projectId);
     const late = stages.filter((s) => effectiveStageStatus(s) === "atrasada").length;
     const percent = assigned.length === 0 ? 0 : Math.min(100, Math.round((done / assigned.length) * 100));
-    return { percent, total: assigned.length, done, late };
+
+    // Os contadores são apenas leitura da estrutura já vinculada ao projeto.
+    // Não alteram módulos, submódulos, treinamentos, MAPA ou Cronograma.
+    const project = (projectsQuery.data ?? []).find((item) => item.id === projectId);
+    const diaryOnly = project?.documentation_scope === "diario";
+    const moduleIds = new Set(assigned.map((item) => item.module_id));
+    const projectSubmodules = diaryOnly
+      ? []
+      : (projectSubmodulesQuery.data ?? []).filter(
+          (item) =>
+            moduleIds.has(item.module_id) &&
+            (item.project_id === null || item.project_id === projectId),
+        );
+    const submoduleIds = new Set(projectSubmodules.map((item) => item.id));
+    const completedSubmoduleIds = new Set(
+      trainings
+        .filter(
+          (item) =>
+            item.submodule_id &&
+            submoduleIds.has(item.submodule_id) &&
+            (item.status === "Concluído" || item.status === "Homologado"),
+        )
+        .map((item) => item.submodule_id),
+    );
+
+    return {
+      percent,
+      total: assigned.length,
+      done,
+      late,
+      modules: diaryOnly ? 0 : moduleIds.size,
+      submodules: submoduleIds.size,
+      stages: completedSubmoduleIds.size,
+    };
   }
 
   const toggleFase = (fase: string) => {
@@ -510,6 +555,21 @@ function ProjetosPage() {
                     <dd className="font-medium">{formatDate(project.previsao_conclusao)}</dd>
                   </div>
                 </dl>
+
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="rounded-md border bg-muted/20 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Módulos</p>
+                    <p className="text-lg font-semibold">{p.modules}</p>
+                  </div>
+                  <div className="rounded-md border bg-muted/20 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Submódulos</p>
+                    <p className="text-lg font-semibold">{p.submodules}</p>
+                  </div>
+                  <div className="rounded-md border bg-muted/20 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Etapas</p>
+                    <p className="text-lg font-semibold">{p.stages}</p>
+                  </div>
+                </div>
 
                 <div className="mt-4">
                   <div className="mb-1 flex items-center justify-between text-xs">
