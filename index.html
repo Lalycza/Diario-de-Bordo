@@ -3591,7 +3591,7 @@ function projectImplantationStatus(p){if(p.projectType==='consultoria')return 'C
 function projectMapCounters(p){
  const diaryOnly=p.projectType==='consultoria'&&p.documentationScope==='diario';
  if(diaryOnly)return {modules:0,submodules:0,stages:0};
- const normName=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim().toUpperCase();
+ const normName=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
  const modules=(Array.isArray(p?.m)?p.m:[]).filter(m=>Array.isArray(m)&&m[0]);
  const visibleKeys=new Set();
  const visibleNameKeys=new Set();
