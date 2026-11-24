@@ -3298,62 +3298,14 @@ async function hydrateFromSupabase(){
       if(m)m.subs.push(x.name);
     }
 
-    // Preenche automaticamente a estrutura inicial do Mapa a partir do produto
-    // atribuído ao cliente, sem duplicar módulos já vinculados ao projeto.
-    const projectProductIdsByProject=new Map();
-    for(const x of (pp.data||[])){
-      const arr=projectProductIdsByProject.get(String(x.project_id))||[];
-      if(x.product_id)arr.push(String(x.product_id));
-      projectProductIdsByProject.set(String(x.project_id),arr);
-    }
-    const clientProductIdsByDb=new Map();
-    for(const x of (cp.data||[])){
-      const status=String(x.status||'').trim().toUpperCase();
-      if(!x.product_id||status==='INATIVO')continue;
-      const arr=clientProductIdsByDb.get(String(x.client_id))||[];
-      if(!arr.includes(String(x.product_id)))arr.push(String(x.product_id));
-      clientProductIdsByDb.set(String(x.client_id),arr);
-    }
+    // O Mapa do projeto é a fonte de verdade para módulos.
+    // O produto pode servir como modelo inicial na criação, mas não repõe módulos
+    // durante a hidratação: customizações (a mais ou a menos) devem ser preservadas.
     let excludedProjectModuleKeys=new Set();
     let moduleExclusionsReady=false;
     const exclusionsQ=await supabaseClient.from('project_module_exclusions').select('project_id,module_id');
     if(exclusionsQ.error){console.warn('Exclusão persistente de módulos indisponível; os módulos existentes serão preservados e nenhuma exclusão será simulada.',exclusionsQ.error.message);}else{moduleExclusionsReady=true;excludedProjectModuleKeys=new Set((exclusionsQ.data||[]).map(x=>String(x.project_id)+'::'+String(x.module_id)));}
     window._projectModuleExclusionsReady=moduleExclusionsReady;
-    const existingProjectModuleKeys=new Set(
-      (pm.data||[]).map(x=>String(x.project_id)+'::'+String(x.module_id))
-    );
-    const autoProjectModules=[];
-    for(const projectRow of (pg.data||[])){
-      if((projectRow.business_unit||'sistemas')!=='sistemas')continue;
-      const projectId=String(projectRow.id);
-      const projectProducts=projectProductIdsByProject.get(projectId)||[];
-      const clientProducts=clientProductIdsByDb.get(String(projectRow.client_id||''))||[];
-      // Nunca misturar todos os produtos do cliente no Mapa de um projeto.
-      // Sem vínculo explícito, só herdamos o produto quando houver exatamente um ativo.
-      const productIds=projectProducts.length
-        ? projectProducts
-        : (clientProducts.length===1?clientProducts:[]);
-      const allowedProducts=new Set(productIds.map(String));
-      if(!allowedProducts.size)continue;
-      for(const moduleRow of (mo.data||[])){
-        if(moduleRow.active===false||!allowedProducts.has(String(moduleRow.product_id)))continue;
-        const key=projectId+'::'+String(moduleRow.id);
-        if(excludedProjectModuleKeys.has(key)||existingProjectModuleKeys.has(key))continue;
-        existingProjectModuleKeys.add(key);
-        autoProjectModules.push({
-          project_id:projectRow.id,
-          module_id:moduleRow.id,
-          planned_training_date:null
-        });
-      }
-    }
-    if(autoProjectModules.length){
-      const {error:autoPmError}=await supabaseClient
-        .from('project_modules')
-        .upsert(autoProjectModules,{onConflict:'project_id,module_id'});
-      if(autoPmError)throw autoPmError;
-      pm.data=[...(pm.data||[]),...autoProjectModules];
-    }
 
     clientsData=(cl.data||[]).map(x=>{
       const id=clientByDb.get(x.id);
@@ -3462,31 +3414,8 @@ async function hydrateFromSupabase(){
         }
       }
     }
-    // Garante que o Mapa reflita a estrutura completa do produto vinculado ao projeto,
-    // mesmo quando existirem vínculos project_modules incompletos. Exclusões deste projeto são respeitadas.
-    for(const projectRow of (pg.data||[])){
-      const p=ps.find(v=>String(v.id)===String(projectByDb.get(projectRow.id)));
-      if(!p)continue;
-      const projectProductIds=new Set((pp.data||[])
-        .filter(v=>String(v.project_id)===String(projectRow.id))
-        .map(v=>String(v.product_id)));
-      const clientProductsForProject=clientProductsByClientDb.get(String(projectRow.client_id||''))||[];
-      if(!projectProductIds.size&&clientProductsForProject.length===1)projectProductIds.add(String(clientProductsForProject[0]));
-      for(const rawModule of (mo.data||[])){
-        if(!rawModule?.product_id||!projectProductIds.has(String(rawModule.product_id)))continue;
-        if(excludedProjectModuleKeys.has(String(projectRow.id)+'::'+String(rawModule.id)))continue;
-        const m=modulesData.find(v=>String(v.id)===String(moduleByDb.get(rawModule.id)));
-        if(!m)continue;
-        if(p.m.some(existing=>String(existing[2]?.dbId||'')===String(rawModule.id)))continue;
-        const projectModuleRow=(pm.data||[]).find(v=>String(v.project_id)===String(projectRow.id)&&String(v.module_id)===String(rawModule.id));
-        const excludedKeys=window._projectSubmoduleExclusionKeys||new Set();
-        const normalizedModuleName=normMapName(rawModule.name||m.name);
-        const visibleSubs=(m.subs||[]).filter(name=>!excludedKeys.has(String(projectRow.id)+'::'+normalizedModuleName+'::'+normMapName(name)));
-        const visibleSubRows=(su.data||[]).filter(sub=>String(sub.module_id)===String(rawModule.id)&&(sub.project_id==null||String(sub.project_id)===String(projectRow.id))&&!excludedKeys.has(String(projectRow.id)+'::'+normalizedModuleName+'::'+normMapName(sub.name)));
-        const combinedSubs=[...new Map([...visibleSubs,...visibleSubRows.map(sub=>sub.name)].map(name=>[normMapName(name),name])).values()];
-        p.m.push([m.name,combinedSubs,{plannedDate:projectModuleRow?.planned_training_date||null,dbId:rawModule.id,productId:rawModule.product_id,productName:(pr.data||[]).find(prod=>String(prod.id)===String(rawModule.product_id))?.name||'',submoduleRefs:visibleSubRows.map(sub=>({id:sub.id,name:sub.name,projectScoped:sub.project_id!=null}))}]);
-      }
-    }
+    // Não completar o Mapa a partir do catálogo/produto nesta etapa.
+    // Apenas vínculos persistidos em project_modules entram na estrutura do projeto.
     const grouped={};
     for(const x of (tr.data||[])){
       const pid=projectByDb.get(x.project_id);
@@ -3659,7 +3588,7 @@ function render(){
  const healthCounts={'Atrasados':healthRows.filter(x=>x.health.status==='Atrasado').length,'Precisam de atenção':healthRows.filter(x=>x.health.status==='Precisa de atenção').length,'Em dia':healthRows.filter(x=>x.health.status==='Em dia').length,'Concluídos':healthRows.filter(x=>x.health.status==='Concluído').length,'Congelados':healthRows.filter(x=>x.health.status==='Congelado').length,'Sem prazo definido':healthRows.filter(x=>x.health.status==='Sem prazo definido').length};
  const attentionProjects=healthRows.filter(x=>['Atrasado','Precisa de atenção'].includes(x.health.status)).sort((a,b)=>(a.health.status==='Atrasado'?-1:1)-(b.health.status==='Atrasado'?-1:1)||b.health.overdue-a.health.overdue).slice(0,6);
  const analystOverview='<section class="analyst-all-projects-row analyst-all-projects-health"><div class="analyst-all-projects-section-title">'+(currentUser?.role==='analyst'?'Saúde dos meus projetos':'Saúde dos projetos')+'</div>'+lzDonutHtml('Distribuição da saúde',healthCounts)+'</section><section class="analyst-all-projects-row analyst-all-projects-attention"><div class="analyst-all-projects-section-title">Precisam de atenção</div><div class="analyst-portfolio-panel" style="margin:0">'+(attentionProjects.length?attentionProjects.map(x=>'<div class="analyst-portfolio-row"><span><b>'+esc(x.p.n||x.p.c||'Projeto')+'</b><small>'+(x.health.status==='Atrasado'?'Atrasado em '+x.health.overdue+' atividade(s)':x.health.soon+' atividade(s) com prazo nos próximos 7 dias')+'</small></span><button type="button" class="secondary" onclick="openP('+x.p.id+')">Ver projeto</button></div>').join(''):'<p class="muted">Nenhum projeto com alerta por prazo nesta seleção.</p>')+'<p class="muted" style="margin-top:10px;font-size:12px">Classificação baseada nos prazos das atividades do Cronograma.</p></div></section>';
- const cards=arr.map(p=>{const owner=usersData.find(u=>String(u.id)===String((p.operatorIds||[])[0]))||usersData.find(u=>String(u.email||'').toLowerCase()===String(p.owner||'').toLowerCase()),gs=projectGoLiveFor(p),prod=gs.filter(x=>x.status==='Em produção').length,del=hasAdminAccess()?' <button type="button" class="danger" onclick="excluirProjeto('+p.id+')">Excluir projeto</button>':'',lifecycle=p.projectStatus||'Ativo',lc=lifecycle.toLowerCase(),implant=projectImplantationStatus(p);return '<div class="analyst-portfolio-panel" style="margin:0"><div class="row"><b>'+esc(p.n)+'</b><span><span class="badge">'+(owner?esc(owner.name):'Sem responsável')+'</span> <span class="project-lifecycle-badge project-lifecycle-'+lc+'">'+esc(lifecycle)+'</span></span></div><p class="muted">'+esc(p.c)+'<br>Etapas: '+(p.t||[]).length+' · Módulos: '+(p.m||[]).length+(prod?' · Em produção: '+prod:'')+'</p><p class="owner">Responsável: '+esc(p.owner)+' · '+esc(implant)+'</p><button type="button" class="primary" onclick="openP('+p.id+')">Abrir projeto</button>'+del+'</div>'}).join('');
+ const cards=arr.map(p=>{const owner=usersData.find(u=>String(u.id)===String((p.operatorIds||[])[0]))||usersData.find(u=>String(u.email||'').toLowerCase()===String(p.owner||'').toLowerCase()),gs=projectGoLiveFor(p),prod=gs.filter(x=>x.status==='Em produção').length,del=hasAdminAccess()?' <button type="button" class="danger" onclick="excluirProjeto('+p.id+')">Excluir projeto</button>':'',lifecycle=p.projectStatus||'Ativo',lc=lifecycle.toLowerCase(),implant=projectImplantationStatus(p);return '<div class="analyst-portfolio-panel" style="margin:0"><div class="row"><b>'+esc(p.n)+'</b><span><span class="badge">'+(owner?esc(owner.name):'Sem responsável')+'</span> <span class="project-lifecycle-badge project-lifecycle-'+lc+'">'+esc(lifecycle)+'</span></span></div><p class="muted">'+esc(p.c)+'<br>Etapas: '+(p.projectType==='consultoria'&&p.documentationScope==='diario'?0:(p.t||[]).length)+' · Módulos: '+(p.projectType==='consultoria'&&p.documentationScope==='diario'?0:(p.m||[]).length)+(prod?' · Em produção: '+prod:'')+'</p><p class="owner">Responsável: '+esc(p.owner)+' · '+esc(implant)+'</p><button type="button" class="primary" onclick="openP('+p.id+')">Abrir projeto</button>'+del+'</div>'}).join('');
  document.getElementById('list').innerHTML='<section class="analyst-all-projects-row analyst-all-projects-kpis"><div class="analyst-portfolio-grid"><div class="analyst-portfolio-kpi"><small>Projetos visíveis</small><strong>'+total+'</strong></div><div class="analyst-portfolio-kpi"><small>Em implantação</small><strong>'+inImpl+'</strong></div><div class="analyst-portfolio-kpi"><small>Projetos em consultoria</small><strong>'+consultoria+'</strong></div><div class="analyst-portfolio-kpi"><small>Projetos congelados</small><strong>'+frozen+'</strong></div><div class="analyst-portfolio-kpi"><small>Go Live</small><strong>'+goLive+'</strong></div><div class="analyst-portfolio-kpi"><small>Módulos em andamento</small><strong>'+inProgressModules+'</strong></div><div class="analyst-portfolio-kpi"><small>Módulos concluídos</small><strong>'+completedModules+'</strong></div><div class="analyst-portfolio-kpi"><small>Treinamentos pendentes</small><strong>'+pending+'</strong></div><div class="analyst-portfolio-kpi"><small>Homologados</small><strong>'+closed+'</strong></div></div></section>'+analystOverview+'<section class="analyst-all-projects-row analyst-all-projects-projects"><div class="analyst-all-projects-section-title">Projetos</div><div class="analyst-all-projects-project-grid">'+(cards||'<div class="analyst-portfolio-panel">Nenhum projeto disponível para este usuário.</div>')+'</div></section>';
 }
 function projectOperationalSummary(p){
